@@ -362,6 +362,8 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, off, update, push, remove, serverTimestamp, onDisconnect }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getAuth, signInAnonymously, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const firebaseConfig = {
@@ -376,6 +378,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const auth = getAuth(app);
+
+// Anonymous Auth — required for Firebase security rules
+let _authReady = false;
+const _authTimeout = setTimeout(() => { _authReady = true; }, 5000);
+onAuthStateChanged(auth, () => { _authReady = true; clearTimeout(_authTimeout); });
+signInAnonymously(auth).catch(() => { _authReady = true; clearTimeout(_authTimeout); });
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const PINK="#FF2D78", BLUE="#FFD600", GREEN="#00C853", YELLOW="#00AEEF";
