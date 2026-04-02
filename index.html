@@ -382,9 +382,20 @@ const auth = getAuth(app);
 
 // Anonymous Auth — required for Firebase security rules
 let _authReady = false;
-const _authTimeout = setTimeout(() => { _authReady = true; }, 5000);
-onAuthStateChanged(auth, () => { _authReady = true; clearTimeout(_authTimeout); });
-signInAnonymously(auth).catch(() => { _authReady = true; clearTimeout(_authTimeout); });
+let _authResolvers = [];
+function waitForAuth(){
+  if(_authReady) return Promise.resolve();
+  return new Promise(res => _authResolvers.push(res));
+}
+function _setAuthReady(){
+  if(_authReady) return;
+  _authReady = true;
+  _authResolvers.forEach(r => r());
+  _authResolvers = [];
+}
+const _authTimeout = setTimeout(_setAuthReady, 5000);
+onAuthStateChanged(auth, () => { clearTimeout(_authTimeout); _setAuthReady(); });
+signInAnonymously(auth).catch(() => { clearTimeout(_authTimeout); _setAuthReady(); });
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const PINK="#FF2D78", BLUE="#FFD600", GREEN="#00C853", YELLOW="#00AEEF";
@@ -497,6 +508,8 @@ function genCode(){
 // ── Create Room ────────────────────────────────────────────────────────────────
 window.createRoom = async function(numPlayers){
   closeModals();
+  showToast("Connecting...");
+  await waitForAuth();
   NUM_PLAYERS = numPlayers;
   IS_HOST = true;
   MY_SEAT = 3; // Host is always seat 3 (YELLOW = bottom-left)
@@ -537,6 +550,8 @@ window.createRoom = async function(numPlayers){
 
 // ── Join Room ──────────────────────────────────────────────────────────────────
 window.joinRoom = async function(){
+  await waitForAuth();
+  showToast("Connecting...");
   const code = document.getElementById("join-code-input").value.trim().toUpperCase();
   const name = document.getElementById("join-name-input").value.trim() || "Player";
   if(code.length !== 6){ showToast("Enter a 6-digit code"); return; }
