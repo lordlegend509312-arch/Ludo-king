@@ -248,7 +248,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
     <div id="lobby-sub">ONLINE MULTIPLAYER</div>
     <div id="lobby-divider"></div>
     <div id="lobby-cards" style="display:flex;flex-direction:column;gap:10px;width:100%;">
-      <div class="s-card" onclick="showCreateRoom()">
+      <div class="s-card" id="btn-create-room">
         <div class="s-card-icon" style="background:linear-gradient(135deg,#f5a623,#e07b00);">🏠</div>
         <div class="s-card-text">
           <div class="s-card-title">Create Room</div>
@@ -257,7 +257,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
         <div class="s-card-arrow">›</div>
         <div class="s-card-shine"></div>
       </div>
-      <div class="s-card" onclick="showJoinRoom()">
+      <div class="s-card" id="btn-join-room">
         <div class="s-card-icon" style="background:linear-gradient(135deg,#00bcd4,#0086a0);">🔗</div>
         <div class="s-card-text">
           <div class="s-card-title">Join Room</div>
@@ -474,6 +474,10 @@ window.showJoinRoom = function(){
   document.getElementById("modal-join").classList.add("show");
 };
 window.closeModals = closeModals;
+
+// Bind lobby buttons via addEventListener (fixes onclick + type="module" timing issue)
+document.getElementById("btn-create-room").addEventListener("click", window.showCreateRoom);
+document.getElementById("btn-join-room").addEventListener("click", window.showJoinRoom);
 
 window.confirmHostName = function(){
   const name = document.getElementById("host-name-input").value.trim() || "Host";
