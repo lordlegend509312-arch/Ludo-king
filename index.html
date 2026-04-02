@@ -393,9 +393,16 @@ function _setAuthReady(){
   _authResolvers.forEach(r => r());
   _authResolvers = [];
 }
-const _authTimeout = setTimeout(_setAuthReady, 5000);
-onAuthStateChanged(auth, () => { clearTimeout(_authTimeout); _setAuthReady(); });
-signInAnonymously(auth).catch(() => { clearTimeout(_authTimeout); _setAuthReady(); });
+const _authTimeout = setTimeout(_setAuthReady, 8000);
+onAuthStateChanged(auth, (user) => {
+  if(user){ clearTimeout(_authTimeout); _setAuthReady(); }
+});
+signInAnonymously(auth).then(()=>{
+  clearTimeout(_authTimeout); _setAuthReady();
+}).catch(()=>{
+  // Auth fail hone par bhi game chalega (open rules ke sath)
+  clearTimeout(_authTimeout); _setAuthReady();
+});
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const PINK="#FF2D78", BLUE="#FFD600", GREEN="#00C853", YELLOW="#00AEEF";
@@ -486,9 +493,18 @@ window.showJoinRoom = function(){
 };
 window.closeModals = closeModals;
 
-// Bind lobby buttons via addEventListener (fixes onclick + type="module" timing issue)
-document.getElementById("btn-create-room").addEventListener("click", window.showCreateRoom);
-document.getElementById("btn-join-room").addEventListener("click", window.showJoinRoom);
+// Bind lobby buttons - safe null-checked event delegation
+function bindLobbyButtons(){
+  const createBtn = document.getElementById("btn-create-room");
+  const joinBtn = document.getElementById("btn-join-room");
+  if(createBtn) createBtn.addEventListener("click", window.showCreateRoom);
+  if(joinBtn) joinBtn.addEventListener("click", window.showJoinRoom);
+}
+if(document.readyState === "loading"){
+  document.addEventListener("DOMContentLoaded", bindLobbyButtons);
+} else {
+  bindLobbyButtons();
+}
 
 window.confirmHostName = function(){
   const name = document.getElementById("host-name-input").value.trim() || "Host";
@@ -508,19 +524,26 @@ function genCode(){
 // ── Create Room ────────────────────────────────────────────────────────────────
 window.createRoom = async function(numPlayers){
   closeModals();
-  showToast("Connecting...");
-  await waitForAuth();
+  showToast("Creating room...");
+  try {
+    await waitForAuth();
+  } catch(e){ /* proceed anyway */ }
   NUM_PLAYERS = numPlayers;
   IS_HOST = true;
   MY_SEAT = 3; // Host is always seat 3 (YELLOW = bottom-left)
 
   // Generate unique room code
   let code, exists;
-  do {
-    code = genCode();
-    const snap = await get(ref(db, `rooms/${code}`));
-    exists = snap.exists();
-  } while(exists);
+  try {
+    do {
+      code = genCode();
+      const snap = await get(ref(db, `rooms/${code}`));
+      exists = snap.exists();
+    } while(exists);
+  } catch(e){
+    showToast("Connection failed. Check internet.");
+    return;
+  }
 
   ROOM_CODE = code;
   roomRef = ref(db, `rooms/${code}`);
@@ -528,15 +551,20 @@ window.createRoom = async function(numPlayers){
   playersRef = ref(db, `rooms/${code}/players`);
 
   // Create room in Firebase
-  await set(roomRef, {
-    numPlayers,
-    status: "waiting",
-    host: MY_SEAT,
-    createdAt: serverTimestamp(),
-    players: {
-      3: { name: MY_NAME, seat: 3, online: true, joinedAt: serverTimestamp() }
-    }
-  });
+  try {
+    await set(roomRef, {
+      numPlayers,
+      status: "waiting",
+      host: MY_SEAT,
+      createdAt: serverTimestamp(),
+      players: {
+        3: { name: MY_NAME, seat: 3, online: true, joinedAt: serverTimestamp() }
+      }
+    });
+  } catch(e){
+    showToast("Failed to create room. Check Firebase rules.");
+    return;
+  }
 
   // Presence
   _presenceRef = ref(db, `rooms/${code}/players/3/online`);
@@ -550,14 +578,20 @@ window.createRoom = async function(numPlayers){
 
 // ── Join Room ──────────────────────────────────────────────────────────────────
 window.joinRoom = async function(){
-  await waitForAuth();
+  try { await waitForAuth(); } catch(e){ /* proceed */ }
   showToast("Connecting...");
   const code = document.getElementById("join-code-input").value.trim().toUpperCase();
   const name = document.getElementById("join-name-input").value.trim() || "Player";
   if(code.length !== 6){ showToast("Enter a 6-digit code"); return; }
 
   MY_NAME = name;
-  const rSnap = await get(ref(db, `rooms/${code}`));
+  let rSnap;
+  try {
+    rSnap = await get(ref(db, `rooms/${code}`));
+  } catch(e){
+    showToast("Connection failed. Check internet.");
+    return;
+  }
   if(!rSnap.exists()){ showToast("Room not found"); return; }
   const rData = rSnap.val();
   if(rData.status === "playing"){ showToast("Game already started"); return; }
@@ -811,12 +845,21 @@ async function pushGameState(extra={}){
     timestamp: serverTimestamp(),
     ...extra
   };
-  try{
-    await update(gameRef, payload);
-    setSyncStatus("ok");
-  } catch(e){
-    setSyncStatus("err");
-    showToast("Sync error - reconnecting...");
+  let retries = 2;
+  while(retries >= 0){
+    try{
+      await update(gameRef, payload);
+      setSyncStatus("ok");
+      return;
+    } catch(e){
+      retries--;
+      if(retries < 0){
+        setSyncStatus("err");
+        showToast("Sync error — reconnecting...");
+      } else {
+        await new Promise(r=>setTimeout(r,800));
+      }
+    }
   }
 }
 
@@ -1789,8 +1832,6 @@ document.addEventListener("touchstart",e=>{if(e.touches.length>1)e.preventDefaul
 let _lastTap=0;
 document.addEventListener("touchend",e=>{const now=Date.now();if(now-_lastTap<300)e.preventDefault();_lastTap=now;},{passive:false});
 window.addEventListener("wheel",e=>{if(e.ctrlKey)e.preventDefault();},{passive:false});
-
-buildBoard();
 
 </script>
 </body>
