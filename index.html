@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --gold:#F5C518;--gold2:#b8920f;--pink:#FF2D78;--blue:#FFD600;--green:#00C853;--yellow:#00AEEF;
+  --gold:#F5C518;--gold2:#b8920f;--pink:#FF2D78;--blue:#00AEEF;--green:#00C853;--yellow:#FFD600;
   --bg:#0d0d1a;--surface:#13132a;--surface2:#1a1a35;--border:#252550;--border2:#333366;
   --text:#f0f0ff;--muted:rgba(240,240,255,.4);
 }
@@ -92,7 +92,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 .player-slot-status{color:var(--muted);font-size:.75rem;font-family:'Nunito',sans-serif;}
 
 /* ── GAME ── */
-#game-wrap{display:inline-flex;flex-direction:column;align-items:stretch;gap:6px;display:none;}
+#game-wrap{flex-direction:column;align-items:stretch;gap:6px;display:none;}
 
 .prow{display:flex;justify-content:space-between;align-items:flex-end;}
 .prow.bottom{align-items:flex-start;}
@@ -237,6 +237,105 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 .board-rotated-180{transform:rotate(180deg);}
 .board-rotated-90{transform:rotate(90deg);}
 .board-rotated-270{transform:rotate(270deg);}
+
+/* ── CHAT ── */
+#chat-panel{
+  position:fixed;bottom:0;right:0;
+  width:280px;height:340px;
+  background:var(--surface2);
+  border:1.5px solid var(--border2);
+  border-radius:16px 16px 0 0;
+  display:flex;flex-direction:column;
+  z-index:300;
+  transform:translateY(100%);
+  transition:transform 0.28s cubic-bezier(0.34,1.26,0.64,1);
+  box-shadow:0 -8px 40px rgba(0,0,0,.6);
+  overflow:hidden;
+}
+#chat-panel.open{transform:translateY(0);}
+#chat-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border2);
+  flex-shrink:0;
+  cursor:pointer;
+}
+#chat-header-title{
+  color:var(--gold);font-size:.85rem;font-weight:800;
+  font-family:'Rajdhani',sans-serif;letter-spacing:1px;
+}
+#chat-close{color:var(--muted);font-size:18px;line-height:1;background:none;border:none;cursor:pointer;padding:0 2px;}
+#chat-close:hover{color:white;}
+#chat-messages{
+  flex:1;overflow-y:auto;padding:10px 12px;
+  display:flex;flex-direction:column;gap:7px;
+  scrollbar-width:thin;scrollbar-color:var(--border2) transparent;
+}
+#chat-messages::-webkit-scrollbar{width:4px;}
+#chat-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+.chat-msg{
+  display:flex;flex-direction:column;gap:2px;
+  animation:msgIn 0.2s ease-out;
+}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.chat-msg-meta{display:flex;align-items:center;gap:5px;}
+.chat-msg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.chat-msg-name{font-size:.7rem;font-weight:700;font-family:'Nunito',sans-serif;}
+.chat-msg-time{font-size:.65rem;color:var(--muted);margin-left:auto;}
+.chat-msg-text{
+  font-size:.8rem;color:var(--text);font-family:'Nunito',sans-serif;
+  background:var(--surface);border-radius:0 8px 8px 8px;
+  padding:6px 10px;line-height:1.4;word-break:break-word;
+  max-width:90%;border:1px solid var(--border);
+}
+.chat-msg.mine .chat-msg-text{
+  border-radius:8px 0 8px 8px;
+  background:rgba(245,197,24,.1);
+  border-color:rgba(245,197,24,.2);
+  align-self:flex-end;
+}
+.chat-msg.mine .chat-msg-meta{flex-direction:row-reverse;}
+.chat-msg.mine .chat-msg-time{margin-left:0;margin-right:auto;}
+.chat-sys-msg{
+  text-align:center;font-size:.7rem;color:var(--muted);
+  font-family:'Nunito',sans-serif;padding:2px 0;
+}
+#chat-input-row{
+  display:flex;gap:6px;padding:8px 10px;
+  border-top:1px solid var(--border2);flex-shrink:0;
+  background:var(--surface);
+}
+#chat-input{
+  flex:1;background:var(--bg);border:1.5px solid var(--border2);
+  border-radius:20px;padding:7px 12px;color:white;
+  font-size:.82rem;font-family:'Nunito',sans-serif;
+  outline:none;min-width:0;
+}
+#chat-input:focus{border-color:var(--gold);}
+#chat-send{
+  width:32px;height:32px;border-radius:50%;border:none;
+  background:var(--gold);color:#000;font-size:14px;
+  cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  transition:transform 0.12s;align-self:center;
+}
+#chat-send:active{transform:scale(0.88);}
+#chat-badge{
+  position:absolute;top:-4px;right:-4px;
+  background:var(--pink);color:white;
+  font-size:9px;font-weight:900;
+  width:16px;height:16px;border-radius:50%;
+  display:none;align-items:center;justify-content:center;
+  font-family:'Nunito',sans-serif;
+}
+#btn-chat-toggle{
+  position:relative;
+  width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
+  background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0;
+}
+#btn-chat-toggle:hover{background:rgba(245,197,24,.15);border-color:rgba(245,197,24,.4);color:white;}
+#btn-chat-toggle:active{transform:scale(0.92);}
 </style>
 </head>
 <body>
@@ -276,11 +375,11 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
     <div class="modal-title">Create Room</div>
     <div class="modal-sub">Choose number of players</div>
     <div style="display:flex;gap:8px;width:100%;">
-      <button class="modal-btn" onclick="createRoom(2)" style="flex:1;">2P</button>
-      <button class="modal-btn" onclick="createRoom(3)" style="flex:1;">3P</button>
-      <button class="modal-btn" onclick="createRoom(4)" style="flex:1;">4P</button>
+      <button class="modal-btn" id="btn-2p" style="flex:1;">2P</button>
+      <button class="modal-btn" id="btn-3p" style="flex:1;">3P</button>
+      <button class="modal-btn" id="btn-4p" style="flex:1;">4P</button>
     </div>
-    <button class="modal-btn secondary" onclick="closeModals()">Cancel</button>
+    <button class="modal-btn secondary" id="btn-cancel-create">Cancel</button>
   </div>
 </div>
 
@@ -292,8 +391,8 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
     <div class="room-code-display" id="display-room-code">------</div>
     <div id="player-list" style="display:flex;flex-direction:column;gap:6px;width:100%;"></div>
     <div class="modal-sub waiting-dots" id="waiting-status">Waiting</div>
-    <button class="modal-btn" id="btn-start-game" onclick="hostStartGame()" disabled style="background:var(--surface);border:1.5px solid var(--border2);color:var(--muted);">Start Game</button>
-    <button class="modal-btn secondary" onclick="leaveRoom()">Leave Room</button>
+    <button class="modal-btn" id="btn-start-game" disabled style="background:var(--surface);border:1.5px solid var(--border2);color:var(--muted);">Start Game</button>
+    <button class="modal-btn secondary" id="btn-leave-waiting">Leave Room</button>
   </div>
 </div>
 
@@ -306,8 +405,8 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
       oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
     <input class="modal-input" id="join-name-input" type="text" maxlength="12" placeholder="Your Name"
       style="letter-spacing:1px;" oninput="">
-    <button class="modal-btn" id="btn-join" onclick="joinRoom()">Join</button>
-    <button class="modal-btn secondary" onclick="closeModals()">Cancel</button>
+    <button class="modal-btn" id="btn-join">Join</button>
+    <button class="modal-btn secondary" id="btn-cancel-join">Cancel</button>
   </div>
 </div>
 
@@ -317,7 +416,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
     <div class="modal-title">Your Name</div>
     <input class="modal-input" id="host-name-input" type="text" maxlength="12" placeholder="Host"
       style="letter-spacing:1px;">
-    <button class="modal-btn" onclick="confirmHostName()">Continue</button>
+    <button class="modal-btn" id="btn-confirm-name">Continue</button>
   </div>
 </div>
 
@@ -330,10 +429,10 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
   </div>
   <div class="prow bottom" id="bot-row"></div>
   <div id="status-row" style="display:none;">
-    <button id="btn-back" onclick="leaveRoom()" title="Leave">🏠</button>
+    <button id="btn-back" title="Leave">🏠</button>
     <div id="sync-bar"><div id="sync-dot"></div><span id="sync-text">Connecting</span></div>
     <div id="turn-banner"></div>
-    <button id="btn-pause" onclick="togglePause()" title="Pause">&#10074;&#10074;</button>
+    <button id="btn-chat-toggle" title="Chat">💬</button>
   </div>
 </div>
 
@@ -341,8 +440,8 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 <div id="pause-overlay">
   <div id="pause-box">
     <div id="pause-title">Game Paused</div>
-    <button class="pause-btn" onclick="togglePause()">▶ Resume</button>
-    <button class="pause-btn secondary" onclick="leaveRoom()">🏠 Leave Game</button>
+    <button class="pause-btn" id="btn-resume">▶ Resume</button>
+    <button class="pause-btn secondary" id="btn-leave-pause">🏠 Leave Game</button>
   </div>
 </div>
 
@@ -351,11 +450,24 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
   <div id="win-trophy">🏆</div>
   <h1 id="win-msg">You Win!</h1>
   <pre id="win-places"></pre>
-  <button onclick="backToLobby()">Play Again</button>
+  <button id="btn-play-again">Play Again</button>
 </div>
 
 <!-- ── TOAST ── -->
 <div id="toast"></div>
+
+<!-- ── CHAT PANEL ── -->
+<div id="chat-panel">
+  <div id="chat-header">
+    <span id="chat-header-title">💬 GAME CHAT</span>
+    <button id="chat-close">✕</button>
+  </div>
+  <div id="chat-messages"></div>
+  <div id="chat-input-row">
+    <input id="chat-input" type="text" maxlength="120" placeholder="Say something..." autocomplete="off">
+    <button id="chat-send">➤</button>
+  </div>
+</div>
 
 <!-- Firebase SDKs -->
 <script type="module">
@@ -486,9 +598,7 @@ window.showJoinRoom = function(){
 };
 window.closeModals = closeModals;
 
-// Bind lobby buttons via addEventListener (fixes onclick + type="module" timing issue)
-document.getElementById("btn-create-room").addEventListener("click", window.showCreateRoom);
-document.getElementById("btn-join-room").addEventListener("click", window.showJoinRoom);
+// Lobby and all button bindings are at the bottom of the script
 
 window.confirmHostName = function(){
   const name = document.getElementById("host-name-input").value.trim() || "Host";
@@ -607,17 +717,17 @@ function listenRoom(){
       btn.style.borderColor = ready ? "var(--gold)" : "var(--border2)";
     }
   });
-  _listeners.push(()=>off(playersRef, "value", unsub1));
+  _listeners.push(unsub1);
 
   // Listen for game start
   const gameStatusRef = ref(db, `rooms/${ROOM_CODE}/status`);
   const unsub2 = onValue(gameStatusRef, snap=>{
     if(snap.val() === "playing"){
       closeModals();
-      loadAndStartGame();
+      _doLoadAndStartGame();
     }
   });
-  _listeners.push(()=>off(gameStatusRef, "value", unsub2));
+  _listeners.push(unsub2);
 
   // Listen for game state (once game starts)
   const unsub3 = onValue(gameRef, snap=>{
@@ -625,7 +735,7 @@ function listenRoom(){
     const data = snap.val();
     if(data && G.over === false) syncGameState(data);
   });
-  _listeners.push(()=>off(gameRef, "value", unsub3));
+  _listeners.push(unsub3);
 }
 
 function updatePlayerList(players){
@@ -737,7 +847,7 @@ async function loadAndStartGame(){
 }
 
 function getMyColorName(){
-  const names = { [PINK]:"Red", [BLUE]:"Yellow", [GREEN]:"Green", [YELLOW]:"Blue" };
+  const names = { [PINK]:"Red", [BLUE]:"Blue", [GREEN]:"Green", [YELLOW]:"Yellow" };
   return names[PLAYERS[MY_SEAT]?.color] || "Player";
 }
 
@@ -1065,7 +1175,7 @@ function buildPlayers(){
   pauseBtn.id="btn-pause";
   pauseBtn.title="Pause";
   pauseBtn.innerHTML="&#10074;&#10074;";
-  pauseBtn.onclick=togglePause;
+  pauseBtn.addEventListener("click",()=>window.togglePause());
   top.appendChild(pauseBtn);
 
   if(PLAYERS[seats[1]]?.active) top.appendChild(makePanel(seats[1],"right","top"));
@@ -1639,6 +1749,25 @@ async function doMove(pid,tid,v){
 
   let bonus=false;
   const diceWasSix=(v===6);
+  let captured=false;
+
+  async function checkAndPit(cellKey,movingPid,movingTid){
+    const ownOnCell=G.tokens.filter(o=>{
+      if(o.pid!==movingPid||o.step===0||o.step>=STEP_DONE) return false;
+      const oc=getCell(o.pid,o.step);
+      return oc&&`${oc[0]}-${oc[1]}`===cellKey;
+    });
+    const enemiesOnCell=G.tokens.filter(o=>{
+      if(o.pid===movingPid||o.step===0||o.step>=STEP_DONE) return false;
+      const oc=getCell(o.pid,o.step);
+      return oc&&`${oc[0]}-${oc[1]}`===cellKey;
+    });
+    if(ownOnCell.length>=2) return;
+    if(ownOnCell.length===1&&enemiesOnCell.length>=1){
+      await sendHomeFast(enemiesOnCell[0]);
+      captured=true;
+    }
+  }
 
   if(tok.step===0&&v===6){
     tok.step=1;bonus=diceWasSix;
@@ -1667,36 +1796,10 @@ async function doMove(pid,tid,v){
         endGame();return;
       }
       bonus=false;
-    } else { bonus=true; }
-  }
-
-  let captured=false;
-  async function checkAndPit(cellKey,movingPid,movingTid){
-    const ownOnCell=G.tokens.filter(o=>{
-      if(o.pid!==movingPid||o.step===0||o.step>=STEP_DONE) return false;
-      const oc=getCell(o.pid,o.step);
-      return oc&&`${oc[0]}-${oc[1]}`===cellKey;
-    });
-    const enemiesOnCell=G.tokens.filter(o=>{
-      if(o.pid===movingPid||o.step===0||o.step>=STEP_DONE) return false;
-      const oc=getCell(o.pid,o.step);
-      return oc&&`${oc[0]}-${oc[1]}`===cellKey;
-    });
-    if(ownOnCell.length>=2) return;
-    if(ownOnCell.length===1&&enemiesOnCell.length>=1){
-      await sendHomeFast(enemiesOnCell[0]);
-      captured=true;
     }
   }
 
-  if(tok.step>=2&&tok.step<=STEP_MAIN_END+1){
-    const prevStep=tok.step-v;
-    if(prevStep>=1&&prevStep<=STEP_MAIN_END){
-      const prevCell=getCell(pid,prevStep);
-      if(prevCell&&!SAFE.has(`${prevCell[0]}-${prevCell[1]}`))
-        await checkAndPit(`${prevCell[0]}-${prevCell[1]}`,pid,tok.tid);
-    }
-  }
+  // Check capture only on landing cell (not previous cell)
   if(tok.step>=1&&tok.step<=STEP_MAIN_END){
     const cell=getCell(pid,tok.step);
     if(cell&&!SAFE.has(`${cell[0]}-${cell[1]}`))
@@ -1725,7 +1828,6 @@ function nextTurn(same){
   if(same){
     const pid=G.turn;
     if(dAcc.busy[pid]) dAcc.busy[pid]=false;
-    refreshUI();
     PLAYERS.forEach(p=>{
       const d3d=document.getElementById(`d3d-${p.id}`);
       const bg=document.getElementById(`pbg-${p.id}`);
@@ -1741,7 +1843,8 @@ function nextTurn(same){
         else{d3d.classList.add("inactive");d3d.classList.remove("off");}
       }
     });
-  } else { refreshUI(); }
+  }
+  refreshUI();
   renderTokens();
   updateTurnBanner();
 }
@@ -1789,6 +1892,181 @@ document.addEventListener("touchstart",e=>{if(e.touches.length>1)e.preventDefaul
 let _lastTap=0;
 document.addEventListener("touchend",e=>{const now=Date.now();if(now-_lastTap<300)e.preventDefault();_lastTap=now;},{passive:false});
 window.addEventListener("wheel",e=>{if(e.ctrlKey)e.preventDefault();},{passive:false});
+
+// ── CHAT ──────────────────────────────────────────────────────────────────────
+let _chatOpen = false;
+let _unreadCount = 0;
+let _chatListening = false;
+let _lastChatKey = null;
+
+window.toggleChat = function(){
+  _chatOpen = !_chatOpen;
+  const panel = document.getElementById("chat-panel");
+  if(_chatOpen){
+    panel.classList.add("open");
+    _unreadCount = 0;
+    updateChatBadge();
+    setTimeout(()=>{
+      const inp = document.getElementById("chat-input");
+      if(inp) inp.focus();
+      scrollChatBottom();
+    }, 300);
+  } else {
+    panel.classList.remove("open");
+  }
+};
+
+function updateChatBadge(){
+  const badge = document.getElementById("chat-badge");
+  if(!badge) return;
+  if(_unreadCount > 0 && !_chatOpen){
+    badge.style.display = "flex";
+    badge.textContent = _unreadCount > 9 ? "9+" : String(_unreadCount);
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+function scrollChatBottom(){
+  const el = document.getElementById("chat-messages");
+  if(el) el.scrollTop = el.scrollHeight;
+}
+
+function escapeHtml(str){
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function appendChatMessage(msg, isHistory){
+  const el = document.getElementById("chat-messages");
+  if(!el) return;
+  const isMine = msg.seat === MY_SEAT;
+  if(msg.type === "system"){
+    const div = document.createElement("div");
+    div.className = "chat-sys-msg";
+    div.textContent = msg.text;
+    el.appendChild(div);
+  } else {
+    const color = SEAT_COLOR[msg.seat] || "#888";
+    const name = msg.name || `P${msg.seat+1}`;
+    const time = new Date(msg.ts || Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    const div = document.createElement("div");
+    div.className = `chat-msg${isMine?" mine":""}`;
+    div.innerHTML = `
+      <div class="chat-msg-meta">
+        <div class="chat-msg-dot" style="background:${color}"></div>
+        <span class="chat-msg-name" style="color:${color}">${isMine?"You":escapeHtml(name)}</span>
+        <span class="chat-msg-time">${time}</span>
+      </div>
+      <div class="chat-msg-text">${escapeHtml(msg.text)}</div>
+    `;
+    el.appendChild(div);
+  }
+  scrollChatBottom();
+  if(!isHistory && !isMine && !_chatOpen){
+    _unreadCount++;
+    updateChatBadge();
+    if(msg.type !== "system") showToast(`${escapeHtml(msg.name||"Someone")}: ${escapeHtml(msg.text)}`, 3000);
+  }
+}
+
+window.sendChat = function(){
+  const inp = document.getElementById("chat-input");
+  if(!inp || !ROOM_CODE || MY_SEAT === null) return;
+  const text = inp.value.trim();
+  if(!text) return;
+  inp.value = "";
+  const chatRef = ref(db, `rooms/${ROOM_CODE}/chat`);
+  push(chatRef, { seat:MY_SEAT, name:MY_NAME, text, ts:Date.now(), type:"user" })
+    .catch(()=>showToast("Chat send failed"));
+};
+
+function listenChat(){
+  if(_chatListening || !ROOM_CODE) return;
+  _chatListening = true;
+  addChatBadgeToButton();
+  const chatRef = ref(db, `rooms/${ROOM_CODE}/chat`);
+  let firstLoad = true;
+  const unsub = onValue(chatRef, snap=>{
+    const el = document.getElementById("chat-messages");
+    if(!el) return;
+    if(!snap.exists()){firstLoad=false;return;}
+    const data = snap.val();
+    const keys = Object.keys(data);
+    if(firstLoad){
+      firstLoad = false;
+      el.innerHTML = "";
+      keys.forEach(k=>appendChatMessage(data[k], true));
+      _lastChatKey = keys[keys.length-1];
+      _unreadCount = 0;
+      updateChatBadge();
+    } else {
+      // Only new messages (keys after _lastChatKey)
+      const newKeys = _lastChatKey ? keys.filter(k=>k>_lastChatKey) : keys;
+      newKeys.forEach(k=>{
+        appendChatMessage(data[k], false);
+        _lastChatKey = k;
+      });
+    }
+  });
+  _listeners.push(unsub);
+}
+
+function addChatBadgeToButton(){
+  const btn = document.getElementById("btn-chat-toggle");
+  if(!btn || btn.querySelector("#chat-badge")) return;
+  const badge = document.createElement("div");
+  badge.id = "chat-badge";
+  btn.appendChild(badge);
+}
+
+// Patch loadAndStartGame to also start chat
+const _origLoadAndStartGame = loadAndStartGame;
+async function loadAndStartGame(){
+  await _origLoadAndStartGame();
+  listenChat();
+  addChatBadgeToButton();
+}
+
+// ── Bind ALL buttons via addEventListener (type="module" safe) ────────────────
+// Lobby
+document.getElementById("btn-create-room").addEventListener("click", ()=>window.showCreateRoom());
+document.getElementById("btn-join-room").addEventListener("click", ()=>window.showJoinRoom());
+
+// Create room modal
+document.getElementById("btn-2p").addEventListener("click", ()=>window.createRoom(2));
+document.getElementById("btn-3p").addEventListener("click", ()=>window.createRoom(3));
+document.getElementById("btn-4p").addEventListener("click", ()=>window.createRoom(4));
+document.getElementById("btn-cancel-create").addEventListener("click", ()=>closeModals());
+
+// Name modal
+document.getElementById("btn-confirm-name").addEventListener("click", ()=>window.confirmHostName());
+
+// Waiting room
+document.getElementById("btn-start-game").addEventListener("click", ()=>window.hostStartGame());
+document.getElementById("btn-leave-waiting").addEventListener("click", ()=>window.leaveRoom());
+
+// Join modal
+document.getElementById("btn-join").addEventListener("click", ()=>window.joinRoom());
+document.getElementById("btn-cancel-join").addEventListener("click", ()=>closeModals());
+
+// Game controls
+document.getElementById("btn-back").addEventListener("click", ()=>window.leaveRoom());
+document.getElementById("btn-chat-toggle").addEventListener("click", ()=>window.toggleChat());
+
+// Pause
+document.getElementById("btn-resume").addEventListener("click", ()=>window.togglePause());
+document.getElementById("btn-leave-pause").addEventListener("click", ()=>window.leaveRoom());
+
+// Win screen
+document.getElementById("btn-play-again").addEventListener("click", ()=>window.leaveRoom());
+
+// Chat
+document.getElementById("chat-header").addEventListener("click", ()=>window.toggleChat());
+document.getElementById("chat-close").addEventListener("click", (e)=>{e.stopPropagation();window.toggleChat();});
+document.getElementById("chat-send").addEventListener("click", ()=>window.sendChat());
+document.getElementById("chat-input").addEventListener("keydown", (e)=>{
+  if(e.key==="Enter"){e.preventDefault();window.sendChat();}
+});
 
 buildBoard();
 
