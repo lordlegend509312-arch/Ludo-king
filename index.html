@@ -393,16 +393,9 @@ function _setAuthReady(){
   _authResolvers.forEach(r => r());
   _authResolvers = [];
 }
-const _authTimeout = setTimeout(_setAuthReady, 8000);
-onAuthStateChanged(auth, (user) => {
-  if(user){ clearTimeout(_authTimeout); _setAuthReady(); }
-});
-signInAnonymously(auth).then(()=>{
-  clearTimeout(_authTimeout); _setAuthReady();
-}).catch(()=>{
-  // Auth fail hone par bhi game chalega (open rules ke sath)
-  clearTimeout(_authTimeout); _setAuthReady();
-});
+const _authTimeout = setTimeout(_setAuthReady, 5000);
+onAuthStateChanged(auth, () => { clearTimeout(_authTimeout); _setAuthReady(); });
+signInAnonymously(auth).catch(() => { clearTimeout(_authTimeout); _setAuthReady(); });
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const PINK="#FF2D78", BLUE="#FFD600", GREEN="#00C853", YELLOW="#00AEEF";
@@ -493,18 +486,9 @@ window.showJoinRoom = function(){
 };
 window.closeModals = closeModals;
 
-// Bind lobby buttons - safe null-checked event delegation
-function bindLobbyButtons(){
-  const createBtn = document.getElementById("btn-create-room");
-  const joinBtn = document.getElementById("btn-join-room");
-  if(createBtn) createBtn.addEventListener("click", window.showCreateRoom);
-  if(joinBtn) joinBtn.addEventListener("click", window.showJoinRoom);
-}
-if(document.readyState === "loading"){
-  document.addEventListener("DOMContentLoaded", bindLobbyButtons);
-} else {
-  bindLobbyButtons();
-}
+// Bind lobby buttons via addEventListener (fixes onclick + type="module" timing issue)
+document.getElementById("btn-create-room").addEventListener("click", window.showCreateRoom);
+document.getElementById("btn-join-room").addEventListener("click", window.showJoinRoom);
 
 window.confirmHostName = function(){
   const name = document.getElementById("host-name-input").value.trim() || "Host";
@@ -524,26 +508,19 @@ function genCode(){
 // ── Create Room ────────────────────────────────────────────────────────────────
 window.createRoom = async function(numPlayers){
   closeModals();
-  showToast("Creating room...");
-  try {
-    await waitForAuth();
-  } catch(e){ /* proceed anyway */ }
+  showToast("Connecting...");
+  await waitForAuth();
   NUM_PLAYERS = numPlayers;
   IS_HOST = true;
   MY_SEAT = 3; // Host is always seat 3 (YELLOW = bottom-left)
 
   // Generate unique room code
   let code, exists;
-  try {
-    do {
-      code = genCode();
-      const snap = await get(ref(db, `rooms/${code}`));
-      exists = snap.exists();
-    } while(exists);
-  } catch(e){
-    showToast("Connection failed. Check internet.");
-    return;
-  }
+  do {
+    code = genCode();
+    const snap = await get(ref(db, `rooms/${code}`));
+    exists = snap.exists();
+  } while(exists);
 
   ROOM_CODE = code;
   roomRef = ref(db, `rooms/${code}`);
@@ -551,20 +528,15 @@ window.createRoom = async function(numPlayers){
   playersRef = ref(db, `rooms/${code}/players`);
 
   // Create room in Firebase
-  try {
-    await set(roomRef, {
-      numPlayers,
-      status: "waiting",
-      host: MY_SEAT,
-      createdAt: serverTimestamp(),
-      players: {
-        3: { name: MY_NAME, seat: 3, online: true, joinedAt: serverTimestamp() }
-      }
-    });
-  } catch(e){
-    showToast("Failed to create room. Check Firebase rules.");
-    return;
-  }
+  await set(roomRef, {
+    numPlayers,
+    status: "waiting",
+    host: MY_SEAT,
+    createdAt: serverTimestamp(),
+    players: {
+      3: { name: MY_NAME, seat: 3, online: true, joinedAt: serverTimestamp() }
+    }
+  });
 
   // Presence
   _presenceRef = ref(db, `rooms/${code}/players/3/online`);
@@ -578,20 +550,14 @@ window.createRoom = async function(numPlayers){
 
 // ── Join Room ──────────────────────────────────────────────────────────────────
 window.joinRoom = async function(){
-  try { await waitForAuth(); } catch(e){ /* proceed */ }
+  await waitForAuth();
   showToast("Connecting...");
   const code = document.getElementById("join-code-input").value.trim().toUpperCase();
   const name = document.getElementById("join-name-input").value.trim() || "Player";
   if(code.length !== 6){ showToast("Enter a 6-digit code"); return; }
 
   MY_NAME = name;
-  let rSnap;
-  try {
-    rSnap = await get(ref(db, `rooms/${code}`));
-  } catch(e){
-    showToast("Connection failed. Check internet.");
-    return;
-  }
+  const rSnap = await get(ref(db, `rooms/${code}`));
   if(!rSnap.exists()){ showToast("Room not found"); return; }
   const rData = rSnap.val();
   if(rData.status === "playing"){ showToast("Game already started"); return; }
@@ -845,21 +811,12 @@ async function pushGameState(extra={}){
     timestamp: serverTimestamp(),
     ...extra
   };
-  let retries = 2;
-  while(retries >= 0){
-    try{
-      await update(gameRef, payload);
-      setSyncStatus("ok");
-      return;
-    } catch(e){
-      retries--;
-      if(retries < 0){
-        setSyncStatus("err");
-        showToast("Sync error — reconnecting...");
-      } else {
-        await new Promise(r=>setTimeout(r,800));
-      }
-    }
+  try{
+    await update(gameRef, payload);
+    setSyncStatus("ok");
+  } catch(e){
+    setSyncStatus("err");
+    showToast("Sync error - reconnecting...");
   }
 }
 
@@ -1545,4 +1502,296 @@ function shouldAutoMove(mv,v){
 
 function afterRoll(pid,v){
   if(v===6){
-    G.sixes=(G.sixes||                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+    G.sixes=(G.sixes||0)+1;
+    if(G.sixes>=3){
+      G.sixes=0;G.rolled=false;G.diceVal=null;G.waiting=false;_rolling=false;
+      renderTokens();
+      setTimeout(async()=>{nextTurn(false); await pushGameState({lastAction:"skip3six"});},300);
+      return;
+    }
+  } else { G.sixes=0; }
+  const mv=movable(pid,v);
+  if(mv.length===0){
+    renderTokens();refreshUI();
+    setTimeout(async()=>{nextTurn(false); await pushGameState({lastAction:"noMove"});},300);
+    return;
+  }
+  if(shouldAutoMove(mv,v)){
+    setTimeout(async()=>await doMove(pid,mv[0].tid,v),80);
+    return;
+  }
+  G.waiting=true;
+  renderTokens();
+  updateTurnBanner();
+}
+
+async function onTokClick(pid,tid){
+  if(!G.waiting||pid!==G.turn||G.over||G_PAUSED) return;
+  if(pid !== MY_SEAT) return; // Can only click my own tokens
+  const mv=movable(pid,G.diceVal);
+  if(!mv.find(t=>t.tid===tid)) return;
+  G.waiting=false;
+  await doMove(pid,tid,G.diceVal);
+}
+
+function rafDelay(ms){
+  return new Promise(resolve=>{
+    const start=performance.now();
+    function tick(now){if(now-start>=ms)resolve();else requestAnimationFrame(tick);}
+    requestAnimationFrame(tick);
+  });
+}
+
+const JUMP_MS=160;
+
+function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,cp){
+  return new Promise(resolve=>{
+    const rH=rW*(130/100),tipOffset=rH*(122/130);
+    const shadowW=rW*0.60,shadowH=rW*0.16;
+    const h=cp*0.65;
+    let t0=null;
+    function tick(now){
+      if(!t0) t0=now;
+      let t=(now-t0)/JUMP_MS;
+      if(t>1) t=1;
+      const et=t<0.5?2*t*t:-1+(4-2*t)*t;
+      const x=startX+(endX-startX)*et,y=startY+(endY-startY)*et;
+      const jump=-4*h*t*(1-t);
+      el.style.transform=`translate(${x-rW/2}px,${y-tipOffset+jump}px)`;
+      if(shadowEl){
+        const shadowScale=1-0.3*(1-Math.abs(2*t-1));
+        shadowEl.style.transform=`translate(${x-shadowW/2}px,${y-shadowH/2+1}px) scaleX(${shadowScale})`;
+      }
+      if(t<1) requestAnimationFrame(tick);
+      else resolve();
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+async function animateMove(tok,steps){
+  const key=`${tok.pid}-${tok.tid}`;
+  _refreshCache();
+  const cp=cellPx(),BASE_W=Math.round(cp*1.15);
+  for(let i=0;i<steps;i++){
+    if(tok.step>=STEP_DONE) break;
+    const prevCell=getCell(tok.pid,tok.step);
+    if(!prevCell){tok.step++;continue;}
+    const startXY=rcToXY(prevCell[0],prevCell[1]);
+    tok.step++;
+    if(tok.step>STEP_DONE) tok.step=STEP_DONE;
+    if(tok.step>=STEP_DONE){renderTokens();await rafDelay(120);break;}
+    const rc=getCell(tok.pid,tok.step);
+    if(!rc) continue;
+    const endXY=rcToXY(rc[0],rc[1]);
+    const els=_tokEls[key];
+    if(!els) continue;
+    els.wrap.style.zIndex="20";
+    els.wrap.style.transition="";
+    if(els.shadow) els.shadow.style.transition="";
+    await jumpStep(els.wrap,els.shadow,startXY.x,startXY.y,endXY.x,endXY.y,BASE_W,cp);
+    els.wrap.style.zIndex="";
+  }
+}
+
+async function sendHomeFast(tok){
+  const color=PLAYERS[tok.pid]?.color;
+  if(!color) return;
+  const [hr,hc]=HOME_CORNER[color];
+  const cacheKey=`${tok.pid}-${tok.tid}`;
+  const el=(_tokEls[cacheKey]||{}).wrap||null;
+  const layer=document.getElementById("tokens-layer");
+  if(el){
+    const m=el.style.transform.match(/translate\(([^,]+),([^)]+)\)/);
+    const bx=m?m[1]:"0px",by=m?m[2]:"0px";
+    for(let r=0;r<2;r++){
+      const ring=document.createElement("div");
+      const size=36+r*10,mx=parseFloat(bx)-size/2+14,my=parseFloat(by)-size/2+14;
+      ring.style.cssText=`position:absolute;transform:translate(${mx}px,${my}px) scale(0.3);--rx:${mx}px;--ry:${my}px;width:${size}px;height:${size}px;border-radius:50%;border:${3-r}px solid ${r===0?'white':color};opacity:0;pointer-events:none;animation:ringPop ${0.35+r*0.12}s ${r*0.07}s ease-out forwards;`;
+      layer.appendChild(ring);setTimeout(()=>ring.remove(),600);
+    }
+    el.style.transition="transform 0.14s cubic-bezier(0.36,0.07,0.19,0.97),opacity 0.14s";
+    el.style.transform=`translate(${m?m[1]:"0px"},${m?m[2]:"0px"}) scale(1.7)`;
+    el.style.opacity="0";
+    await rafDelay(150);
+    el.style.transition="none";el.style.opacity="1";
+  }
+  tok.step=0;
+  renderTokens();await rafDelay(10);
+  const bp=baseCirclePx(hr,hc,tok.tid);
+  const sparkColors=[color,"white","#FFD700",color];
+  for(let i=0;i<4;i++){
+    const sp=document.createElement("div");
+    const angle=(i/4)*Math.PI*2,dist=22+Math.random()*14;
+    const sx=Math.cos(angle)*dist,sy=Math.sin(angle)*dist,sz=3+Math.random()*4;
+    const stx=`translate(${bp.x-sz/2}px,${bp.y-sz/2}px)`;
+    sp.style.cssText=`position:absolute;width:${sz}px;height:${sz}px;border-radius:50%;background:${sparkColors[i%sparkColors.length]};box-shadow:0 0 4px ${sparkColors[i%sparkColors.length]};pointer-events:none;--st:${stx};--sx:${sx}px;--sy:${sy}px;--sd:${0.45+Math.random()*0.2}s;animation:sparkleFly var(--sd) ${i*0.03}s ease-out forwards;`;
+    layer.appendChild(sp);setTimeout(()=>sp.remove(),800);
+  }
+}
+
+async function doMove(pid,tid,v){
+  const tok=tokOf(pid,tid);
+  if(!tok) return;
+  const allowed=movable(pid,v);
+  if(!allowed.find(t=>t.tid===tid)) return;
+  if(tok.step>=STEP_STRETCH_START&&tok.step+v>STEP_DONE) return;
+
+  let bonus=false;
+  const diceWasSix=(v===6);
+
+  if(tok.step===0&&v===6){
+    tok.step=1;bonus=diceWasSix;
+    renderTokens();await rafDelay(50);
+    const entryCellKey=getCell(pid,1);
+    if(entryCellKey){
+      const eck=`${entryCellKey[0]}-${entryCellKey[1]}`;
+      if(!SAFE.has(eck)) await checkAndPit(eck,pid,tok.tid);
+    }
+  } else {
+    await animateMove(tok,v);
+    bonus=diceWasSix;
+  }
+
+  if(tok.step>=STEP_DONE){
+    tok.step=STEP_DONE;renderTokens();await rafDelay(100);
+    if(toksOf(pid).every(t=>t.step>=STEP_DONE)){
+      if(!G.placements.includes(pid)) G.placements.push(pid);
+      renderTokens();
+      const remaining=PLAYERS.filter(p=>p.active&&!G.placements.includes(p.id));
+      if(remaining.length<=1){
+        if(remaining.length===1&&!G.placements.includes(remaining[0].id))
+          G.placements.push(remaining[0].id);
+        G.over=true;
+        await pushGameState({lastAction:"win"});
+        endGame();return;
+      }
+      bonus=false;
+    } else { bonus=true; }
+  }
+
+  let captured=false;
+  async function checkAndPit(cellKey,movingPid,movingTid){
+    const ownOnCell=G.tokens.filter(o=>{
+      if(o.pid!==movingPid||o.step===0||o.step>=STEP_DONE) return false;
+      const oc=getCell(o.pid,o.step);
+      return oc&&`${oc[0]}-${oc[1]}`===cellKey;
+    });
+    const enemiesOnCell=G.tokens.filter(o=>{
+      if(o.pid===movingPid||o.step===0||o.step>=STEP_DONE) return false;
+      const oc=getCell(o.pid,o.step);
+      return oc&&`${oc[0]}-${oc[1]}`===cellKey;
+    });
+    if(ownOnCell.length>=2) return;
+    if(ownOnCell.length===1&&enemiesOnCell.length>=1){
+      await sendHomeFast(enemiesOnCell[0]);
+      captured=true;
+    }
+  }
+
+  if(tok.step>=2&&tok.step<=STEP_MAIN_END+1){
+    const prevStep=tok.step-v;
+    if(prevStep>=1&&prevStep<=STEP_MAIN_END){
+      const prevCell=getCell(pid,prevStep);
+      if(prevCell&&!SAFE.has(`${prevCell[0]}-${prevCell[1]}`))
+        await checkAndPit(`${prevCell[0]}-${prevCell[1]}`,pid,tok.tid);
+    }
+  }
+  if(tok.step>=1&&tok.step<=STEP_MAIN_END){
+    const cell=getCell(pid,tok.step);
+    if(cell&&!SAFE.has(`${cell[0]}-${cell[1]}`))
+      await checkAndPit(`${cell[0]}-${cell[1]}`,pid,tok.tid);
+  }
+
+  if(captured) bonus=true;
+
+  renderTokens();await rafDelay(60);
+  nextTurn(bonus);
+
+  // Push final state to Firebase after move completes
+  await pushGameState({lastAction:"move",movedPid:pid,movedTid:tid});
+}
+
+function nextTurn(same){
+  G.rolled=false;_rolling=false;G.diceVal=null;G.waiting=false;
+  if(!same){
+    G.turn=(G.turn+1)%PLAYERS.length;
+    let tries=0;
+    while((!PLAYERS[G.turn].active||toksOf(G.turn).every(t=>t.step>=STEP_DONE))&&tries<PLAYERS.length){
+      G.turn=(G.turn+1)%PLAYERS.length;tries++;
+    }
+    if(!PLAYERS[G.turn].active||toksOf(G.turn).every(t=>t.step>=STEP_DONE)) return;
+  }
+  if(same){
+    const pid=G.turn;
+    if(dAcc.busy[pid]) dAcc.busy[pid]=false;
+    refreshUI();
+    PLAYERS.forEach(p=>{
+      const d3d=document.getElementById(`d3d-${p.id}`);
+      const bg=document.getElementById(`pbg-${p.id}`);
+      const lbl=document.getElementById(`lbl-${p.id}`);
+      const box=document.getElementById(`pbox-${p.id}`);
+      const active=G.turn===p.id&&!G.over;
+      if(bg) bg.style.borderColor=active?p.color:"#333";
+      if(lbl) lbl.style.color=active?p.color:"white";
+      if(box) box.style.outline=active?`2px solid ${p.color}`:"none";
+      if(d3d){
+        const isMyTurn=G.turn===MY_SEAT&&p.id===MY_SEAT;
+        if(active&&isMyTurn){d3d.classList.remove("inactive","off");}
+        else{d3d.classList.add("inactive");d3d.classList.remove("off");}
+      }
+    });
+  } else { refreshUI(); }
+  renderTokens();
+  updateTurnBanner();
+}
+
+function endGame(){
+  G.over=true;
+  const medals=["🥇","🥈","🥉","4️⃣"];
+  const lines=G.placements.map((pid,i)=>{
+    const name=PLAYERS[pid]?.label||`P${pid}`;
+    return `${medals[i]||"  "} ${name}`;
+  });
+  const winner=G.placements[0];
+  const heading=`🎉 ${PLAYERS[winner]?.label||"Winner"} Wins!`;
+  document.getElementById("win-msg").textContent=heading;
+  document.getElementById("win-places").textContent=lines.join("\n");
+  document.getElementById("win").classList.add("show");
+}
+
+window.togglePause=function(){
+  if(G.over) return;
+  G_PAUSED=!G_PAUSED;
+  const overlay=document.getElementById("pause-overlay");
+  const btn=document.getElementById("btn-pause");
+  if(G_PAUSED){
+    overlay.classList.add("show");
+    if(btn){btn.innerHTML="&#9654;";btn.title="Resume";}
+  } else {
+    overlay.classList.remove("show");
+    if(btn){btn.innerHTML="&#10074;&#10074;";btn.title="Pause";}
+  }
+};
+
+let _resizeTimer;
+window.addEventListener("resize",()=>{
+  clearTimeout(_resizeTimer);
+  _cacheValid=false;
+  Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
+  _resizeTimer=setTimeout(renderTokens,100);
+});
+
+document.addEventListener("contextmenu",e=>e.preventDefault());
+document.addEventListener("selectstart",e=>e.preventDefault());
+document.addEventListener("dragstart",e=>e.preventDefault());
+document.addEventListener("touchstart",e=>{if(e.touches.length>1)e.preventDefault();},{passive:false});
+let _lastTap=0;
+document.addEventListener("touchend",e=>{const now=Date.now();if(now-_lastTap<300)e.preventDefault();_lastTap=now;},{passive:false});
+window.addEventListener("wheel",e=>{if(e.ctrlKey)e.preventDefault();},{passive:false});
+
+buildBoard();
+
+</script>
+</body>
+</html>
