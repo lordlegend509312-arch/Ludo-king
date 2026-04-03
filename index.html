@@ -516,40 +516,31 @@ auth.signInAnonymously().catch(() => { clearTimeout(_authTimeout); _setAuthReady
 // ── Constants ──────────────────────────────────────────────────────────────────
 const PINK="#FF2D78", BLUE="#FFD600", GREEN="#00C853", YELLOW="#00AEEF";
 const DEF="#CFD8DC", BOARD_BG="#546E7A";
-const PLAYER_BLUE = "#4FC3F7"; // Perspective-blue for local player
 
-// Color order (board slots): 0=PINK(botLeft), 1=BLUE(topRight), 2=GREEN(botRight), 3=YELLOW(topLeft)
-// But each player sees themselves as BLUE in bottom-left
-const SLOT_COLORS = [PINK, BLUE, GREEN, YELLOW];
-const SLOT_CORNERS = {
-  0: [9,0], // YELLOW home = bottom-left → slot 0 for P0
-  1: [0,9], // BLUE home   = top-right  → slot 1 for P1
-  2: [9,9], // GREEN home  = bottom-right → slot 2 for P2
-  3: [0,0], // PINK home   = top-left   → slot 3 for P3
-};
-// Perspective: player sees themselves at slot=3 (PINK, top-left... wait — we want bottom-left)
-// We'll assign each joining player a SEAT (0-3). The PERSPECTIVE rotation makes:
-// Seat 0 sees board normal (their home is bottom-left = YELLOW corner [9,0])
-// Seat 1 sees board rotated 180° (their home is bottom-left after rotation)
-// Seat 2 sees board rotated 90°
-// Seat 3 sees board rotated 270°
+// Board colors per seat (fixed, never changes — this is the ACTUAL game color)
+// Seat 0 = PINK (top-left home), Seat 1 = BLUE (top-right home)
+// Seat 2 = GREEN (bottom-right home), Seat 3 = YELLOW (bottom-left home, HOST)
+const SEAT_COLOR = [PINK, BLUE, GREEN, YELLOW]; // seat → actual board color
 
-// Actually, keep it simple: each player gets a seat. The board is NOT rotated visually
-// (it's a shared board). BUT each player's POV panel is at bottom. 
-// The BLUE color token displayed in their panel is always their own color, tinted blue locally.
+// Perspective display colors: the 4 positions from any player's POV
+// Position 0 = bottom-left (ME)    → always shown as BLUE
+// Position 1 = top-left            → always shown as PINK
+// Position 2 = top-right           → always shown as YELLOW
+// Position 3 = bottom-right        → always shown as GREEN
+// (These match standard Ludo color positions on a fixed board)
+const POV_COLORS = ["#4FC3F7", "#FF2D78", "#FFD600", "#00C853"]; // [me/blue, topLeft/pink, topRight/yellow, botRight/green]
+
+// Returns what color a given seat LOOKS LIKE from MY_SEAT's perspective
+function getDisplayColorForSeat(seat){
+  if(MY_SEAT === null) return SEAT_COLOR[seat] || "#888";
+  // How many positions clockwise from me?
+  const offset = (seat - MY_SEAT + 4) % 4;
+  return POV_COLORS[offset];
+}
 
 const STEP_MAIN_END = 51;
 const STEP_STRETCH_START = 52;
 const STEP_DONE = 57;
-
-// Seat → which corner/color they "own"
-// Seat 0 → PINK (top-left corner, player panel at left)
-// Seat 3 → YELLOW (bottom-left, panel bot-left) — HOST
-// We'll fix: HOST = seat 3 always, first to join = seat 0, etc.
-// Actually simpler: we assign seats 0,1,2,3 to players as they join.
-// Seat defines their color and panel position.
-
-const SEAT_COLOR = [PINK, BLUE, GREEN, YELLOW]; // seat → board color
 const SEAT_HOME_CORNER = {
   [PINK]: [0,0],
   [BLUE]: [0,9],
@@ -744,13 +735,15 @@ function updatePlayerList(players){
   const container = document.getElementById("player-list");
   container.innerHTML = "";
   const seats = Object.values(players).sort((a,b)=>a.seat-b.seat);
-  const colors = [PINK, BLUE, GREEN, YELLOW];
+  const colors = [PINK, BLUE, GREEN, YELLOW]; // actual board colors for lobby (pre-game)
   seats.forEach(p=>{
     const div = document.createElement("div");
     div.className = "player-slot";
     const isSelf = p.seat === MY_SEAT;
+    // In lobby, show actual colors (MY_SEAT-based perspective not fully set yet, use raw)
+    const lobbyColor = isSelf ? POV_COLORS[0] : (colors[p.seat]||'#888');
     div.innerHTML = `
-      <div class="player-slot-dot" style="background:${colors[p.seat]||'#888'}"></div>
+      <div class="player-slot-dot" style="background:${lobbyColor}"></div>
       <div class="player-slot-name">${p.name}${isSelf?' (You)':''}</div>
       <div class="player-slot-status" style="color:${p.online?'#00C853':'#FF2D78'}">${p.online?'Online':'Away'}</div>
     `;
@@ -1230,8 +1223,8 @@ function makePanel(pid,side,pos,isMe=false){
   shine.className="pbox-shine";
   bg.appendChild(shine);
 
-  // Perspective: show player's actual color, but highlight in blue for self
-  const displayColor = isMe ? PLAYER_BLUE : p.color;
+  // Perspective: show player's color from MY perspective (me=blue, others shift)
+  const displayColor = getDisplayColorForSeat(pid);
 
   const tokW=document.createElement("div");
   tokW.className="pbox-tok";
@@ -1359,10 +1352,10 @@ function tokSVG(color,size=28){
   </svg>`;
 }
 
-// Perspective-aware token color: my tokens shown in BLUE, others in their real color
+// Perspective-aware token color: each player sees themselves as BLUE,
+// others shift colors based on relative seat position
 function getTokenDisplayColor(pid){
-  if(MY_SEAT !== null && pid === MY_SEAT) return PLAYER_BLUE;
-  return PLAYERS[pid]?.color || "#888";
+  return getDisplayColorForSeat(pid);
 }
 
 // ── Token element cache ───────────────────────────────────────────────────────
@@ -1521,9 +1514,11 @@ function refreshUI(){
     const lbl=document.getElementById(`lbl-${p.id}`);
     const box=document.getElementById(`pbox-${p.id}`);
     const d3d=document.getElementById(`d3d-${p.id}`);
-    if(bg) bg.style.borderColor=active?p.color:"#333";
-    if(lbl) lbl.style.color=active?p.color:"white";
-    if(box) box.style.outline=active?`2px solid ${p.color}`:"none";
+    // Use perspective display color for highlights
+    const dColor = getDisplayColorForSeat(p.id);
+    if(bg) bg.style.borderColor=active?dColor:"#333";
+    if(lbl) lbl.style.color=active?dColor:"white";
+    if(box) box.style.outline=active?`2px solid ${dColor}`:"none";
     if(d3d){
       // Dice active only for current player AND it's MY turn
       const isMyTurn = G.turn === MY_SEAT && p.id === MY_SEAT;
@@ -1836,9 +1831,10 @@ function nextTurn(same){
       const lbl=document.getElementById(`lbl-${p.id}`);
       const box=document.getElementById(`pbox-${p.id}`);
       const active=G.turn===p.id&&!G.over;
-      if(bg) bg.style.borderColor=active?p.color:"#333";
-      if(lbl) lbl.style.color=active?p.color:"white";
-      if(box) box.style.outline=active?`2px solid ${p.color}`:"none";
+      const dColor = getDisplayColorForSeat(p.id);
+      if(bg) bg.style.borderColor=active?dColor:"#333";
+      if(lbl) lbl.style.color=active?dColor:"white";
+      if(box) box.style.outline=active?`2px solid ${dColor}`:"none";
       if(d3d){
         const isMyTurn=G.turn===MY_SEAT&&p.id===MY_SEAT;
         if(active&&isMyTurn){d3d.classList.remove("inactive","off");}
@@ -1948,7 +1944,7 @@ function appendChatMessage(msg, isHistory){
     div.textContent = msg.text;
     el.appendChild(div);
   } else {
-    const color = SEAT_COLOR[msg.seat] || "#888";
+    const color = getDisplayColorForSeat(msg.seat);
     const name = msg.name || `P${msg.seat+1}`;
     const time = new Date(msg.ts || Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
     const div = document.createElement("div");
