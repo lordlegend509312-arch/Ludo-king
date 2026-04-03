@@ -470,12 +470,11 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 </div>
 
 <!-- Firebase SDKs -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, onValue, off, update, push, remove, serverTimestamp, onDisconnect }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-import { getAuth, signInAnonymously, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+<!-- Firebase SDKs via CDN (no module imports needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const firebaseConfig = {
@@ -488,9 +487,10 @@ const firebaseConfig = {
   appId: "1:323961312756:web:8f845646bcaa53ff1195a1"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const auth = getAuth(app);
+// Firebase compat mode — uses firebase.initializeApp, firebase.database(), firebase.auth()
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const auth = firebase.auth();
 
 // Anonymous Auth — required for Firebase security rules
 let _authReady = false;
@@ -506,8 +506,8 @@ function _setAuthReady(){
   _authResolvers = [];
 }
 const _authTimeout = setTimeout(_setAuthReady, 5000);
-onAuthStateChanged(auth, () => { clearTimeout(_authTimeout); _setAuthReady(); });
-signInAnonymously(auth).catch(() => { clearTimeout(_authTimeout); _setAuthReady(); });
+auth.onAuthStateChanged(() => { clearTimeout(_authTimeout); _setAuthReady(); });
+auth.signInAnonymously().catch(() => { clearTimeout(_authTimeout); _setAuthReady(); });
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const PINK="#FF2D78", BLUE="#FFD600", GREEN="#00C853", YELLOW="#00AEEF";
@@ -628,29 +628,29 @@ window.createRoom = async function(numPlayers){
   let code, exists;
   do {
     code = genCode();
-    const snap = await get(ref(db, `rooms/${code}`));
+    const snap = await db.ref(`rooms/${code}`).once('value');
     exists = snap.exists();
   } while(exists);
 
   ROOM_CODE = code;
-  roomRef = ref(db, `rooms/${code}`);
-  gameRef = ref(db, `rooms/${code}/game`);
-  playersRef = ref(db, `rooms/${code}/players`);
+  roomRef = db.ref(`rooms/${code}`);
+  gameRef = db.ref(`rooms/${code}/game`);
+  playersRef = db.ref(`rooms/${code}/players`);
 
   // Create room in Firebase
-  await set(roomRef, {
+  await roomRef.set({
     numPlayers,
     status: "waiting",
     host: MY_SEAT,
-    createdAt: serverTimestamp(),
+    createdAt: firebase.database.ServerValue.TIMESTAMP,
     players: {
-      3: { name: MY_NAME, seat: 3, online: true, joinedAt: serverTimestamp() }
+      3: { name: MY_NAME, seat: 3, online: true, joinedAt: firebase.database.ServerValue.TIMESTAMP }
     }
   });
 
   // Presence
-  _presenceRef = ref(db, `rooms/${code}/players/3/online`);
-  onDisconnect(_presenceRef).set(false);
+  _presenceRef = db.ref(`rooms/${code}/players/3/online`);
+  _presenceRef.onDisconnect().set(false);
 
   document.getElementById("display-room-code").textContent = code;
   document.getElementById("modal-waiting").classList.add("show");
@@ -667,7 +667,7 @@ window.joinRoom = async function(){
   if(code.length !== 6){ showToast("Enter a 6-digit code"); return; }
 
   MY_NAME = name;
-  const rSnap = await get(ref(db, `rooms/${code}`));
+  const rSnap = await db.ref(`rooms/${code}`).once('value');
   if(!rSnap.exists()){ showToast("Room not found"); return; }
   const rData = rSnap.val();
   if(rData.status === "playing"){ showToast("Game already started"); return; }
@@ -682,17 +682,17 @@ window.joinRoom = async function(){
   IS_HOST = false;
   NUM_PLAYERS = rData.numPlayers;
   ROOM_CODE = code;
-  roomRef = ref(db, `rooms/${code}`);
-  gameRef = ref(db, `rooms/${code}/game`);
-  playersRef = ref(db, `rooms/${code}/players`);
+  roomRef = db.ref(`rooms/${code}`);
+  gameRef = db.ref(`rooms/${code}/game`);
+  playersRef = db.ref(`rooms/${code}/players`);
 
   // Register player
-  await set(ref(db, `rooms/${code}/players/${MY_SEAT}`), {
-    name: MY_NAME, seat: MY_SEAT, online: true, joinedAt: serverTimestamp()
+  await db.ref(`rooms/${code}/players/${MY_SEAT}`).set({
+    name: MY_NAME, seat: MY_SEAT, online: true, joinedAt: firebase.database.ServerValue.TIMESTAMP
   });
 
-  _presenceRef = ref(db, `rooms/${code}/players/${MY_SEAT}/online`);
-  onDisconnect(_presenceRef).set(false);
+  _presenceRef = db.ref(`rooms/${code}/players/${MY_SEAT}/online`);
+  _presenceRef.onDisconnect().set(false);
 
   closeModals();
   document.getElementById("display-room-code").textContent = code;
@@ -702,12 +702,10 @@ window.joinRoom = async function(){
 
 // ── Listen to room changes ─────────────────────────────────────────────────────
 function listenRoom(){
-  const unsub1 = onValue(playersRef, snap=>{
+  const cb1 = snap=>{
     const players = snap.val() || {};
     updatePlayerList(players);
     const count = Object.keys(players).length;
-
-    // Enable start if host and enough players
     if(IS_HOST){
       const btn = document.getElementById("btn-start-game");
       const ready = count >= 2;
@@ -716,26 +714,29 @@ function listenRoom(){
       btn.style.color = ready ? "#000" : "var(--muted)";
       btn.style.borderColor = ready ? "var(--gold)" : "var(--border2)";
     }
-  });
-  _listeners.push(unsub1);
+  };
+  playersRef.on('value', cb1);
+  _listeners.push(()=>playersRef.off('value', cb1));
 
   // Listen for game start
-  const gameStatusRef = ref(db, `rooms/${ROOM_CODE}/status`);
-  const unsub2 = onValue(gameStatusRef, snap=>{
+  const gameStatusRef = db.ref(`rooms/${ROOM_CODE}/status`);
+  const cb2 = snap=>{
     if(snap.val() === "playing"){
       closeModals();
       _doLoadAndStartGame();
     }
-  });
-  _listeners.push(unsub2);
+  };
+  gameStatusRef.on('value', cb2);
+  _listeners.push(()=>gameStatusRef.off('value', cb2));
 
   // Listen for game state (once game starts)
-  const unsub3 = onValue(gameRef, snap=>{
+  const cb3 = snap=>{
     if(!snap.exists()) return;
     const data = snap.val();
     if(data && G.over === false) syncGameState(data);
-  });
-  _listeners.push(unsub3);
+  };
+  gameRef.on('value', cb3);
+  _listeners.push(()=>gameRef.off('value', cb3));
 }
 
 function updatePlayerList(players){
@@ -766,7 +767,7 @@ window.hostStartGame = async function(){
   if(!IS_HOST) return;
 
   // Get players snapshot
-  const snap = await get(playersRef);
+  const snap = await playersRef.once('value');
   const playersData = snap.val() || {};
   const seats = Object.keys(playersData).map(Number);
 
@@ -790,17 +791,17 @@ window.hostStartGame = async function(){
     placements: [],
     lastAction: null,
     actionBy: null,
-    timestamp: serverTimestamp()
+    timestamp: firebase.database.ServerValue.TIMESTAMP
   };
 
-  await set(gameRef, initGame);
-  await update(roomRef, { status: "playing" });
+  await gameRef.set(initGame);
+  await roomRef.update({ status: "playing" });
 };
 
 // ── Load and start game ────────────────────────────────────────────────────────
 async function loadAndStartGame(){
   // Get all players
-  const snap = await get(playersRef);
+  const snap = await playersRef.once('value');
   const playersData = snap.val() || {};
 
   PLAYERS = [];
@@ -823,7 +824,7 @@ async function loadAndStartGame(){
   document.getElementById("status-row").style.display = "flex";
 
   // Get initial game state
-  const gSnap = await get(gameRef);
+  const gSnap = await gameRef.once('value');
   const gData = gSnap.val();
   G = {
     turn: gData.turn || 3,
@@ -918,11 +919,11 @@ async function pushGameState(extra={}){
     tokens: G.tokens,
     placements: G.placements,
     actionBy: MY_SEAT,
-    timestamp: serverTimestamp(),
+    timestamp: firebase.database.ServerValue.TIMESTAMP,
     ...extra
   };
   try{
-    await update(gameRef, payload);
+    await gameRef.update(payload);
     setSyncStatus("ok");
   } catch(e){
     setSyncStatus("err");
@@ -935,7 +936,7 @@ window.leaveRoom = async function(){
   _listeners.forEach(fn=>fn());
   _listeners = [];
   if(ROOM_CODE && MY_SEAT !== null){
-    await set(ref(db, `rooms/${ROOM_CODE}/players/${MY_SEAT}/online`), false);
+    await db.ref(`rooms/${ROOM_CODE}/players/${MY_SEAT}/online`).set(false);
   }
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false;
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
@@ -1975,8 +1976,8 @@ window.sendChat = function(){
   const text = inp.value.trim();
   if(!text) return;
   inp.value = "";
-  const chatRef = ref(db, `rooms/${ROOM_CODE}/chat`);
-  push(chatRef, { seat:MY_SEAT, name:MY_NAME, text, ts:Date.now(), type:"user" })
+  const chatRef = db.ref(`rooms/${ROOM_CODE}/chat`);
+  chatRef.push({ seat:MY_SEAT, name:MY_NAME, text, ts:Date.now(), type:"user" })
     .catch(()=>showToast("Chat send failed"));
 };
 
@@ -1984,9 +1985,9 @@ function listenChat(){
   if(_chatListening || !ROOM_CODE) return;
   _chatListening = true;
   addChatBadgeToButton();
-  const chatRef = ref(db, `rooms/${ROOM_CODE}/chat`);
+  const chatRef = db.ref(`rooms/${ROOM_CODE}/chat`);
   let firstLoad = true;
-  const unsub = onValue(chatRef, snap=>{
+  const chatCb = snap=>{
     const el = document.getElementById("chat-messages");
     if(!el) return;
     if(!snap.exists()){firstLoad=false;return;}
@@ -2000,15 +2001,15 @@ function listenChat(){
       _unreadCount = 0;
       updateChatBadge();
     } else {
-      // Only new messages (keys after _lastChatKey)
       const newKeys = _lastChatKey ? keys.filter(k=>k>_lastChatKey) : keys;
       newKeys.forEach(k=>{
         appendChatMessage(data[k], false);
         _lastChatKey = k;
       });
     }
-  });
-  _listeners.push(unsub);
+  };
+  chatRef.on('value', chatCb);
+  _listeners.push(()=>chatRef.off('value', chatCb));
 }
 
 function addChatBadgeToButton(){
