@@ -479,13 +479,13 @@ document.addEventListener("DOMContentLoaded", function(){
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const firebaseConfig = {
-  apiKey: "AIzaSyA1D4WrsF4LIR9qIgmaJJRLEjJL3kNCNqY",
-  authDomain: "anushka-a6a86.firebaseapp.com",
-  databaseURL: "https://anushka-a6a86-default-rtdb.firebaseio.com",
-  projectId: "anushka-a6a86",
-  storageBucket: "anushka-a6a86.firebasestorage.app",
-  messagingSenderId: "323961312756",
-  appId: "1:323961312756:web:8f845646bcaa53ff1195a1"
+  apiKey: "AIzaSyCCbwUS-MK4Ic8Tyd_FIBOQTwdfP0kZ_YM",
+  authDomain: "ludo-king-ka-baap.firebaseapp.com",
+  databaseURL: "https://ludo-king-ka-baap-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ludo-king-ka-baap",
+  storageBucket: "ludo-king-ka-baap.firebasestorage.app",
+  messagingSenderId: "273830749078",
+  appId: "1:273830749078:web:b197c8e42fc24b2b8a73b7"
 };
 
 // Firebase compat mode — uses firebase.initializeApp, firebase.database(), firebase.auth()
@@ -2021,10 +2021,9 @@ function addChatBadgeToButton(){
   btn.appendChild(badge);
 }
 
-// Patch loadAndStartGame to also start chat
-const _origLoadAndStartGame = loadAndStartGame;
-async function loadAndStartGame(){
-  await _origLoadAndStartGame();
+// _doLoadAndStartGame: called by listenRoom when game starts
+async function _doLoadAndStartGame(){
+  await loadAndStartGame();
   listenChat();
   addChatBadgeToButton();
 }
