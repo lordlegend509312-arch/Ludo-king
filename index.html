@@ -475,6 +475,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
+document.addEventListener("DOMContentLoaded", function(){
 
 // ── Firebase Config ────────────────────────────────────────────────────────────
 const firebaseConfig = {
@@ -491,6 +492,9 @@ const firebaseConfig = {
 const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
+
+// DEBUG: confirm script loaded
+console.log("✅ Script loaded OK");
 
 // Anonymous Auth — required for Firebase security rules
 let _authReady = false;
@@ -596,9 +600,6 @@ window.showCreateRoom = function(){
 window.showJoinRoom = function(){
   document.getElementById("modal-join").classList.add("show");
 };
-window.closeModals = closeModals;
-
-// Lobby and all button bindings are at the bottom of the script
 
 window.confirmHostName = function(){
   const name = document.getElementById("host-name-input").value.trim() || "Host";
@@ -2028,49 +2029,61 @@ async function loadAndStartGame(){
   addChatBadgeToButton();
 }
 
-// ── Bind ALL buttons via addEventListener (type="module" safe) ────────────────
+// ── Bind ALL buttons safely ───────────────────────────────────────────────────
+function bindBtn(id, fn){
+  const el = document.getElementById(id);
+  if(el) el.addEventListener("click", fn);
+  else console.warn("Button not found:", id);
+}
+
 // Lobby
-document.getElementById("btn-create-room").addEventListener("click", ()=>window.showCreateRoom());
-document.getElementById("btn-join-room").addEventListener("click", ()=>window.showJoinRoom());
+bindBtn("btn-create-room", ()=>window.showCreateRoom());
+bindBtn("btn-join-room",   ()=>window.showJoinRoom());
 
 // Create room modal
-document.getElementById("btn-2p").addEventListener("click", ()=>window.createRoom(2));
-document.getElementById("btn-3p").addEventListener("click", ()=>window.createRoom(3));
-document.getElementById("btn-4p").addEventListener("click", ()=>window.createRoom(4));
-document.getElementById("btn-cancel-create").addEventListener("click", ()=>closeModals());
+bindBtn("btn-2p",            ()=>window.createRoom(2));
+bindBtn("btn-3p",            ()=>window.createRoom(3));
+bindBtn("btn-4p",            ()=>window.createRoom(4));
+bindBtn("btn-cancel-create", ()=>closeModals());
 
 // Name modal
-document.getElementById("btn-confirm-name").addEventListener("click", ()=>window.confirmHostName());
+bindBtn("btn-confirm-name", ()=>window.confirmHostName());
 
 // Waiting room
-document.getElementById("btn-start-game").addEventListener("click", ()=>window.hostStartGame());
-document.getElementById("btn-leave-waiting").addEventListener("click", ()=>window.leaveRoom());
+bindBtn("btn-start-game",   ()=>window.hostStartGame());
+bindBtn("btn-leave-waiting",()=>window.leaveRoom());
 
 // Join modal
-document.getElementById("btn-join").addEventListener("click", ()=>window.joinRoom());
-document.getElementById("btn-cancel-join").addEventListener("click", ()=>closeModals());
+bindBtn("btn-join",         ()=>window.joinRoom());
+bindBtn("btn-cancel-join",  ()=>closeModals());
 
 // Game controls
-document.getElementById("btn-back").addEventListener("click", ()=>window.leaveRoom());
-document.getElementById("btn-chat-toggle").addEventListener("click", ()=>window.toggleChat());
+bindBtn("btn-back",         ()=>window.leaveRoom());
+bindBtn("btn-chat-toggle",  ()=>window.toggleChat());
 
 // Pause
-document.getElementById("btn-resume").addEventListener("click", ()=>window.togglePause());
-document.getElementById("btn-leave-pause").addEventListener("click", ()=>window.leaveRoom());
+bindBtn("btn-resume",       ()=>window.togglePause());
+bindBtn("btn-leave-pause",  ()=>window.leaveRoom());
 
 // Win screen
-document.getElementById("btn-play-again").addEventListener("click", ()=>window.leaveRoom());
+bindBtn("btn-play-again",   ()=>window.leaveRoom());
 
 // Chat
-document.getElementById("chat-header").addEventListener("click", ()=>window.toggleChat());
-document.getElementById("chat-close").addEventListener("click", (e)=>{e.stopPropagation();window.toggleChat();});
-document.getElementById("chat-send").addEventListener("click", ()=>window.sendChat());
-document.getElementById("chat-input").addEventListener("keydown", (e)=>{
+bindBtn("chat-header", ()=>window.toggleChat());
+bindBtn("chat-close",  (e)=>{e.stopPropagation();window.toggleChat();});
+bindBtn("chat-send",   ()=>window.sendChat());
+
+const chatInp = document.getElementById("chat-input");
+if(chatInp) chatInp.addEventListener("keydown", (e)=>{
   if(e.key==="Enter"){e.preventDefault();window.sendChat();}
 });
 
-buildBoard();
+window.closeModals = closeModals;
 
+buildBoard();
+console.log("✅ All buttons bound, buildBoard done");
+
+}); // end DOMContentLoaded
 </script>
 </body>
 </html>
