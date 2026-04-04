@@ -1145,15 +1145,21 @@ function renderSeatVisuals(seat){
       : `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
   }
 
-  // ── TOKENS: Force cached token elements to recolor (Rule 6, Rule 9) ───────
-  // Fixes stale color cache after reconnect — home tokens MUST match home square
+  // ── TOKENS: Force cached moving token elements to recolor (Rule 6, Rule 9) ─
+  // Home tokens (step=0) and done tokens use physical color — do NOT override.
+  const physicalColor = PLAYERS[seat]?.color;
   Object.keys(_tokEls).forEach(key=>{
     if(!key.startsWith(`${seat}-`)) return;
+    const tidStr = key.split("-")[1];
+    const tok = G.tokens.find(t=>t.pid===seat && String(t.tid)===tidStr);
+    if(!tok) return;
+    const expectedColor = (tok.step === 0 || tok.step >= STEP_DONE) ? physicalColor : color;
+    if(!expectedColor) return;
     const {wrap} = _tokEls[key];
-    if(wrap && wrap.dataset.rc !== color){
+    if(wrap && wrap.dataset.rc !== expectedColor){
       const rW = parseFloat(wrap.dataset.rw || "28") || 28;
-      wrap.innerHTML = tokSVG(color, rW);
-      wrap.dataset.rc = color;
+      wrap.innerHTML = tokSVG(expectedColor, rW);
+      wrap.dataset.rc = expectedColor;
     }
   });
 }
@@ -1734,16 +1740,19 @@ function renderTokens(){
   };
   const alive=new Set();
   G.tokens.forEach(tok=>{
-    const color=getTokenDisplayColor(tok.pid);
     const isMovable=movSet.has(`${tok.pid}-${tok.tid}`);
     const key=`${tok.pid}-${tok.tid}`;
     let px,py,scale=1,stackCount=1;
+    // color: physical for home/done (board-fixed), POV display for moving tokens
+    let color;
     if(tok.step===0){
       const hColor=PLAYERS[tok.pid]?.color;
       if(!hColor) return;
       const [hr,hc]=HOME_CORNER[hColor];
       const bp=baseCirclePx(hr,hc,tok.tid);
       px=bp.x;py=bp.y;scale=1.02;
+      // Home tokens use PHYSICAL color to match their home box (board never rotates)
+      color=hColor;
     } else if(tok.step>=STEP_DONE){
       // Rule 1 & 9: Center position uses GLOBAL physical color (board-fixed, never rotates)
       // The center triangle quadrants are physically fixed per seat color
@@ -1751,6 +1760,7 @@ function renderTokens(){
       const cxy=rcToXY(centerRC[0],centerRC[1]);
       const cp2=cellPx(),half=cp2*1.5;
       const hColor=PLAYERS[tok.pid]?.color; // global physical color — correct for board position
+      color=hColor; // physical color for center triangle matching
       const offsets={[PINK]:{dx:-half*0.60,dy:0},[BLUE]:{dx:0,dy:-half*0.60},[GREEN]:{dx:half*0.60,dy:0},[YELLOW]:{dx:0,dy:half*0.60}};
       const off=offsets[hColor]||{dx:0,dy:0};
       const doneOfPid=G.tokens.filter(t=>t.pid===tok.pid&&t.step>=STEP_DONE);
@@ -1771,6 +1781,8 @@ function renderTokens(){
       const off=stackOffset(n,idx,cp);
       const xy=rcToXY(rc[0],rc[1]);
       px=xy.x+off.dx;py=xy.y+off.dy;
+      // Moving tokens use POV display color so player identifies their own tokens
+      color=getTokenDisplayColor(tok.pid);
     }
     alive.add(key);
     const rW=BASE_W*scale,rH=rW*(130/100),tipOffset=rH*(122/130);
