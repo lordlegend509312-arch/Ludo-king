@@ -1726,23 +1726,25 @@ function renderTokens(){
     // color: physical for home/done (board-fixed), POV display for moving tokens
     let color;
     if(tok.step===0){
-      const hColor=PLAYERS[tok.pid]?.color;
-      if(!hColor) return;
-      const [hr,hc]=HOME_CORNER[hColor];
+      // Use POV display color to find the correct home box to render in
+      // e.g. joiner sees self as Blue -> must appear in Blue (bottom-left) box
+      const displayColor=getTokenDisplayColor(tok.pid);
+      const povHomeRC=HOME_CORNER[displayColor];
+      if(!povHomeRC) return;
+      const [hr,hc]=povHomeRC;
       const bp=baseCirclePx(hr,hc,tok.tid);
       px=bp.x;py=bp.y;scale=1.02;
-      // All tokens use POV display color — consistent throughout game
-      color=getTokenDisplayColor(tok.pid);
+      color=displayColor;
     } else if(tok.step>=STEP_DONE){
       // Rule 1 & 9: Center position uses GLOBAL physical color (board-fixed, never rotates)
       // The center triangle quadrants are physically fixed per seat color
       const centerRC=[7,7];
       const cxy=rcToXY(centerRC[0],centerRC[1]);
       const cp2=cellPx(),half=cp2*1.5;
-      const hColor=PLAYERS[tok.pid]?.color; // global physical color — for board position
-      color=getTokenDisplayColor(tok.pid); // POV color for visual
+      // Use POV display color for center position offset too
+      color=getTokenDisplayColor(tok.pid);
       const offsets={[PINK]:{dx:-half*0.60,dy:0},[BLUE]:{dx:0,dy:-half*0.60},[GREEN]:{dx:half*0.60,dy:0},[YELLOW]:{dx:0,dy:half*0.60}};
-      const off=offsets[hColor]||{dx:0,dy:0};
+      const off=offsets[color]||{dx:0,dy:0};
       const doneOfPid=G.tokens.filter(t=>t.pid===tok.pid&&t.step>=STEP_DONE);
       const doneIdx=doneOfPid.findIndex(t=>t.tid===tok.tid);
       const spread=cp2*0.18,angles=[Math.PI*1.25,Math.PI*0.75,Math.PI*1.75,Math.PI*0.25];
