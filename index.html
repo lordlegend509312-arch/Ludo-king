@@ -901,7 +901,10 @@ async function loadAndStartGame(){
     placements: gData.placements || []
   };
 
-  // ✅ FIX: Clear slot cache so home tokens render in correct boxes after fix
+  // ✅ FIX C: Force-clear ALL token element cache on every game load.
+  // Without this, reconnect after leaving causes stale color SVGs to persist
+  // because _tokEls DOM elements retain the old POV color from the previous session.
+  Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   _cacheValid=false;
   Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
 
@@ -927,20 +930,17 @@ function getMyColorName(){
 }
 
 // ── Sync game state from Firebase ─────────────────────────────────────────────
-let _lastTs = 0;
 let _applyingRemote = false;
 
 function syncGameState(data){
   if(_applyingRemote) return;
   // ✅ FIX: Block sync until loadAndStartGame() has fully populated PLAYERS[]
-  // Without this guard, Firebase fires cb3 while we're still awaiting async loads,
-  // causing getCell() to receive empty PLAYERS → tokens render at wrong positions
   if(!_gameLoaded) return;
-  // Rule 10: Ignore updates WE pushed (avoid self-overwrite)
+  // ✅ FIX D: Skip updates that WE pushed — actionBy check is the single reliable guard.
+  // Old code also used timestamp (_lastTs = Date.now() vs server TIMESTAMP) which caused
+  // a mismatch: server time > local time → timestamp guard failed → own push re-applied.
+  // actionBy === MY_SEAT alone is sufficient and correct.
   if(data.actionBy === MY_SEAT) return;
-  const ts = data.timestamp || 0;
-  if(ts <= _lastTs && _lastTs > 0) return;
-  _lastTs = ts;
 
   setSyncStatus("ok");
 
@@ -965,7 +965,8 @@ function syncGameState(data){
   G.placements = data.placements || [];
 
   if(data.tokens && !_animating){
-    G.tokens = data.tokens;
+    // ✅ FIX: Deep copy — prevent shared ref mutation (animateMove does tok.step++ in-place)
+    G.tokens = JSON.parse(JSON.stringify(data.tokens));
   }
 
   if(G.over && !document.getElementById("win").classList.contains("show")){
@@ -1000,6 +1001,8 @@ function syncGameState(data){
 let _pushDebounce = null;
 async function pushGameState(extra={}){
   setSyncStatus("warn");
+  // ✅ FIX E: Removed _lastTs = Date.now() — timestamp guard deleted (Fix D).
+  // actionBy === MY_SEAT in syncGameState() is the sole guard against self-reapply.
   const payload = {
     turn: G.turn,           // Real global seat ID
     diceVal: G.diceVal,
@@ -1161,6 +1164,7 @@ function renderSeatVisuals(seat){
 
 // Full board recolor — called on reconnect to rebuild all seat visuals (Rule 9)
 function recolorAllSeats(){
+  if(!PLAYERS.length) return; // ✅ FIX G: Guard against empty PLAYERS during async load
   PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
 }
 
@@ -1775,8 +1779,8 @@ function renderTokens(){
       const cxy=rcToXY(centerRC[0],centerRC[1]);
       const cp2=cellPx(),half=cp2*1.5;
       // Center offset: physical color (board is fixed, center triangle is physical)
-      // Token color: POV display
-      const physColor=PLAYERS[tok.pid]?.color;
+      // ✅ FIX A: Use SEAT_COLOR directly — PLAYERS[] may be empty during async load/reconnect
+      const physColor=SEAT_COLOR[tok.pid];
       color=getTokenDisplayColor(tok.pid);
       const offsets={[PINK]:{dx:-half*0.60,dy:0},[BLUE]:{dx:0,dy:-half*0.60},[GREEN]:{dx:half*0.60,dy:0},[YELLOW]:{dx:0,dy:half*0.60}};
       const off=offsets[physColor]||{dx:0,dy:0};
@@ -2019,7 +2023,10 @@ async function animateMove(tok,steps){
 }
 
 async function sendHomeFast(tok){
-  const color=PLAYERS[tok.pid]?.color; // physical — for board position only
+  // ✅ FIX B: Use SEAT_COLOR directly — PLAYERS[] may be undefined during reconnect race condition
+  // Old code used PLAYERS[tok.pid]?.color which silently returned undefined and returned early,
+  // leaving the captured token on the board as a ghost.
+  const color=SEAT_COLOR[tok.pid]; // always defined — physical board color
   if(!color) return;
   const displayColor=getDisplayColorForSeat(tok.pid); // Rule 3: all visuals use display color
   const [hr,hc]=HOME_CORNER[color];
