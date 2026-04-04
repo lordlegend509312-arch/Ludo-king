@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer</title>
+<title>Ludo King — Online Multiplayer v6.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -528,7 +528,9 @@ const POV_COLORS = [BLUE, PINK, YELLOW, GREEN];
 // Rule 5: use this for ALL rendering — tokens, panels, dice glow, labels
 function getDisplayColorForSeat(seat){
   if(MY_SEAT === null) return SEAT_COLOR[seat] || "#888";
-  const offset = (seat - MY_SEAT + 4) % 4;
+  // Only remap seats that are actually in the active layout — others use their physical color
+  if(!SEAT_LAYOUT_ACTIVE.includes(seat)) return SEAT_COLOR[seat] || "#888";
+  const offset = (SEAT_LAYOUT_ACTIVE.indexOf(seat) - SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT) + 4) % 4;
   return POV_COLORS[offset];
 }
 
@@ -713,6 +715,9 @@ window.joinRoom = async function(){
 };
 
 // ── Listen to room changes ─────────────────────────────────────────────────────
+// Rule 11: listenRoom handles reconnect, spectator join, late join identically
+let _gameStarted = false; // guard against double-loading on reconnect
+
 function listenRoom(){
   const cb1 = snap=>{
     const players = snap.val() || {};
@@ -730,10 +735,11 @@ function listenRoom(){
   playersRef.on('value', cb1);
   _listeners.push(()=>playersRef.off('value', cb1));
 
-  // Listen for game start
+  // Listen for game start — Rule 11: also handles reconnect to already-playing room
   const gameStatusRef = db.ref(`rooms/${ROOM_CODE}/status`);
   const cb2 = snap=>{
-    if(snap.val() === "playing"){
+    if(snap.val() === "playing" && !_gameStarted){
+      _gameStarted = true;
       closeModals();
       _doLoadAndStartGame();
     }
@@ -741,10 +747,17 @@ function listenRoom(){
   gameStatusRef.on('value', cb2);
   _listeners.push(()=>gameStatusRef.off('value', cb2));
 
-  // Listen for game state (once game starts)
+  // Listen for game state changes (Rule 11: reconnect gets latest state immediately)
   const cb3 = snap=>{
     if(!snap.exists()) return;
     const data = snap.val();
+    // Rule 11: If game is playing and we haven't loaded yet, load now
+    if(data && !_gameStarted && data.tokens){
+      _gameStarted = true;
+      closeModals();
+      _doLoadAndStartGame();
+      return;
+    }
     if(data && G.over === false) syncGameState(data);
   };
   gameRef.on('value', cb3);
@@ -755,17 +768,19 @@ function updatePlayerList(players){
   const container = document.getElementById("player-list");
   container.innerHTML = "";
   const seats = Object.values(players).sort((a,b)=>a.seat-b.seat);
-  const colors = [PINK, BLUE, GREEN, YELLOW]; // actual board colors for lobby (pre-game)
   seats.forEach(p=>{
     const div = document.createElement("div");
     div.className = "player-slot";
     const isSelf = p.seat === MY_SEAT;
-    // In lobby, show actual colors (MY_SEAT-based perspective not fully set yet, use raw)
-    const lobbyColor = isSelf ? POV_COLORS[0] : (colors[p.seat]||'#888');
+    // Rule 2: Self ALWAYS Blue in lobby. Rule 4: Others use POV color map.
+    // In lobby, SEAT_LAYOUT_ACTIVE may not be set yet — use SEAT_COLOR as safe fallback.
+    const lobbyColor = isSelf ? BLUE : (MY_SEAT !== null ? getDisplayColorForSeat(p.seat) : (SEAT_COLOR[p.seat]||"#888"));
+    const colorNames = {[BLUE]:"Blue",[PINK]:"Red",[YELLOW]:"Yellow",[GREEN]:"Green"};
+    const colorLabel = colorNames[lobbyColor] || "";
     div.innerHTML = `
-      <div class="player-slot-dot" style="background:${lobbyColor}"></div>
-      <div class="player-slot-name">${p.name}${isSelf?' (You)':''}</div>
-      <div class="player-slot-status" style="color:${p.online?'#00C853':'#FF2D78'}">${p.online?'Online':'Away'}</div>
+      <div class="player-slot-dot" style="background:${lobbyColor};box-shadow:0 0 6px ${lobbyColor}88;"></div>
+      <div class="player-slot-name">${escapeHtmlLobby(p.name)}${isSelf?` <span style="color:${BLUE};font-size:.75rem;">(You · Blue)</span>`:` <span style="color:${lobbyColor};font-size:.75rem;">(${colorLabel})</span>`}</div>
+      <div class="player-slot-status" style="color:${p.online?'#00C853':'#FF2D78'}">${p.online?'● Online':'○ Away'}</div>
     `;
     container.appendChild(div);
   });
@@ -774,6 +789,11 @@ function updatePlayerList(players){
   const needed = NUM_PLAYERS;
   const have = Object.keys(players).length;
   status.textContent = have >= needed ? "All players joined!" : `Waiting for ${needed-have} more player${needed-have>1?'s':''}`;
+}
+
+// Safe HTML escape for lobby (before escapeHtml is defined in chat section)
+function escapeHtmlLobby(str){
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
 // ── Host starts game ──────────────────────────────────────────────────────────
@@ -868,6 +888,7 @@ async function loadAndStartGame(){
 
   buildBoard(); // Rule 1: Board never rotates — built once in fixed orientation
   buildPlayers(); // Rule 6: Panel positions fixed, only colors remapped via POV
+  recolorPanels(); // Rule 11: instant recolor after reconnect — no flicker
   setSyncStatus("ok");
   refreshUI();
   renderTokens(); // Rule 5: All tokens colored via POV map
@@ -897,7 +918,15 @@ function syncGameState(data){
   setSyncStatus("ok");
 
   // Rule 11: On reconnect, rebuild seat layout from server state
-  if(data.seatLayout) SEAT_LAYOUT_ACTIVE = data.seatLayout;
+  if(data.seatLayout){
+    const changed = JSON.stringify(data.seatLayout) !== JSON.stringify(SEAT_LAYOUT_ACTIVE);
+    SEAT_LAYOUT_ACTIVE = data.seatLayout;
+    if(changed){
+      // Seat layout changed — rebuild panels and recolor tokens instantly (no flicker)
+      buildPlayers();
+      recolorPanels();
+    }
+  }
 
   const prevTurn = G.turn;
 
@@ -917,11 +946,11 @@ function syncGameState(data){
     return;
   }
 
-  if(data.diceVal && data.diceVal !== G.diceVal){
+  if(data.diceVal != null && data.diceVal !== G.diceVal){
     // Animate remote dice — Rule 9: use real seat ID for animation
     const rolledBy = data.actionBy;
     G.diceVal = data.diceVal;
-    if(rolledBy !== MY_SEAT && rolledBy !== null && rolledBy !== undefined){
+    if(rolledBy != null && rolledBy !== MY_SEAT){
       animDice(rolledBy, data.diceVal, ()=>{
         G.rolled = true;
         refreshUI();
@@ -971,15 +1000,22 @@ async function pushGameState(extra={}){
 window.leaveRoom = async function(){
   _listeners.forEach(fn=>fn());
   _listeners = [];
+  _gameStarted = false; // Rule 11: reset for next session
   if(ROOM_CODE && MY_SEAT !== null){
     await db.ref(`rooms/${ROOM_CODE}/players/${MY_SEAT}/online`).set(false);
   }
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false;
+  // Rule 11: Reset layout so reconnect/next game starts clean
+  SEAT_LAYOUT_ACTIVE = [0,1,2,3];
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   document.getElementById("game-wrap").style.display = "none";
   document.getElementById("status-row").style.display = "none";
   document.getElementById("win").classList.remove("show");
   document.getElementById("pause-overlay").classList.remove("show");
+  // Rule 11: Reset chat state for clean reconnect
+  _chatOpen = false; _unreadCount = 0; _chatListening = false; _lastChatKey = null;
+  const chatPanel = document.getElementById("chat-panel");
+  if(chatPanel) chatPanel.classList.remove("open");
   document.getElementById("lobby").style.display = "flex";
   closeModals();
 };
@@ -990,20 +1026,61 @@ window.backToLobby = window.leaveRoom;
 // GAME ENGINE (ported from offline version with online sync)
 // ══════════════════════════════════════════════════════════════════════════════
 
-const homeZones=[{r0:0,c0:0,col:PINK},{r0:0,c0:9,col:BLUE},{r0:9,c0:0,col:YELLOW},{r0:9,c0:9,col:GREEN}];
+// ── Physical board layout (NEVER changes — Rule 1, Rule 9) ────────────────────
+// These are the FIXED global positions keyed by physical seat color.
+// Seat 0 = PINK  (top-left home,    row 0-5,  col 0-5)
+// Seat 1 = BLUE  (top-right home,   row 0-5,  col 9-14)
+// Seat 2 = GREEN (bottom-right home,row 9-14, col 9-14)
+// Seat 3 = YELLOW(bottom-left home, row 9-14, col 0-5)
+
+// homeZones: physical layout — col is global physical color
+const homeZones=[
+  {r0:0,c0:0, col:PINK,   seat:0},  // top-left
+  {r0:0,c0:9, col:BLUE,   seat:1},  // top-right
+  {r0:9,c0:9, col:GREEN,  seat:2},  // bottom-right
+  {r0:9,c0:0, col:YELLOW, seat:3},  // bottom-left
+];
+
+// inHome returns the PHYSICAL color of a home zone (used for game logic only)
 const inHome=(r,c)=>{for(const h of homeZones)if(r>=h.r0&&r<h.r0+6&&c>=h.c0&&c<h.c0+6)return h.col;return null;};
+// inHomeSeat returns the global seat index of a home zone (used for POV display)
+const inHomeSeat=(r,c)=>{for(const h of homeZones)if(r>=h.r0&&r<h.r0+6&&c>=h.c0&&c<h.c0+6)return h.seat;return null;};
 const inCenter=(r,c)=>r>=6&&r<=8&&c>=6&&c<=8;
 
+// Stretch lanes — physical color → set of cell keys
 const BLUE_S=new Set(["1-7","2-7","3-7","4-7","5-7","6-7"]);
 const PINK_S=new Set(["7-1","7-2","7-3","7-4","7-5","7-6"]);
 const GREEN_S=new Set(["7-8","7-9","7-10","7-11","7-12","7-13"]);
 const YELLOW_S=new Set(["8-7","9-7","10-7","11-7","12-7","13-7"]);
+
+// getStretch returns the PHYSICAL color of a stretch lane cell
 const getStretch=(r,c)=>{const k=`${r}-${c}`;if(BLUE_S.has(k))return BLUE;if(PINK_S.has(k))return PINK;if(GREEN_S.has(k))return GREEN;if(YELLOW_S.has(k))return YELLOW;return null;};
-const ARROWS={"7-0":{dir:"right",col:PINK},"0-7":{dir:"down",col:BLUE},"7-14":{dir:"left",col:GREEN},"14-7":{dir:"up",col:YELLOW}};
+// getStretchSeat returns which global seat a stretch lane belongs to
+const STRETCH_SEAT={"1-7":1,"2-7":1,"3-7":1,"4-7":1,"5-7":1,"6-7":1, // BLUE=seat1
+                    "7-1":0,"7-2":0,"7-3":0,"7-4":0,"7-5":0,"7-6":0, // PINK=seat0
+                    "7-8":2,"7-9":2,"7-10":2,"7-11":2,"7-12":2,"7-13":2, // GREEN=seat2
+                    "8-7":3,"9-7":3,"10-7":3,"11-7":3,"12-7":3,"13-7":3}; // YELLOW=seat3
+const getStretchSeat=(r,c)=>STRETCH_SEAT[`${r}-${c}`]??null;
+
+// Entry arrows — physical layout
+const ARROWS={"7-0":{dir:"right",seat:0},"0-7":{dir:"down",seat:1},"7-14":{dir:"left",seat:2},"14-7":{dir:"up",seat:3}};
+
+// Safe grey stars (neutral)
 const GREY_STARS=new Set(["2-6","8-2","6-12","12-8"]);
+
+// Colored entry stars — which global seat each belongs to
 const COLOR_STARS=new Set(["1-8","6-1","8-13","13-6"]);
-const STAR_BG={"1-8":BLUE,"6-1":PINK,"8-13":GREEN,"13-6":YELLOW};
-const CORNERS={"6-6":PINK,"6-8":BLUE,"8-6":YELLOW,"8-8":GREEN};
+const STAR_SEAT={"1-8":1,"6-1":0,"8-13":2,"13-6":3}; // seat index
+
+// Corner path cells at bend of home lanes — seat index
+const CORNER_SEAT={"6-6":0,"6-8":1,"8-8":2,"8-6":3};
+
+// ── POV color resolver ────────────────────────────────────────────────────────
+// Converts a global physical seat → local display color based on MY_SEAT POV
+// This is THE central function for all board coloring (Rule 4, Rule 5)
+function seatToDisplayColor(globalSeat){
+  return getDisplayColorForSeat(globalSeat);
+}
 
 function lighten(hex,a=15){let c=hex.replace("#","");const r=Math.min(255,parseInt(c.slice(0,2),16)+a);const g=Math.min(255,parseInt(c.slice(2,4),16)+a);const b=Math.min(255,parseInt(c.slice(4,6),16)+a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
 function darken(hex,a=18){let c=hex.replace("#","");const r=Math.max(0,parseInt(c.slice(0,2),16)-a);const g=Math.max(0,parseInt(c.slice(2,4),16)-a);const b=Math.max(0,parseInt(c.slice(4,6),16)-a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
@@ -1091,72 +1168,111 @@ function tokRC(tok){
 }
 
 // ── Board build ───────────────────────────────────────────────────────────────
+// Rule 1: Board grid is FIXED — never rotates, never transforms.
+// Rule 4 & 5: All COLOR decisions use seatToDisplayColor(globalSeat) — POV-aware.
+// buildBoard() is called after MY_SEAT is known so colors are correct immediately.
 function buildBoard(){
   const el=document.getElementById("board");
   el.innerHTML="";
+  const arDir={up:"M9,22L9,11L4,11L12,1L20,11L15,11L15,22Z",down:"M9,2L9,13L4,13L12,23L20,13L15,13L15,2Z",right:"M2,9L13,9L13,4L23,12L13,20L13,15L2,15Z",left:"M22,9L11,9L11,4L1,12L11,20L11,15L22,15Z"};
+
   for(let r=0;r<15;r++){
     for(let c=0;c<15;c++){
       const k=`${r}-${c}`;
-      const hc=inHome(r,c);
-      if(hc){
+
+      // ── HOME ZONES ──────────────────────────────────────────────────────────
+      const homeSeat=inHomeSeat(r,c);
+      if(homeSeat !== null){
         const isRoot=homeZones.some(h=>h.r0===r&&h.c0===c);
         if(!isRoot) continue;
         const d=document.createElement("div");
         d.className="lc";
         d.style.cssText=`grid-column:${c+1}/span 6;grid-row:${r+1}/span 6;`;
         const br=(r===0&&c===0)?"10px 0 0 0":(r===0&&c===9)?"0 10px 0 0":(r===9&&c===0)?"0 0 0 10px":"0 0 10px 0";
-        d.innerHTML=`<div style="width:100%;height:100%;background:${hc};border-radius:${br};display:flex;align-items:center;justify-content:center;">
+
+        // Rule 4: Use POV display color — my home shows as Blue, others shifted
+        const dc = seatToDisplayColor(homeSeat);
+
+        d.innerHTML=`<div style="width:100%;height:100%;background:${dc};border-radius:${br};display:flex;align-items:center;justify-content:center;">
           <div style="width:74%;height:74%;background:white;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:10%;box-sizing:border-box;">
-            <div data-slot="${r},${c},0" style="border-radius:50%;background:${lighten(hc,10)};border:2px solid ${darken(hc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
-            <div data-slot="${r},${c},1" style="border-radius:50%;background:${lighten(hc,10)};border:2px solid ${darken(hc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
-            <div data-slot="${r},${c},2" style="border-radius:50%;background:${lighten(hc,10)};border:2px solid ${darken(hc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
-            <div data-slot="${r},${c},3" style="border-radius:50%;background:${lighten(hc,10)};border:2px solid ${darken(hc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+            <div data-slot="${r},${c},0" style="border-radius:50%;background:${lighten(dc,10)};border:2px solid ${darken(dc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+            <div data-slot="${r},${c},1" style="border-radius:50%;background:${lighten(dc,10)};border:2px solid ${darken(dc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+            <div data-slot="${r},${c},2" style="border-radius:50%;background:${lighten(dc,10)};border:2px solid ${darken(dc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+            <div data-slot="${r},${c},3" style="border-radius:50%;background:${lighten(dc,10)};border:2px solid ${darken(dc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
           </div>
         </div>`;
         el.appendChild(d);
         continue;
       }
+
+      // ── CENTER TRIANGLE ─────────────────────────────────────────────────────
       if(inCenter(r,c)){
         if(r===6&&c===6){
           const d=document.createElement("div");
           d.style.cssText=`grid-column:7/span 3;grid-row:7/span 3;overflow:hidden;`;
+          // Rule 4: Center triangles use POV display colors
+          // Physical mapping: top=seat1(BLUE), right=seat2(GREEN), bottom=seat3(YELLOW), left=seat0(PINK)
+          const cTop   = seatToDisplayColor(1); // top triangle → seat1 physical
+          const cRight = seatToDisplayColor(2); // right triangle → seat2 physical
+          const cBot   = seatToDisplayColor(3); // bottom triangle → seat3 physical
+          const cLeft  = seatToDisplayColor(0); // left triangle → seat0 physical
           d.innerHTML=`<svg viewBox="0 0 90 90" style="width:100%;height:100%;display:block;" preserveAspectRatio="none">
-            <polygon points="45,45 0,0 90,0" fill="${BLUE}"/>
-            <polygon points="45,45 90,0 90,90" fill="${GREEN}"/>
-            <polygon points="45,45 90,90 0,90" fill="${YELLOW}"/>
-            <polygon points="45,45 0,90 0,0" fill="${PINK}"/>
+            <polygon points="45,45 0,0 90,0"  fill="${cTop}"/>
+            <polygon points="45,45 90,0 90,90" fill="${cRight}"/>
+            <polygon points="45,45 90,90 0,90" fill="${cBot}"/>
+            <polygon points="45,45 0,90 0,0"  fill="${cLeft}"/>
           </svg>`;
           el.appendChild(d);
         }
         continue;
       }
+
       const d=document.createElement("div");
       d.className="lc";
       d.style.cssText=`grid-column:${c+1};grid-row:${r+1};`;
+
+      // ── COLORED ENTRY STARS ─────────────────────────────────────────────────
       if(COLOR_STARS.has(k)){
-        const bg=STAR_BG[k]||DEF;
-        d.style.background=lighten(bg);
+        const seat = STAR_SEAT[k];
+        const dc = seatToDisplayColor(seat); // Rule 4: POV color
+        d.style.background=lighten(dc);
         d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;" fill="none">
           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
-            stroke="${darken(bg)}" stroke-width="1.8" fill="${darken(bg)}" stroke-linejoin="round"/>
+            stroke="${darken(dc)}" stroke-width="1.8" fill="${darken(dc)}" stroke-linejoin="round"/>
         </svg>`;
+
+      // ── GREY SAFE STARS (neutral) ───────────────────────────────────────────
       } else if(GREY_STARS.has(k)){
         d.style.background=DEF;
         d.innerHTML=`<svg viewBox="0 0 24 24" class="star-svg" fill="none">
           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
             stroke="white" stroke-width="1.8" fill="transparent" stroke-linejoin="round"/>
         </svg>`;
-      } else if(CORNERS[k]){
-        d.style.background=CORNERS[k];
+
+      // ── CORNER CELLS (bend of home lanes into main path) ────────────────────
+      } else if(CORNER_SEAT[k] !== undefined){
+        const dc = seatToDisplayColor(CORNER_SEAT[k]); // Rule 4: POV color
+        d.style.background=dc;
+
+      // ── HOME LANE STRIPS (colored stretch lanes) ────────────────────────────
       } else {
-        const sc=getStretch(r,c);
-        if(sc){d.style.background=sc;}
-        else if(ARROWS[k]){
+        const stretchSeat = getStretchSeat(r,c);
+        if(stretchSeat !== null){
+          const dc = seatToDisplayColor(stretchSeat); // Rule 4: POV color
+          d.style.background=dc;
+
+        // ── ENTRY ARROWS (into home lane) ───────────────────────────────────
+        } else if(ARROWS[k]){
           d.style.background=DEF;
-          const arDir={up:"M9,22L9,11L4,11L12,1L20,11L15,11L15,22Z",down:"M9,2L9,13L4,13L12,23L20,13L15,13L15,2Z",right:"M2,9L13,9L13,4L23,12L13,20L13,15L2,15Z",left:"M22,9L11,9L11,4L1,12L11,20L11,15L22,15Z"};
-          d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;"><path d="${arDir[ARROWS[k].dir]}" fill="${ARROWS[k].col}"/></svg>`;
+          const arSeat = ARROWS[k].seat;
+          const dc = seatToDisplayColor(arSeat); // Rule 4: POV color
+          d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;"><path d="${arDir[ARROWS[k].dir]}" fill="${dc}"/></svg>`;
+
+        // ── PLAIN PATH CELLS ─────────────────────────────────────────────────
         } else if(PATH.has(k)){
           d.style.background=DEF;
+
+        // ── BOARD BACKGROUND ─────────────────────────────────────────────────
         } else {
           d.style.background=BOARD_BG;
         }
@@ -1167,48 +1283,48 @@ function buildBoard(){
 }
 
 // ── Build player panels ────────────────────────────────────────────────────────
-// Layout: each player sees themselves at BOTTOM-LEFT
-// Seat layout on screen:
-//   TOP-ROW:    seat1 (top-left) | [pause] | seat2 (top-right)  [from local POV: these are opponents]
-//   BOT-ROW:    seat3 (bot-left) = HOST    | seat0 (bot-right)  [seat 3 = my seat for host]
+// Rule 6: 4 fixed panel positions. Self always at bottom-left.
+// POV illusion: panel colors remapped locally, board never rotates.
 //
-// But from ANY player's perspective, THEY should see their panel at bottom-left.
-// We achieve this by rearranging which panel goes where based on MY_SEAT:
+// Panel slot → global seat mapping (from MY perspective):
+//   [0] top-left    = opponent opposite-prev
+//   [1] top-right   = opponent next
+//   [2] bottom-left = ME (always)
+//   [3] bottom-right= opponent prev
 //
-// MY_SEAT=3: 
-//   top-left=seat1, top-right=seat2, bot-left=seat3(ME), bot-right=seat0
-// MY_SEAT=0:
-//   top-left=seat2, top-right=seat3, bot-left=seat0(ME), bot-right=seat1
-// MY_SEAT=1:
-//   top-left=seat3, top-right=seat0, bot-left=seat1(ME), bot-right=seat2
-// MY_SEAT=2:
-//   top-left=seat0, top-right=seat1, bot-left=seat2(ME), bot-right=seat3
+// Rule 7: 2P → only top-right + bottom-left occupied (diagonal)
+// Rule 8: 3P → top-left empty or filled based on triangle layout
 
 function getPanelSeats(){
-  const me = MY_SEAT !== null ? MY_SEAT : 3;
+  const me = MY_SEAT !== null ? MY_SEAT : SEAT_LAYOUT_ACTIVE[0];
+  const layout = SEAT_LAYOUT_ACTIVE;
+  const active = layout.filter(s => PLAYERS[s]?.active);
+  const numActive = active.length;
 
-  // Find active opponents
-  const opponents = PLAYERS.filter(p => p.active && p.id !== me).map(p => p.id);
-  const numActive = opponents.length + 1; // include me
-
-  if(numActive === 2){
-    // 2 player: me = bot-left, opponent = top-right (diagonal, Ludo King style)
-    const opp = opponents[0] ?? (me+2)%4;
-    return [
-      -1,   // top-left  = empty
-      opp,  // top-right = opponent
-      me,   // bot-left  = ME
-      -1    // bot-right = empty
-    ];
+  if(numActive <= 2){
+    // Rule 7: 2P diagonal — me at bot-left, opponent at top-right only
+    const opp = active.find(s => s !== me) ?? -1;
+    return [-1, opp, me, -1]; // [topLeft, topRight, botLeft=ME, botRight]
   }
 
-  // 3-4 player: standard layout
-  return [
-    (me+2)%4, // top-left
-    (me+1)%4, // top-right
-    me,       // bot-left = ME
-    (me+3)%4  // bot-right
-  ];
+  if(numActive === 3){
+    // Rule 8: 3P triangle — find the 3 active seats in layout order
+    // From my POV: next in layout = top-right, prev in layout = bot-right, opposite = top-left
+    const myIdx = layout.indexOf(me);
+    const next  = layout[(myIdx + 1) % layout.length];
+    const prev  = layout[(myIdx + layout.length - 1) % layout.length];
+    // Find the third player (not me, not next, not prev — or pick from active)
+    const third = active.find(s => s !== me && s !== next && s !== prev);
+    // Assign: top-left = third (or -1), top-right = next, bot-right = prev
+    return [third ?? -1, next, me, prev];
+  }
+
+  // 4P: full layout — use layout order for POV mapping
+  const myIdx = layout.indexOf(me);
+  const next   = layout[(myIdx + 1) % 4];
+  const opp    = layout[(myIdx + 2) % 4];
+  const prev   = layout[(myIdx + 3) % 4];
+  return [opp, next, me, prev]; // [topLeft, topRight, botLeft=ME, botRight]
 }
 
 function buildPlayers(){
@@ -1250,16 +1366,33 @@ function makePlaceholder(side){
   return col;
 }
 
+// Rule 11: Instantly recolor all panel token previews after reconnect/rejoin
+// Called after MY_SEAT is known and PLAYERS is rebuilt
+function recolorPanels(){
+  PLAYERS.forEach(p=>{
+    if(!p.active) return;
+    const tokW = document.getElementById(`ptok-${p.id}`);
+    const dColor = getDisplayColorForSeat(p.id);
+    if(tokW){
+      tokW.innerHTML = tokSVG(dColor, 36);
+      tokW.dataset.rc = dColor; // Rule 4: keep cache in sync
+    }
+    // Also recolor panel border tint
+    const bg = document.getElementById(`pbg-${p.id}`);
+    if(bg) bg.style.borderColor = `${dColor}44`;
+  });
+}
+
 function makePanel(pid,side,pos,isMe=false){
   const p=PLAYERS[pid];
   if(!p) return makePlaceholder(side);
   const col=document.createElement("div");
   col.className=`pcol ${side}`;
+  col.dataset.pid=pid; // Rule 11: for reconnect recolor
 
   const lbl=document.createElement("span");
   lbl.className="plabel";
   lbl.id=`lbl-${pid}`;
-  // Perspective: my token shows as BLUE tint label
   lbl.textContent=p.label+(isMe?" (You)":"");
 
   const box=document.createElement("div");
@@ -1282,11 +1415,16 @@ function makePanel(pid,side,pos,isMe=false){
   shine.className="pbox-shine";
   bg.appendChild(shine);
 
-  // Perspective: show player's color from MY perspective (me=blue, others shift)
+  // Rule 4 & 5: display color from POV map — self=BLUE, others shifted
   const displayColor = getDisplayColorForSeat(pid);
+
+  // Rule 12: tint the panel background subtly with POV color
+  bg.style.borderColor = `${displayColor}44`; // subtle default tint
 
   const tokW=document.createElement("div");
   tokW.className="pbox-tok";
+  tokW.id=`ptok-${pid}`; // Rule 11: id for reconnect recolor
+  tokW.dataset.rc=displayColor; // Rule 4: cache current color for change-detection in refreshUI
   tokW.style[side==="left"?"marginLeft":"marginRight"]="4px";
   tokW.innerHTML=tokSVG(displayColor, 36);
 
@@ -1518,10 +1656,12 @@ function renderTokens(){
       const bp=baseCirclePx(hr,hc,tok.tid);
       px=bp.x;py=bp.y;scale=1.02;
     } else if(tok.step>=STEP_DONE){
+      // Rule 1 & 9: Center position uses GLOBAL physical color (board-fixed, never rotates)
+      // The center triangle quadrants are physically fixed per seat color
       const centerRC=[7,7];
       const cxy=rcToXY(centerRC[0],centerRC[1]);
       const cp2=cellPx(),half=cp2*1.5;
-      const hColor=PLAYERS[tok.pid]?.color;
+      const hColor=PLAYERS[tok.pid]?.color; // global physical color — correct for board position
       const offsets={[PINK]:{dx:-half*0.60,dy:0},[BLUE]:{dx:0,dy:-half*0.60},[GREEN]:{dx:half*0.60,dy:0},[YELLOW]:{dx:0,dy:half*0.60}};
       const off=offsets[hColor]||{dx:0,dy:0};
       const doneOfPid=G.tokens.filter(t=>t.pid===tok.pid&&t.step>=STEP_DONE);
@@ -1574,13 +1714,28 @@ function refreshUI(){
     const lbl=document.getElementById(`lbl-${p.id}`);
     const box=document.getElementById(`pbox-${p.id}`);
     const d3d=document.getElementById(`d3d-${p.id}`);
-    // Use perspective display color for highlights
+    // Rule 4 & 5: always use POV display color — never raw global seat color
     const dColor = getDisplayColorForSeat(p.id);
-    if(bg) bg.style.borderColor=active?dColor:"#333";
+
+    // Rule 12: active player panel glows with POV color
+    if(bg){
+      bg.style.borderColor = active ? dColor : `${dColor}44`;
+      bg.style.boxShadow = active ? `0 0 0 2px ${dColor}, 0 4px 20px ${dColor}55` : "0 4px 20px rgba(0,0,0,.6)";
+    }
     if(lbl) lbl.style.color=active?dColor:"white";
     if(box) box.style.outline=active?`2px solid ${dColor}`:"none";
+
+    // Rule 11: Recolor panel token preview on every refresh (handles reconnect recolor pop)
+    const tokPreview = document.getElementById(`ptok-${p.id}`);
+    if(tokPreview){
+      const curColor = tokPreview.dataset.rc;
+      if(curColor !== dColor){
+        tokPreview.innerHTML = tokSVG(dColor, 36);
+        tokPreview.dataset.rc = dColor;
+      }
+    }
+
     if(d3d){
-      // Dice active only for current player AND it's MY turn
       const isMyTurn = G.turn === MY_SEAT && p.id === MY_SEAT;
       if(active && isMyTurn){
         d3d.classList.remove("inactive");
@@ -1589,6 +1744,14 @@ function refreshUI(){
       } else {
         d3d.classList.add("inactive");
         d3d.classList.remove("off");
+      }
+      // Rule 3: dice wrapper glow matches POV display color of owner
+      const diceWrap = document.getElementById(`pdw-${p.id}`);
+      if(diceWrap){
+        diceWrap.style.boxShadow = active
+          ? `0 0 0 2px ${dColor}, inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`
+          : `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
+        diceWrap.style.borderColor = active ? dColor : "#1a1a28";
       }
       const cube=document.getElementById(`dcube-${p.id}`);
       if(cube&&dAcc.last[p.id]==null&&!dAcc.busy[p.id]&&!G.rolled){
@@ -1605,15 +1768,17 @@ function refreshUI(){
 function updateTurnBanner(){
   const banner=document.getElementById("turn-banner");
   if(!banner) return;
-  if(G.over){banner.textContent="Game Over";return;}
+  if(G.over){banner.textContent="Game Over";banner.style.color="var(--muted)";return;}
   const isMyTurn = G.turn === MY_SEAT;
-  const turnName = PLAYERS[G.turn]?.label || "...";
+  // Rule 5: turn player color uses POV display color
+  const turnDisplayColor = getDisplayColorForSeat(G.turn);
+  const turnName = G.turn === MY_SEAT ? "You" : (PLAYERS[G.turn]?.label || "...");
   if(isMyTurn){
-    banner.textContent = G.rolled ? "Choose a token!" : "Your turn — Roll!";
+    banner.textContent = G.rolled ? "👆 Choose a token!" : "🎲 Your turn — Roll!";
     banner.style.color = "var(--gold)";
   } else {
     banner.textContent = `${turnName}'s turn`;
-    banner.style.color = "var(--muted)";
+    banner.style.color = turnDisplayColor; // Rule 5: color matches their POV-mapped color
   }
 }
 
@@ -1764,7 +1929,8 @@ async function animateMove(tok,steps){
 async function sendHomeFast(tok){
   const color=PLAYERS[tok.pid]?.color;
   if(!color) return;
-  const [hr,hc]=HOME_CORNER[color];
+  const displayColor=getDisplayColorForSeat(tok.pid); // Rule 4: display color for visuals
+  const [hr,hc]=HOME_CORNER[color]; // physical corner for position (Rule 1: board never rotates)
   const cacheKey=`${tok.pid}-${tok.tid}`;
   const el=(_tokEls[cacheKey]||{}).wrap||null;
   const layer=document.getElementById("tokens-layer");
@@ -1774,7 +1940,7 @@ async function sendHomeFast(tok){
     for(let r=0;r<2;r++){
       const ring=document.createElement("div");
       const size=36+r*10,mx=parseFloat(bx)-size/2+14,my=parseFloat(by)-size/2+14;
-      ring.style.cssText=`position:absolute;transform:translate(${mx}px,${my}px) scale(0.3);--rx:${mx}px;--ry:${my}px;width:${size}px;height:${size}px;border-radius:50%;border:${3-r}px solid ${r===0?'white':color};opacity:0;pointer-events:none;animation:ringPop ${0.35+r*0.12}s ${r*0.07}s ease-out forwards;`;
+      ring.style.cssText=`position:absolute;transform:translate(${mx}px,${my}px) scale(0.3);--rx:${mx}px;--ry:${my}px;width:${size}px;height:${size}px;border-radius:50%;border:${3-r}px solid ${r===0?'white':displayColor};opacity:0;pointer-events:none;animation:ringPop ${0.35+r*0.12}s ${r*0.07}s ease-out forwards;`;
       layer.appendChild(ring);setTimeout(()=>ring.remove(),600);
     }
     el.style.transition="transform 0.14s cubic-bezier(0.36,0.07,0.19,0.97),opacity 0.14s";
@@ -1786,7 +1952,7 @@ async function sendHomeFast(tok){
   tok.step=0;
   renderTokens();await rafDelay(10);
   const bp=baseCirclePx(hr,hc,tok.tid);
-  const sparkColors=[color,"white","#FFD700",color];
+  const sparkColors=[displayColor,"white","#FFD700",displayColor]; // Rule 3: display color
   for(let i=0;i<4;i++){
     const sp=document.createElement("div");
     const angle=(i/4)*Math.PI*2,dist=22+Math.random()*14;
@@ -1905,7 +2071,7 @@ function nextTurn(same){
       const active=G.turn===p.id&&!G.over;
       // Rule 5: display color from POV map, never raw global color
       const dColor = getDisplayColorForSeat(p.id);
-      if(bg) bg.style.borderColor=active?dColor:"#333";
+      if(bg) bg.style.borderColor=active?dColor:`${dColor}44`;
       if(lbl) lbl.style.color=active?dColor:"white";
       if(box) box.style.outline=active?`2px solid ${dColor}`:"none";
       if(d3d){
@@ -1923,12 +2089,24 @@ function nextTurn(same){
 function endGame(){
   G.over=true;
   const medals=["🥇","🥈","🥉","4️⃣"];
+
+  // Rule 4 & 2: Win screen uses POV display colors — self shown as Blue
   const lines=G.placements.map((pid,i)=>{
-    const name=PLAYERS[pid]?.label||`P${pid}`;
-    return `${medals[i]||"  "} ${name}`;
+    const name = pid === MY_SEAT ? "You" : (PLAYERS[pid]?.label||`P${pid}`);
+    const dColor = getDisplayColorForSeat(pid);
+    // Color name for POV
+    const colorNames = {[BLUE]:"Blue",[PINK]:"Red",[YELLOW]:"Yellow",[GREEN]:"Green"};
+    const colorName = colorNames[dColor] || "";
+    return `${medals[i]||"  "} ${name} (${colorName})`;
   });
+
   const winner=G.placements[0];
-  const heading=`🎉 ${PLAYERS[winner]?.label||"Winner"} Wins!`;
+  const isIWinner = winner === MY_SEAT;
+  // Rule 2: If I won, heading always says "You Win!" (since I am always Blue)
+  const heading = isIWinner
+    ? `🎉 You Win! 🔵`
+    : `🎉 ${PLAYERS[winner]?.label||"Winner"} Wins!`;
+
   document.getElementById("win-msg").textContent=heading;
   document.getElementById("win-places").textContent=lines.join("\n");
   document.getElementById("win").classList.add("show");
@@ -2148,8 +2326,10 @@ if(chatInp) chatInp.addEventListener("keydown", (e)=>{
 
 window.closeModals = closeModals;
 
-buildBoard();
-console.log("✅ All buttons bound, buildBoard done");
+// Note: buildBoard() is intentionally NOT called here.
+// It is called inside loadAndStartGame() AFTER MY_SEAT is assigned,
+// so all POV home colors render correctly from the start. (Rule 4)
+console.log("✅ All buttons bound. Board will render after seat assignment.");
 
 }); // end DOMContentLoaded
 </script>
