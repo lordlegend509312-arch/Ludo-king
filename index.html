@@ -233,10 +233,8 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-/* Perspective rotation for players */
-.board-rotated-180{transform:rotate(180deg);}
-.board-rotated-90{transform:rotate(90deg);}
-.board-rotated-270{transform:rotate(270deg);}
+/* Board NEVER rotates — rotation classes disabled per Rule 1 */
+/* .board-rotated-180, .board-rotated-90, .board-rotated-270 are forbidden */
 
 /* ── CHAT ── */
 #chat-panel{
@@ -517,14 +515,27 @@ auth.signInAnonymously().catch(() => { clearTimeout(_authTimeout); _setAuthReady
 const PINK="#FF2D78", BLUE="#00AEEF", GREEN="#00C853", YELLOW="#FFD600";
 const DEF="#CFD8DC", BOARD_BG="#546E7A";
 
+// GLOBAL seat → physical board color (NEVER changes, tied to fixed board positions)
+// Seat 0 = top-left home (PINK), Seat 1 = top-right home (BLUE)
+// Seat 2 = bottom-right home (GREEN), Seat 3 = bottom-left home (YELLOW)
 const SEAT_COLOR = [PINK, BLUE, GREEN, YELLOW];
+
+// POV display colors: offset 0=self→BLUE, 1=next CW→PINK, 2=opposite→YELLOW, 3=prev CW→GREEN
+// Rule 2 & 4: self always Blue, others remapped locally only
 const POV_COLORS = [BLUE, PINK, YELLOW, GREEN];
 
+// Returns the LOCAL display color for a given global seat, from THIS client's perspective
+// Rule 5: use this for ALL rendering — tokens, panels, dice glow, labels
 function getDisplayColorForSeat(seat){
   if(MY_SEAT === null) return SEAT_COLOR[seat] || "#888";
   const offset = (seat - MY_SEAT + 4) % 4;
   return POV_COLORS[offset];
 }
+
+// Rule 2: self always appears as Blue
+function getMyDisplayColor(){ return BLUE; }
+
+// Rule 10: never send display colors over network — use real seat IDs only
 
 const STEP_MAIN_END = 51;
 const STEP_STRETCH_START = 52;
@@ -595,14 +606,34 @@ function genCode(){
   return code;
 }
 
-// ── Create Room ────────────────────────────────────────────────────────────────
+// ── Seat layout rules ──────────────────────────────────────────────────────────
+// Rule 3: Global seats are FIXED. Physical board mapping:
+//   Seat 0 = top-left  (PINK home)   entry at [6,1]
+//   Seat 1 = top-right (BLUE home)   entry at [1,8]
+//   Seat 2 = bottom-right (GREEN home) entry at [8,13]
+//   Seat 3 = bottom-left (YELLOW home) entry at [13,6]
+//
+// Rule 7: 2P uses diagonal: Seat 0 vs Seat 2 (top-left vs bottom-right)
+// Rule 8: 3P uses: Seat 0, Seat 1, Seat 3 (triangle)
+// Rule 6: My seat always appears at bottom-left in MY view via POV remapping
+//
+// SEAT_LAYOUTS: which real global seats are used per player count
+const SEAT_LAYOUTS = {
+  2: [0, 2],       // Rule 7: diagonal only (top-left vs bottom-right)
+  3: [0, 1, 3],    // Rule 8: triangle (top-left, top-right, bottom-left)
+  4: [0, 1, 2, 3]  // Full 4-player
+};
+
 window.createRoom = async function(numPlayers){
   closeModals();
   showToast("Connecting...");
   await waitForAuth();
   NUM_PLAYERS = numPlayers;
   IS_HOST = true;
-  MY_SEAT = 3; // Host is always seat 3 (YELLOW = bottom-left)
+
+  // Rule 3: Host always takes the first seat in the layout
+  const layout = SEAT_LAYOUTS[numPlayers] || [0,1,2,3];
+  MY_SEAT = layout[0]; // Host gets first seat in layout
 
   // Generate unique room code
   let code, exists;
@@ -617,24 +648,25 @@ window.createRoom = async function(numPlayers){
   gameRef = db.ref(`rooms/${code}/game`);
   playersRef = db.ref(`rooms/${code}/players`);
 
-  // Create room in Firebase
+  // Create room in Firebase — Rule 10: store only real seat IDs
   await roomRef.set({
     numPlayers,
     status: "waiting",
     host: MY_SEAT,
+    seatLayout: layout,
     createdAt: firebase.database.ServerValue.TIMESTAMP,
     players: {
-      3: { name: MY_NAME, seat: 3, online: true, joinedAt: firebase.database.ServerValue.TIMESTAMP }
+      [MY_SEAT]: { name: MY_NAME, seat: MY_SEAT, online: true, joinedAt: firebase.database.ServerValue.TIMESTAMP }
     }
   });
 
   // Presence
-  _presenceRef = db.ref(`rooms/${code}/players/3/online`);
+  _presenceRef = db.ref(`rooms/${code}/players/${MY_SEAT}/online`);
   _presenceRef.onDisconnect().set(false);
 
   document.getElementById("display-room-code").textContent = code;
   document.getElementById("modal-waiting").classList.add("show");
-  updatePlayerList({ 3: { name: MY_NAME, seat: 3, online: true } });
+  updatePlayerList({ [MY_SEAT]: { name: MY_NAME, seat: MY_SEAT, online: true } });
   listenRoom();
 };
 
@@ -652,13 +684,13 @@ window.joinRoom = async function(){
   const rData = rSnap.val();
   if(rData.status === "playing"){ showToast("Game already started"); return; }
 
+  // Rule 3: Use the room's seat layout (set by host)
+  const layout = rData.seatLayout || SEAT_LAYOUTS[rData.numPlayers] || [0,1,2,3];
   const taken = Object.keys(rData.players||{}).map(Number);
-  const seatLayouts = { 2:[3,1], 3:[3,1,2], 4:[3,0,1,2] };
-  const allSeats = seatLayouts[rData.numPlayers] || [0,1,2,3];
-  const free = allSeats.filter(s=>!taken.includes(s));
+  const free = layout.filter(s=>!taken.includes(s));
   if(free.length === 0){ showToast("Room is full"); return; }
 
-  MY_SEAT = free[0];
+  MY_SEAT = free[0]; // Rule 3: take next available seat in fixed layout order
   IS_HOST = false;
   NUM_PLAYERS = rData.numPlayers;
   ROOM_CODE = code;
@@ -666,7 +698,7 @@ window.joinRoom = async function(){
   gameRef = db.ref(`rooms/${code}/game`);
   playersRef = db.ref(`rooms/${code}/players`);
 
-  // Register player
+  // Rule 10: Store only real seat ID, no display colors
   await db.ref(`rooms/${code}/players/${MY_SEAT}`).set({
     name: MY_NAME, seat: MY_SEAT, online: true, joinedAt: firebase.database.ServerValue.TIMESTAMP
   });
@@ -753,17 +785,23 @@ window.hostStartGame = async function(){
   const playersData = snap.val() || {};
   const seats = Object.keys(playersData).map(Number);
 
-  // Build initial game state
+  // Rule 3: Use the fixed seat layout
+  const layout = SEAT_LAYOUTS[NUM_PLAYERS] || [0,1,2,3];
+
+  // Build initial game state — Rule 9: movement logic uses global seat IDs only
   const tokens = [];
-  for(let seat=0; seat<4; seat++){
+  for(const seat of layout){
     if(!seats.includes(seat)) continue;
     for(let tid=0; tid<4; tid++){
       tokens.push({ pid: seat, tid, step: 0 });
     }
   }
 
+  // Rule 3: First seat in layout goes first (deterministic, globally fixed)
+  const firstTurn = layout.find(s => seats.includes(s)) ?? layout[0];
+
   const initGame = {
-    turn: 3, // Host (seat 3) goes first
+    turn: firstTurn, // Rule 10: use real seat ID only
     diceVal: null,
     rolled: false,
     waiting: false,
@@ -771,6 +809,7 @@ window.hostStartGame = async function(){
     sixes: 0,
     tokens,
     placements: [],
+    seatLayout: layout,
     lastAction: null,
     actionBy: null,
     timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -781,35 +820,43 @@ window.hostStartGame = async function(){
 };
 
 // ── Load and start game ────────────────────────────────────────────────────────
+// Rule 11: Works identically on reconnect, spectator join, late join
+let SEAT_LAYOUT_ACTIVE = [0,1,2,3]; // global seat order for turn progression
+
 async function loadAndStartGame(){
   // Get all players
   const snap = await playersRef.once('value');
   const playersData = snap.val() || {};
 
+  // Get initial game state first to get seat layout
+  const gSnap = await gameRef.once('value');
+  const gData = gSnap.val() || {};
+
+  // Rule 3: Reconstruct global seat layout
+  SEAT_LAYOUT_ACTIVE = gData.seatLayout || SEAT_LAYOUTS[NUM_PLAYERS] || [0,1,2,3];
+
+  // Build PLAYERS array — all 4 physical seats, only active ones used
   PLAYERS = [];
-  const seats = [0,1,2,3];
-  seats.forEach(seat=>{
+  for(let seat=0; seat<4; seat++){
     const p = playersData[seat];
+    const inLayout = SEAT_LAYOUT_ACTIVE.includes(seat);
     PLAYERS.push({
       id: seat,
       seat,
-      color: SEAT_COLOR[seat],
+      color: SEAT_COLOR[seat], // Global physical color — NEVER changes (Rule 1,9)
       label: p ? p.name : `P${seat+1}`,
-      active: !!p,
+      active: !!p && inLayout, // Only seats in layout are active
       human: true,
     });
-  });
+  }
 
   // Hide lobby, show game
   document.getElementById("lobby").style.display = "none";
   document.getElementById("game-wrap").style.display = "inline-flex";
   document.getElementById("status-row").style.display = "flex";
 
-  // Get initial game state
-  const gSnap = await gameRef.once('value');
-  const gData = gSnap.val();
   G = {
-    turn: gData.turn || 3,
+    turn: gData.turn ?? SEAT_LAYOUT_ACTIVE[0],
     diceVal: null,
     rolled: gData.rolled || false,
     waiting: gData.waiting || false,
@@ -819,19 +866,20 @@ async function loadAndStartGame(){
     placements: gData.placements || []
   };
 
-  buildBoard();
-  buildPlayers();
+  buildBoard(); // Rule 1: Board never rotates — built once in fixed orientation
+  buildPlayers(); // Rule 6: Panel positions fixed, only colors remapped via POV
   setSyncStatus("ok");
   refreshUI();
-  renderTokens();
+  renderTokens(); // Rule 5: All tokens colored via POV map
   updateTurnBanner();
 
-  showToast(`Game started! You are ${PLAYERS[MY_SEAT].label} (${getMyColorName()})`);
+  // Rule 2: You always see yourself as Blue — toast always says Blue
+  showToast(`Game started! You are ${PLAYERS[MY_SEAT].label} — you are Blue 🔵`);
 }
 
 function getMyColorName(){
-  const names = { [PINK]:"Red", [BLUE]:"Blue", [GREEN]:"Green", [YELLOW]:"Yellow" };
-  return names[PLAYERS[MY_SEAT]?.color] || "Player";
+  // Rule 2: Every player always sees themselves as Blue (POV illusion)
+  return "Blue";
 }
 
 // ── Sync game state from Firebase ─────────────────────────────────────────────
@@ -840,13 +888,16 @@ let _applyingRemote = false;
 
 function syncGameState(data){
   if(_applyingRemote) return;
-  // Ignore updates that WE pushed (avoid self-overwrite)
+  // Rule 10: Ignore updates WE pushed (avoid self-overwrite)
   if(data.actionBy === MY_SEAT) return;
   const ts = data.timestamp || 0;
   if(ts <= _lastTs && _lastTs > 0) return;
   _lastTs = ts;
 
   setSyncStatus("ok");
+
+  // Rule 11: On reconnect, rebuild seat layout from server state
+  if(data.seatLayout) SEAT_LAYOUT_ACTIVE = data.seatLayout;
 
   const prevTurn = G.turn;
 
@@ -867,7 +918,7 @@ function syncGameState(data){
   }
 
   if(data.diceVal && data.diceVal !== G.diceVal){
-    // Animate remote dice
+    // Animate remote dice — Rule 9: use real seat ID for animation
     const rolledBy = data.actionBy;
     G.diceVal = data.diceVal;
     if(rolledBy !== MY_SEAT && rolledBy !== null && rolledBy !== undefined){
@@ -884,24 +935,26 @@ function syncGameState(data){
   }
 
   refreshUI();
-  renderTokens();
+  renderTokens(); // Rule 5: tokens always use POV color map
   updateTurnBanner();
 }
 
 // ── Push game state to Firebase ───────────────────────────────────────────────
+// Rule 10: NEVER sync display colors — only real seat IDs, token indexes, dice values
 let _pushDebounce = null;
 async function pushGameState(extra={}){
   setSyncStatus("warn");
   const payload = {
-    turn: G.turn,
+    turn: G.turn,           // Real global seat ID
     diceVal: G.diceVal,
     rolled: G.rolled,
     waiting: G.waiting,
     over: G.over,
     sixes: G.sixes,
-    tokens: G.tokens,
+    tokens: G.tokens,       // Real pid/tid/step — no display colors
     placements: G.placements,
-    actionBy: MY_SEAT,
+    seatLayout: SEAT_LAYOUT_ACTIVE, // Rule 11: persist for reconnect recovery
+    actionBy: MY_SEAT,      // Real seat ID of who acted
     timestamp: firebase.database.ServerValue.TIMESTAMP,
     ...extra
   };
@@ -1820,14 +1873,26 @@ async function doMove(pid,tid,v){
 }
 
 function nextTurn(same){
+  // Rule 9: Turn order uses GLOBAL seat IDs from the fixed layout — never display colors
   G.rolled=false;_rolling=false;G.diceVal=null;G.waiting=false;
   if(!same){
-    G.turn=(G.turn+1)%PLAYERS.length;
-    let tries=0;
-    while((!PLAYERS[G.turn].active||toksOf(G.turn).every(t=>t.step>=STEP_DONE))&&tries<PLAYERS.length){
-      G.turn=(G.turn+1)%PLAYERS.length;tries++;
+    // Advance turn along the fixed seat layout order
+    const layout = SEAT_LAYOUT_ACTIVE;
+    const curIdx = layout.indexOf(G.turn);
+    let tries = 0;
+    let nextIdx = (curIdx + 1) % layout.length;
+    while(tries < layout.length){
+      const nextSeat = layout[nextIdx];
+      const p = PLAYERS[nextSeat];
+      if(p && p.active && !toksOf(nextSeat).every(t=>t.step>=STEP_DONE)){
+        G.turn = nextSeat;
+        break;
+      }
+      nextIdx = (nextIdx + 1) % layout.length;
+      tries++;
     }
-    if(!PLAYERS[G.turn].active||toksOf(G.turn).every(t=>t.step>=STEP_DONE)) return;
+    // If we exhausted all — game must be over, don't change turn
+    if(tries >= layout.length) return;
   }
   if(same){
     const pid=G.turn;
@@ -1838,6 +1903,7 @@ function nextTurn(same){
       const lbl=document.getElementById(`lbl-${p.id}`);
       const box=document.getElementById(`pbox-${p.id}`);
       const active=G.turn===p.id&&!G.over;
+      // Rule 5: display color from POV map, never raw global color
       const dColor = getDisplayColorForSeat(p.id);
       if(bg) bg.style.borderColor=active?dColor:"#333";
       if(lbl) lbl.style.color=active?dColor:"white";
