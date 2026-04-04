@@ -1145,21 +1145,16 @@ function renderSeatVisuals(seat){
       : `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
   }
 
-  // ── TOKENS: Force cached moving token elements to recolor (Rule 6, Rule 9) ─
-  // Home tokens (step=0) and done tokens use physical color — do NOT override.
+  // ── TOKENS: Force cached token elements to use physical color always ─────────
+  // Board tokens always match physical board colors (home boxes, lanes, center)
   const physicalColor = PLAYERS[seat]?.color;
-  Object.keys(_tokEls).forEach(key=>{
+  if(physicalColor) Object.keys(_tokEls).forEach(key=>{
     if(!key.startsWith(`${seat}-`)) return;
-    const tidStr = key.split("-")[1];
-    const tok = G.tokens.find(t=>t.pid===seat && String(t.tid)===tidStr);
-    if(!tok) return;
-    const expectedColor = (tok.step === 0 || tok.step >= STEP_DONE) ? physicalColor : color;
-    if(!expectedColor) return;
     const {wrap} = _tokEls[key];
-    if(wrap && wrap.dataset.rc !== expectedColor){
+    if(wrap && wrap.dataset.rc !== physicalColor){
       const rW = parseFloat(wrap.dataset.rw || "28") || 28;
-      wrap.innerHTML = tokSVG(expectedColor, rW);
-      wrap.dataset.rc = expectedColor;
+      wrap.innerHTML = tokSVG(physicalColor, rW);
+      wrap.dataset.rc = physicalColor;
     }
   });
 }
@@ -1781,8 +1776,8 @@ function renderTokens(){
       const off=stackOffset(n,idx,cp);
       const xy=rcToXY(rc[0],rc[1]);
       px=xy.x+off.dx;py=xy.y+off.dy;
-      // Moving tokens use POV display color so player identifies their own tokens
-      color=getTokenDisplayColor(tok.pid);
+      // Moving tokens use physical color to match board lanes/paths (board never rotates)
+      color=PLAYERS[tok.pid]?.color||getTokenDisplayColor(tok.pid);
     }
     alive.add(key);
     const rW=BASE_W*scale,rH=rW*(130/100),tipOffset=rH*(122/130);
