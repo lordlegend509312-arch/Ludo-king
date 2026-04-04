@@ -1400,7 +1400,9 @@ function buildBoard(){
         // ✅ POV FIX: Home zone uses display color (POV-mapped) so tokens match their home zone.
         // Every player sees their own home as BLUE, opponents shifted per CW offset.
         // Board never rotates physically — only colors remap locally per client.
-        const dc = getDisplayColorForSeat(homeSeat); // POV display color — same for zone + slots
+        // Board quadrant uses PHYSICAL color (fixed for all players — board never rotates)
+        // Tokens use POV display color via getTokenDisplayColor(pid) — separate from board
+        const dc = SEAT_COLOR[homeSeat];
         d.dataset.homeSeat = homeSeat;
 
         d.innerHTML=`<div style="width:100%;height:100%;background:${dc};border-radius:${br};display:flex;align-items:center;justify-content:center;">
