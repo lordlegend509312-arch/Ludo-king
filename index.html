@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v6.4</title>
+<title>Ludo King — Online Multiplayer v6.4 (v8)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -364,6 +364,11 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
         <div class="s-card-shine"></div>
       </div>
     </div>
+    <!-- Firebase connection status in lobby -->
+    <div id="lobby-conn" style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:11px;font-family:'Nunito',sans-serif;color:var(--muted);">
+      <div id="lobby-conn-dot" style="width:8px;height:8px;border-radius:50%;background:#888;flex-shrink:0;transition:background 0.3s;"></div>
+      <span id="lobby-conn-text">Connecting to server...</span>
+    </div>
   </div>
 </div>
 
@@ -428,7 +433,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
   <div class="prow bottom" id="bot-row"></div>
   <div id="status-row" style="display:none;">
     <button id="btn-back" title="Leave">🏠</button>
-    <div id="sync-bar"><div id="sync-dot"></div><span id="sync-text">Connecting</span></div>
+    <div id="sync-bar"><div id="sync-dot" class="warn"></div><span id="sync-text">Syncing...</span></div>
     <div id="turn-banner"></div>
     <button id="btn-chat-toggle" title="Chat">💬</button>
   </div>
@@ -508,8 +513,46 @@ function _setAuthReady(){
   _authResolvers = [];
 }
 const _authTimeout = setTimeout(_setAuthReady, 5000);
-auth.onAuthStateChanged(() => { clearTimeout(_authTimeout); _setAuthReady(); });
-auth.signInAnonymously().catch(() => { clearTimeout(_authTimeout); _setAuthReady(); });
+auth.onAuthStateChanged((user) => {
+  clearTimeout(_authTimeout);
+  _setAuthReady();
+  if(user){
+    console.log("✅ Firebase Auth OK — UID:", user.uid);
+    setSyncStatus("ok");
+  }
+});
+auth.signInAnonymously().catch((err) => {
+  clearTimeout(_authTimeout);
+  _setAuthReady();
+  console.warn("⚠️ Auth failed (continuing):", err.code);
+});
+
+// ── Firebase Realtime Connection Monitor ──────────────────────────────────────
+// Shows "Connected"/"Disconnected" in status bar + auto-retry toast
+const _connRef = db.ref(".info/connected");
+let _wasConnected = false;
+_connRef.on("value", snap => {
+  const connected = snap.val() === true;
+  // Update lobby dot
+  const lobbyDot = document.getElementById("lobby-conn-dot");
+  const lobbyTxt = document.getElementById("lobby-conn-text");
+  if(connected){
+    if(lobbyDot){ lobbyDot.style.background = "#00C853"; }
+    if(lobbyTxt){ lobbyTxt.textContent = "Server connected ✓"; lobbyTxt.style.color = "#00C853"; }
+    if(!_wasConnected){
+      setSyncStatus("ok");
+      if(_wasConnected === false && document.getElementById("game-wrap").style.display !== "none"){
+        showToast("🟢 Reconnected!");
+      }
+    }
+    _wasConnected = true;
+  } else {
+    if(lobbyDot){ lobbyDot.style.background = "#FF2D78"; }
+    if(lobbyTxt){ lobbyTxt.textContent = "No server connection ✗"; lobbyTxt.style.color = "#FF2D78"; }
+    setSyncStatus("err");
+    _wasConnected = false;
+  }
+});
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const PINK="#FF2D78", BLUE="#00AEEF", GREEN="#00C853", YELLOW="#FFD600";
@@ -648,8 +691,8 @@ const SEAT_LAYOUTS = {
 
 window.createRoom = async function(numPlayers){
   closeModals();
-  showToast("Connecting...");
-  await waitForAuth();
+  showToast("Connecting to server...");
+  try { await waitForAuth(); } catch(e){ showToast("⚠️ Auth error — check internet"); return; }
   NUM_PLAYERS = numPlayers;
   IS_HOST = true;
 
@@ -659,11 +702,17 @@ window.createRoom = async function(numPlayers){
 
   // Generate unique room code
   let code, exists;
-  do {
-    code = genCode();
-    const snap = await db.ref(`rooms/${code}`).once('value');
-    exists = snap.exists();
-  } while(exists);
+  try {
+    do {
+      code = genCode();
+      const snap = await db.ref(`rooms/${code}`).once('value');
+      exists = snap.exists();
+    } while(exists);
+  } catch(e) {
+    showToast("❌ Cannot reach server. Check internet & try again.");
+    console.error("Firebase read error:", e);
+    return;
+  }
 
   ROOM_CODE = code;
   roomRef = db.ref(`rooms/${code}`);
@@ -671,16 +720,22 @@ window.createRoom = async function(numPlayers){
   playersRef = db.ref(`rooms/${code}/players`);
 
   // Create room in Firebase — Rule 10: store only real seat IDs
-  await roomRef.set({
-    numPlayers,
-    status: "waiting",
-    host: MY_SEAT,
-    seatLayout: layout,
-    createdAt: firebase.database.ServerValue.TIMESTAMP,
-    players: {
-      [MY_SEAT]: { name: MY_NAME, seat: MY_SEAT, online: true, joinedAt: firebase.database.ServerValue.TIMESTAMP }
-    }
-  });
+  try {
+    await roomRef.set({
+      numPlayers,
+      status: "waiting",
+      host: MY_SEAT,
+      seatLayout: layout,
+      createdAt: firebase.database.ServerValue.TIMESTAMP,
+      players: {
+        [MY_SEAT]: { name: MY_NAME, seat: MY_SEAT, online: true, joinedAt: firebase.database.ServerValue.TIMESTAMP }
+      }
+    });
+  } catch(e) {
+    showToast("❌ Room create failed. Firebase rules blocked write. Check console.");
+    console.error("Firebase write error:", e.code, e.message);
+    return;
+  }
 
   // Presence
   _presenceRef = db.ref(`rooms/${code}/players/${MY_SEAT}/online`);
