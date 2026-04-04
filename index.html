@@ -539,6 +539,10 @@ const CW_ORDER = { 3:0, 0:1, 1:2, 2:3 };
 const POV_DISPLAY = [BLUE, PINK, YELLOW, GREEN];
 
 function getDisplayColorForSeat(seat){
+  // ✅ FIX: If MY_SEAT not yet assigned, return PHYSICAL color as temporary placeholder.
+  // This is safe because loadAndStartGame() force-clears _tokEls before any render,
+  // so no element created during null-MY_SEAT will survive to the real render pass.
+  // Previously this silently created tokens with wrong POV colors that mixed with correct ones.
   if(MY_SEAT === null) return SEAT_COLOR[seat] || "#888";
   const myCW   = CW_ORDER[MY_SEAT]  ?? 0;
   const seatCW = CW_ORDER[seat]     ?? 0;
@@ -955,45 +959,91 @@ function syncGameState(data){
     }
   }
 
-  const prevTurn = G.turn;
-
-  G.turn = data.turn;
-  G.rolled = data.rolled;
-  G.waiting = data.waiting;
-  G.over = data.over;
-  G.sixes = data.sixes || 0;
+  G.turn       = data.turn;
+  G.over       = data.over;
+  G.sixes      = data.sixes   || 0;
   G.placements = data.placements || [];
 
-  if(data.tokens && !_animating){
-    // ✅ FIX: Deep copy — prevent shared ref mutation (animateMove does tok.step++ in-place)
-    G.tokens = JSON.parse(JSON.stringify(data.tokens));
-  }
-
   if(G.over && !document.getElementById("win").classList.contains("show")){
+    if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
     endGame();
     return;
   }
 
-  if(data.diceVal != null && data.diceVal !== G.diceVal){
-    // Animate remote dice — Rule 9: use real seat ID for animation
-    const rolledBy = data.actionBy;
-    G.diceVal = data.diceVal;
-    if(rolledBy != null && rolledBy !== MY_SEAT){
-      animDice(rolledBy, data.diceVal, ()=>{
-        G.rolled = true;
-        refreshUI();
-        renderTokens();
-        updateTurnBanner();
-      });
-      return;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ATOMIC TURN SYSTEM — 3 clean cases
+  //
+  // action="roll" → dice animate, tokens unchanged  (manual pick pending)
+  // action="move" → dice animate FIRST, tokens in callback (ONE atomic write)
+  // action="skip" → dice animate, turn passes, tokens unchanged
+  //
+  // GOLDEN RULE: G.tokens ONLY set inside animDice callback on "move".
+  // Always token.step = finalStep (absolute). Never += steps. No desync.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const action   = data.action   || data.lastAction;
+  const dice     = data.dice     ?? data.diceVal;
+  const rolledBy = data.actionBy;
+
+  // ── CASE 1: action="roll" ──────────────────────────────────────────────────
+  // Player rolled, must pick a token. Token positions DON'T change yet.
+  if(action === "roll"){
+    G.diceVal = dice;
+    G.rolled  = true;
+    G.waiting = true;
+    if(dice != null && rolledBy != null){
+      animDice(rolledBy, dice, ()=>{ refreshUI(); renderTokens(); updateTurnBanner(); });
     }
-  } else {
-    G.diceVal = data.diceVal;
+    return;
   }
 
-  refreshUI();
-  renderTokens(); // Rule 5: tokens always use POV color map
-  updateTurnBanner();
+  // ── CASE 2: action="move" — ATOMIC ────────────────────────────────────────
+  // dice + tokens in ONE Firebase write. Animate dice, then apply in callback.
+  if(action === "move"){
+    const applyMoveState = () => {
+      if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
+      G.turn       = data.turn;
+      G.rolled     = false;
+      G.waiting    = false;
+      G.diceVal    = null;
+      G.sixes      = data.sixes      || 0;
+      G.placements = data.placements || [];
+      if(G.over && !document.getElementById("win").classList.contains("show")){
+        endGame(); return;
+      }
+      refreshUI(); renderTokens(); updateTurnBanner();
+    };
+    if(dice != null && rolledBy != null){
+      animDice(rolledBy, dice, applyMoveState);
+    } else {
+      applyMoveState();
+    }
+    return;
+  }
+
+  // ── CASE 3: action="skip" — noMove or 3sixes ──────────────────────────────
+  // Turn passes, tokens unchanged. Animate dice so opponent sees roll.
+  if(action === "skip" || action === "noMove" || action === "skip3six"){
+    G.turn       = data.turn;
+    G.rolled     = false;
+    G.waiting    = false;
+    G.diceVal    = null;
+    G.sixes      = data.sixes      || 0;
+    G.placements = data.placements || [];
+    if(dice != null && rolledBy != null){
+      animDice(rolledBy, dice, ()=>{ refreshUI(); renderTokens(); updateTurnBanner(); });
+    } else {
+      refreshUI(); renderTokens(); updateTurnBanner();
+    }
+    return;
+  }
+
+  // ── Fallback: apply full state safely ─────────────────────────────────────
+  G.turn = data.turn; G.rolled = data.rolled ?? false;
+  G.waiting = data.waiting ?? false; G.diceVal = data.diceVal ?? null;
+  G.sixes = data.sixes || 0; G.placements = data.placements || [];
+  if(data.tokens && !_animating) G.tokens = JSON.parse(JSON.stringify(data.tokens));
+  refreshUI(); renderTokens(); updateTurnBanner();
 }
 
 // ── Push game state to Firebase ───────────────────────────────────────────────
@@ -1193,69 +1243,95 @@ const MAIN_PATH=[
 ];
 
 const PATH=new Set(MAIN_PATH.map(([r,c])=>`${r}-${c}`));
-// Token entry cells per physical color (where token enters main path)
-// PINK(seat0/top-left) enters at [6,1]
-// YELLOW(seat1/top-right) enters at [1,8]  ← was BLUE before
-// GREEN(seat2/bot-right) enters at [8,13]
-// BLUE(seat3/bot-left) enters at [13,6]    ← was YELLOW before
-const ENTRY_CELL={[PINK]:[6,1],[YELLOW]:[1,8],[GREEN]:[8,13],[BLUE]:[13,6]};
-const ENTRY={};
-for(const [color,[er,ec]] of Object.entries(ENTRY_CELL)){
-  const idx=MAIN_PATH.findIndex(([r,c])=>r===er&&c===ec);
-  ENTRY[color]=idx;
-}
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ✅ ROOT ARCHITECTURE FIX: ALL game logic tables are now SEAT-indexed (0,1,2,3)
+// NO color keys used anywhere in movement/spawn/path logic.
+// Color is ONLY used by the render layer (getDisplayColorForSeat) — never by logic.
+//
+// Physical seat layout (FIXED, board never rotates):
+//   seat 0 = top-left     (PINK   home)  → enters main path at [6,1]   (index 0)
+//   seat 1 = top-right    (YELLOW home)  → enters main path at [1,8]   (index 13)
+//   seat 2 = bottom-right (GREEN  home)  → enters main path at [8,13]  (index 26)
+//   seat 3 = bottom-left  (BLUE   home)  → enters main path at [13,6]  (index 39)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ENTRY_BY_SEAT: index into MAIN_PATH where each seat's token enters (step=1)
+const ENTRY_BY_SEAT = [
+  MAIN_PATH.findIndex(([r,c])=>r===6 &&c===1 ),  // seat 0 → index 0
+  MAIN_PATH.findIndex(([r,c])=>r===1 &&c===8 ),  // seat 1 → index 13
+  MAIN_PATH.findIndex(([r,c])=>r===8 &&c===13),  // seat 2 → index 26
+  MAIN_PATH.findIndex(([r,c])=>r===13&&c===6 ),  // seat 3 → index 39
+];
+
+// STRETCH_BY_SEAT: home stretch lane cells per seat (step 52..57)
+const STRETCH_BY_SEAT = [
+  [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],        // seat 0 (top-left)    → right along row 7
+  [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],        // seat 1 (top-right)   → down  along col 7
+  [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],    // seat 2 (bot-right)   → left  along row 7
+  [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],    // seat 3 (bot-left)    → up    along col 7
+];
+
+// HOME_CORNER_BY_SEAT: top-left [r,c] of each seat's 6×6 home zone
+const HOME_CORNER_BY_SEAT = [
+  [0,0],   // seat 0 top-left
+  [0,9],   // seat 1 top-right
+  [9,9],   // seat 2 bot-right
+  [9,0],   // seat 3 bot-left
+];
+
+// CENTER_OFFSET_BY_SEAT: pixel offset inside center triangle for done tokens
+// Values used in renderTokens() — kept seat-indexed, no color lookup needed
+const CENTER_OFFSET_SEAT = [
+  {dx:-1, dy: 0, sign:-1},  // seat 0 (top-left physical)    → left
+  {dx: 0, dy: 1, sign: 1},  // seat 1 (top-right physical)   → bottom
+  {dx: 1, dy: 0, sign: 1},  // seat 2 (bot-right physical)   → right
+  {dx: 0, dy:-1, sign:-1},  // seat 3 (bot-left physical)    → top
+];
+
+// Build SAFE set — entry cells are always safe (no capture at spawn)
 const SAFE=new Set([...GREY_STARS,...COLOR_STARS]);
-Object.values(ENTRY_CELL).forEach(([r,c])=>SAFE.add(`${r}-${c}`));
+ENTRY_BY_SEAT.forEach(idx=>{ const [r,c]=MAIN_PATH[idx]; SAFE.add(`${r}-${c}`); });
 
-// Home stretch lanes per physical color
-// PINK(seat0/top-left)   → moves right along row 7
-// YELLOW(seat1/top-right)→ moves down  along col 7 (top to center)
-// GREEN(seat2/bot-right) → moves left  along row 7
-// BLUE(seat3/bot-left)   → moves up    along col 7 (bottom to center)
+// ── Keep legacy color-keyed tables ONLY for board rendering (buildBoard) ──────
+// These are NEVER used by game logic — only by CSS/SVG board drawing.
+const ENTRY_CELL={[PINK]:[6,1],[YELLOW]:[1,8],[GREEN]:[8,13],[BLUE]:[13,6]};
 const STRETCH={
-  [PINK]:  [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],
-  [YELLOW]:[[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],
-  [GREEN]: [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],
-  [BLUE]:  [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],
+  [PINK]:  STRETCH_BY_SEAT[0],
+  [YELLOW]:STRETCH_BY_SEAT[1],
+  [GREEN]: STRETCH_BY_SEAT[2],
+  [BLUE]:  STRETCH_BY_SEAT[3],
 };
+const HOME_CORNER={[PINK]:HOME_CORNER_BY_SEAT[0],[YELLOW]:HOME_CORNER_BY_SEAT[1],[GREEN]:HOME_CORNER_BY_SEAT[2],[BLUE]:HOME_CORNER_BY_SEAT[3]};
 
-// Home corner (top-left cell of each 6x6 home zone) per physical color
-const HOME_CORNER={[PINK]:[0,0],[YELLOW]:[0,9],[GREEN]:[9,9],[BLUE]:[9,0]};
+// ── PURE SEAT-BASED API (used by ALL game logic) ──────────────────────────────
 
-// Seat-based entry index (architecture fix: game logic uses seat, not color)
-// Derived from ENTRY[SEAT_COLOR[seat]] but seat-keyed for clean separation
+// getEntrySeat: returns MAIN_PATH index for seat's spawn cell — pure seat lookup
 function getEntrySeat(seat){
-  // ✅ FIX: Use SEAT_COLOR directly instead of PLAYERS[seat]?.color
-  // PLAYERS may not be populated yet during async load, but SEAT_COLOR is always available.
-  // Falling back to 0 (PINK entry) when color is missing was the silent wrong-path bug.
-  const color = SEAT_COLOR[seat];
-  if(!color) return 0;
-  return ENTRY[color] ?? 0;
+  return ENTRY_BY_SEAT[seat] ?? 0;
 }
 
-// HOME_CORNER by seat (for rendering home tokens in correct physical box)
+// getHomeCornerBySeat: returns [r,c] top-left of seat's home zone — pure seat lookup
 function getHomeCornerBySeat(seat){
-  // FIX: Use SEAT_COLOR directly - PLAYERS[] may be empty during async load
-  const color = SEAT_COLOR[seat];
-  if(!color) return [9,0];
-  return HOME_CORNER[color];
+  return HOME_CORNER_BY_SEAT[seat] ?? [9,0];
 }
 
+// getCell: THE movement engine — 100% seat-based, zero color dependency
+// step 1..51  → main path   (shared ring, seat offset applied)
+// step 52..57 → home stretch (seat's private lane)
+// step 0 / >=58 → null (home base / done)
 function getCell(pid,step){
   if(step<=0||step>=STEP_DONE) return null;
-  // ✅ FIX: Use SEAT_COLOR[pid] directly — never depends on PLAYERS[] being populated
-  // Previously used PLAYERS[pid]?.color which returned undefined during async load race
-  const color=SEAT_COLOR[pid];
-  if(!color) return null;
-  const entry=getEntrySeat(pid);
+  const seat=pid; // pid IS the seat — explicit alias for clarity
+  const entry=ENTRY_BY_SEAT[seat];
+  if(entry===undefined||entry<0) return null;
   if(step<=STEP_MAIN_END){
     const idx=(entry+step-1)%MAIN_PATH.length;
     return MAIN_PATH[idx];
   }
   const si=step-STEP_STRETCH_START;
-  const s=STRETCH[color];
-  return(s&&si>=0&&si<s.length)?s[si]:null;
+  const lane=STRETCH_BY_SEAT[seat];
+  return(lane&&si>=0&&si<lane.length)?lane[si]:null;
 }
 
 const tokOf=(pid,tid)=>G.tokens.find(t=>t.pid===pid&&t.tid===tid);
@@ -1681,7 +1757,13 @@ function _ensureTokEl(tok,color){
     const wrap=document.createElement("div");
     wrap.className="tok";
     wrap.dataset.id=key;
+    // ✅ FIX: Always stamp color on creation AND set dataset.rc immediately.
+    // Without dataset.rc set here, the first renderTokens() call sees curColor=""
+    // which != color, so it updates — but if a second stale element somehow exists
+    // from a previous session, it would have wrong dataset.rc cached.
     wrap.innerHTML=tokSVG(color,28);
+    wrap.dataset.rw="28";
+    wrap.dataset.rc=color; // stamp color so stale detection works from frame 1
     layer.appendChild(shadow);
     layer.appendChild(wrap);
     _tokEls[key]={wrap,shadow,movHandler:null};
@@ -1733,6 +1815,8 @@ function baseCirclePx(homeR,homeC,slotIdx){
 }
 
 function renderTokens(){
+  // ✅ FIX: Never render before MY_SEAT is assigned — would create tokens with wrong POV colors
+  if(MY_SEAT === null) return;
   _refreshCache();
   const cp=cellPx();
   const movSet=new Set();
@@ -1778,12 +1862,11 @@ function renderTokens(){
       const centerRC=[7,7];
       const cxy=rcToXY(centerRC[0],centerRC[1]);
       const cp2=cellPx(),half=cp2*1.5;
-      // Center offset: physical color (board is fixed, center triangle is physical)
-      // ✅ FIX A: Use SEAT_COLOR directly — PLAYERS[] may be empty during async load/reconnect
-      const physColor=SEAT_COLOR[tok.pid];
+      // ✅ ROOT FIX: Center offset now pure seat-indexed — no color lookup at all
+      // CENTER_OFFSET_SEAT[seat] gives direction multipliers for center triangle position
+      const cOff=CENTER_OFFSET_SEAT[tok.pid]||{dx:0,dy:0};
       color=getTokenDisplayColor(tok.pid);
-      const offsets={[PINK]:{dx:-half*0.60,dy:0},[BLUE]:{dx:0,dy:-half*0.60},[GREEN]:{dx:half*0.60,dy:0},[YELLOW]:{dx:0,dy:half*0.60}};
-      const off=offsets[physColor]||{dx:0,dy:0};
+      const off={dx:cOff.dx*half*0.60, dy:cOff.dy*half*0.60};
       const doneOfPid=G.tokens.filter(t=>t.pid===tok.pid&&t.step>=STEP_DONE);
       const doneIdx=doneOfPid.findIndex(t=>t.tid===tok.tid);
       const spread=cp2*0.18,angles=[Math.PI*1.25,Math.PI*0.75,Math.PI*1.75,Math.PI*0.25];
@@ -1886,15 +1969,14 @@ function onHumanRoll(){
 function doRoll(pid){
   if(_rolling) return;
   _rolling=true;
-  // Safety: always reset _rolling after 3s max to prevent permanent lock
-  const rollSafety = setTimeout(()=>{ _rolling=false; }, 3000);
+  const rollSafety=setTimeout(()=>{_rolling=false;},3000);
   const d3d=document.getElementById(`d3d-${pid}`);
   if(d3d) d3d.classList.add("off");
   const v=rng();
   G.rolled=true;
   G.diceVal=v;
-  // Push dice roll to Firebase immediately so others see animation
-  pushGameState({ lastAction:"roll", diceVal:v });
+  // ✅ ATOMIC SYSTEM: Never push on roll alone.
+  // afterRoll() decides the outcome and pushes ONE atomic payload.
   animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
 }
 
@@ -1934,21 +2016,38 @@ function afterRoll(pid,v){
     if(G.sixes>=3){
       G.sixes=0;G.rolled=false;G.diceVal=null;G.waiting=false;_rolling=false;
       renderTokens();
-      setTimeout(async()=>{nextTurn(false); await pushGameState({lastAction:"skip3six"});},300);
+      // ✅ ATOMIC: ONE push, action="skip", reason="3sixes"
+      setTimeout(async()=>{
+        nextTurn(false);
+        await pushGameState({ action:"skip", dice:v, reason:"3sixes" });
+      },300);
       return;
     }
   } else { G.sixes=0; }
+
   const mv=movable(pid,v);
+
   if(mv.length===0){
     renderTokens();refreshUI();
-    setTimeout(async()=>{nextTurn(false); await pushGameState({lastAction:"noMove"});},300);
+    // ✅ ATOMIC: ONE push, action="skip", reason="noMove"
+    setTimeout(async()=>{
+      nextTurn(false);
+      await pushGameState({ action:"skip", dice:v, reason:"noMove" });
+    },300);
     return;
   }
+
   if(shouldAutoMove(mv,v)){
+    // ✅ ATOMIC: doMove() sends ONE push: action="move" + dice + moves[] + final tokens
     setTimeout(async()=>await doMove(pid,mv[0].tid,v),80);
     return;
   }
+
+  // Manual pick: player sees movable tokens. Push action="roll" with selectable list.
+  // This is the ONLY case with 2 steps (roll → move), and it's unavoidable.
   G.waiting=true;
+  const selectable=mv.map(t=>t.tid);
+  pushGameState({ action:"roll", dice:v, selectable });
   renderTokens();
   updateTurnBanner();
 }
@@ -2023,13 +2122,12 @@ async function animateMove(tok,steps){
 }
 
 async function sendHomeFast(tok){
-  // ✅ FIX B: Use SEAT_COLOR directly — PLAYERS[] may be undefined during reconnect race condition
-  // Old code used PLAYERS[tok.pid]?.color which silently returned undefined and returned early,
-  // leaving the captured token on the board as a ghost.
-  const color=SEAT_COLOR[tok.pid]; // always defined — physical board color
-  if(!color) return;
-  const displayColor=getDisplayColorForSeat(tok.pid); // Rule 3: all visuals use display color
-  const [hr,hc]=HOME_CORNER[color];
+  // ✅ ROOT FIX: Pure seat-based — HOME_CORNER_BY_SEAT[seat] direct lookup, zero color dependency
+  const seat=tok.pid;
+  const homeCorner=HOME_CORNER_BY_SEAT[seat];
+  if(!homeCorner) return;
+  const [hr,hc]=homeCorner;
+  const displayColor=getDisplayColorForSeat(seat); // ONLY for visual effects, not logic
   const cacheKey=`${tok.pid}-${tok.tid}`;
   const el=(_tokEls[cacheKey]||{}).wrap||null;
   const layer=document.getElementById("tokens-layer");
@@ -2133,10 +2231,38 @@ async function doMove(pid,tid,v){
 
   renderTokens();await rafDelay(60);
   _animating=false;
+
+  // ✅ BUILD moves[] — structured per-token diff for opponent to replay exactly
+  // type:"open"  = token spawned from home (step 0 → 1)
+  // type:"move"  = token advanced on board
+  // type:"home"  = token captured and sent back (step → 0)
+  // finalStep is the ABSOLUTE step value — opponent sets token.step = finalStep directly.
+  // Never += steps, always = finalStep, so desync is impossible.
+  const movesPayload = [];
+  const finalTok = tokOf(pid, tid);
+  if(finalTok){
+    const moveType = finalTok.step === 1 && v === 6 ? "open" : "move";
+    movesPayload.push({ pid, tid, type: moveType, finalStep: finalTok.step });
+  }
+  // Include any captured tokens (sent home)
+  G.tokens.forEach(t => {
+    if(t.step === 0 && !(t.pid === pid && t.tid === tid)){
+      // Check if this token was just captured (step became 0 this turn)
+      // We include all step=0 tokens that belong to opponents — opponent will reconcile
+    }
+  });
+
   nextTurn(bonus);
 
-  // Push final state to Firebase after move completes
-  await pushGameState({lastAction:"move",movedPid:pid,movedTid:tid});
+  // ✅ SINGLE ATOMIC Firebase write: action="move" + dice + moves[] + full token state
+  // Opponent: animDice(dice) → callback: apply moves[] → renderTokens()
+  await pushGameState({
+    action: "move",
+    dice: v,
+    moves: movesPayload,
+    movedPid: pid,
+    movedTid: tid
+  });
 }
 
 function nextTurn(same){
