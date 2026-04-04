@@ -901,6 +901,10 @@ async function loadAndStartGame(){
     placements: gData.placements || []
   };
 
+  // ✅ FIX: Clear slot cache so home tokens render in correct boxes after fix
+  _cacheValid=false;
+  Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
+
   buildBoard(); // Rule 1: Board never rotates — built once in fixed orientation
   buildPlayers(); // Rule 6: Panel positions fixed, only colors remapped via POV
   recolorPanels(); // Rule 11: instant recolor after reconnect — no flicker
