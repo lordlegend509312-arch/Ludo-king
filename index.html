@@ -516,31 +516,34 @@ const PINK="#FF2D78", BLUE="#00AEEF", GREEN="#00C853", YELLOW="#FFD600";
 const DEF="#CFD8DC", BOARD_BG="#546E7A";
 
 // GLOBAL seat → physical board color (NEVER changes, tied to fixed board positions)
-// Seat 0 = top-left home (PINK), Seat 1 = top-right home (BLUE)
-// Seat 2 = bottom-right home (GREEN), Seat 3 = bottom-left home (YELLOW)
-const SEAT_COLOR = [PINK, BLUE, GREEN, YELLOW];
+// Seat 0 = top-left     home (PINK)
+// Seat 1 = top-right    home (YELLOW)
+// Seat 2 = bottom-right home (GREEN)
+// Seat 3 = bottom-left  home (BLUE)   ← Self always here = always Blue
+const SEAT_COLOR = [PINK, YELLOW, GREEN, BLUE];
 
-// POV display colors: offset 0=self→BLUE, 1=next CW→PINK, 2=opposite→YELLOW, 3=prev CW→GREEN
-// Rule 2 & 4: self always Blue, others remapped locally only
+// POV display colors array (for reference): bot-left=Blue, top-left=Pink, top-right=Yellow, bot-right=Green
 const POV_COLORS = [BLUE, PINK, YELLOW, GREEN];
 
 // Returns the LOCAL display color for a given global seat, from THIS client's perspective
-// Rule 2: self always BLUE. Rule 4: single source for all rendering.
-// Formula: offset = how many steps ahead 'seat' is from MY_SEAT clockwise (0-3)
-//   offset 0 = me       → BLUE
-//   offset 1 = next CW  → PINK
-//   offset 2 = opposite → YELLOW
-//   offset 3 = prev CW  → GREEN
+//
+// Physical board clockwise order (starting bottom-left):
+//   bottom-left(seat3) → top-left(seat0) → top-right(seat1) → bottom-right(seat2)
+//
+// POV colors (what every player sees):
+//   bottom-left = BLUE   (self)
+//   top-left    = PINK
+//   top-right   = YELLOW
+//   bottom-right= GREEN
+const CW_ORDER = { 3:0, 0:1, 1:2, 2:3 };
+const POV_DISPLAY = [BLUE, PINK, YELLOW, GREEN];
+
 function getDisplayColorForSeat(seat){
   if(MY_SEAT === null) return SEAT_COLOR[seat] || "#888";
-  const offset = ((seat - MY_SEAT) % 4 + 4) % 4; // safe modulo — handles negatives
-  switch(offset){
-    case 0: return BLUE;   // self
-    case 1: return PINK;   // next clockwise
-    case 2: return YELLOW; // opposite
-    case 3: return GREEN;  // prev clockwise
-    default: return "#888";
-  }
+  const myCW   = CW_ORDER[MY_SEAT]  ?? 0;
+  const seatCW = CW_ORDER[seat]     ?? 0;
+  const offset = ((seatCW - myCW) % 4 + 4) % 4;
+  return POV_DISPLAY[offset];
 }
 
 // Rule 2: self always appears as Blue
@@ -552,10 +555,10 @@ const STEP_MAIN_END = 51;
 const STEP_STRETCH_START = 52;
 const STEP_DONE = 57;
 const SEAT_HOME_CORNER = {
-  [PINK]: [0,0],
-  [BLUE]: [0,9],
-  [GREEN]: [9,9],
-  [YELLOW]: [9,0]
+  [PINK]:   [0,0],   // seat 0 = top-left
+  [YELLOW]: [0,9],   // seat 1 = top-right
+  [GREEN]:  [9,9],   // seat 2 = bottom-right
+  [BLUE]:   [9,0]    // seat 3 = bottom-left
 };
 
 // ── Game state ─────────────────────────────────────────────────────────────────
@@ -618,21 +621,22 @@ function genCode(){
 }
 
 // ── Seat layout rules ──────────────────────────────────────────────────────────
-// Rule 3: Global seats are FIXED. Physical board mapping:
-//   Seat 0 = top-left  (PINK home)   entry at [6,1]
-//   Seat 1 = top-right (BLUE home)   entry at [1,8]
-//   Seat 2 = bottom-right (GREEN home) entry at [8,13]
-//   Seat 3 = bottom-left (YELLOW home) entry at [13,6]
+// Physical board mapping (FIXED, never changes):
+//   Seat 0 = top-left     (PINK   home)
+//   Seat 1 = top-right    (YELLOW home)
+//   Seat 2 = bottom-right (GREEN  home)
+//   Seat 3 = bottom-left  (BLUE   home) ← Host always here → always sees Blue
 //
-// Rule 7: 2P uses diagonal: Seat 0 vs Seat 2 (top-left vs bottom-right)
-// Rule 8: 3P uses: Seat 0, Seat 1, Seat 3 (triangle)
-// Rule 6: My seat always appears at bottom-left in MY view via POV remapping
+// POV illusion: every player sees themselves at bottom-left as Blue
+// Board never rotates — only display colors remap locally per client
 //
 // SEAT_LAYOUTS: which real global seats are used per player count
+// Seat 3 = bottom-left (BLUE physical home) — host always takes this
+// Seats fill clockwise: 3(bot-left) → 0(top-left) → 1(top-right) → 2(bot-right)
 const SEAT_LAYOUTS = {
-  2: [0, 2],       // Rule 7: diagonal only (top-left vs bottom-right)
-  3: [0, 1, 3],    // Rule 8: triangle (top-left, top-right, bottom-left)
-  4: [0, 1, 2, 3]  // Full 4-player
+  2: [3, 1],          // diagonal: bottom-left vs top-right
+  3: [3, 0, 1],       // triangle: bot-left, top-left, top-right
+  4: [3, 0, 1, 2]     // full 4P: all seats
 };
 
 window.createRoom = async function(numPlayers){
@@ -1034,19 +1038,19 @@ window.backToLobby = window.leaveRoom;
 // GAME ENGINE (ported from offline version with online sync)
 // ══════════════════════════════════════════════════════════════════════════════
 
-// ── Physical board layout (NEVER changes — Rule 1, Rule 9) ────────────────────
-// These are the FIXED global positions keyed by physical seat color.
-// Seat 0 = PINK  (top-left home,    row 0-5,  col 0-5)
-// Seat 1 = BLUE  (top-right home,   row 0-5,  col 9-14)
-// Seat 2 = GREEN (bottom-right home,row 9-14, col 9-14)
-// Seat 3 = YELLOW(bottom-left home, row 9-14, col 0-5)
+// ── Physical board layout (NEVER changes) ────────────────────────────────────
+// Fixed physical positions — board never rotates, only POV colors remap locally
+// Seat 0 = top-left     home (PINK   physical color, row 0-5,  col 0-5)
+// Seat 1 = top-right    home (YELLOW physical color, row 0-5,  col 9-14)
+// Seat 2 = bottom-right home (GREEN  physical color, row 9-14, col 9-14)
+// Seat 3 = bottom-left  home (BLUE   physical color, row 9-14, col 0-5)
 
-// homeZones: physical layout — col is global physical color
+// homeZones: physical layout
 const homeZones=[
   {r0:0,c0:0, col:PINK,   seat:0},  // top-left
-  {r0:0,c0:9, col:BLUE,   seat:1},  // top-right
+  {r0:0,c0:9, col:YELLOW, seat:1},  // top-right
   {r0:9,c0:9, col:GREEN,  seat:2},  // bottom-right
-  {r0:9,c0:0, col:YELLOW, seat:3},  // bottom-left
+  {r0:9,c0:0, col:BLUE,   seat:3},  // bottom-left
 ];
 
 // inHome returns the PHYSICAL color of a home zone (used for game logic only)
@@ -1056,31 +1060,41 @@ const inHomeSeat=(r,c)=>{for(const h of homeZones)if(r>=h.r0&&r<h.r0+6&&c>=h.c0&
 const inCenter=(r,c)=>r>=6&&r<=8&&c>=6&&c<=8;
 
 // Stretch lanes — physical color → set of cell keys
-const BLUE_S=new Set(["1-7","2-7","3-7","4-7","5-7","6-7"]);
-const PINK_S=new Set(["7-1","7-2","7-3","7-4","7-5","7-6"]);
-const GREEN_S=new Set(["7-8","7-9","7-10","7-11","7-12","7-13"]);
-const YELLOW_S=new Set(["8-7","9-7","10-7","11-7","12-7","13-7"]);
+const BLUE_S  =new Set(["9-7","10-7","11-7","12-7","13-7","8-7"]);   // seat 3 bottom-left
+const PINK_S  =new Set(["7-1","7-2","7-3","7-4","7-5","7-6"]);       // seat 0 top-left
+const YELLOW_S=new Set(["1-7","2-7","3-7","4-7","5-7","6-7"]);       // seat 1 top-right
+const GREEN_S =new Set(["7-8","7-9","7-10","7-11","7-12","7-13"]);   // seat 2 bottom-right
 
 // getStretch returns the PHYSICAL color of a stretch lane cell
-const getStretch=(r,c)=>{const k=`${r}-${c}`;if(BLUE_S.has(k))return BLUE;if(PINK_S.has(k))return PINK;if(GREEN_S.has(k))return GREEN;if(YELLOW_S.has(k))return YELLOW;return null;};
+const getStretch=(r,c)=>{const k=`${r}-${c}`;if(BLUE_S.has(k))return BLUE;if(PINK_S.has(k))return PINK;if(YELLOW_S.has(k))return YELLOW;if(GREEN_S.has(k))return GREEN;return null;};
 // getStretchSeat returns which global seat a stretch lane belongs to
-const STRETCH_SEAT={"1-7":1,"2-7":1,"3-7":1,"4-7":1,"5-7":1,"6-7":1, // BLUE=seat1
-                    "7-1":0,"7-2":0,"7-3":0,"7-4":0,"7-5":0,"7-6":0, // PINK=seat0
-                    "7-8":2,"7-9":2,"7-10":2,"7-11":2,"7-12":2,"7-13":2, // GREEN=seat2
-                    "8-7":3,"9-7":3,"10-7":3,"11-7":3,"12-7":3,"13-7":3}; // YELLOW=seat3
+const STRETCH_SEAT={
+  "7-1":0,"7-2":0,"7-3":0,"7-4":0,"7-5":0,"7-6":0,    // PINK=seat0  (top-left)
+  "1-7":1,"2-7":1,"3-7":1,"4-7":1,"5-7":1,"6-7":1,    // YELLOW=seat1(top-right)
+  "7-8":2,"7-9":2,"7-10":2,"7-11":2,"7-12":2,"7-13":2, // GREEN=seat2 (bot-right)
+  "8-7":3,"9-7":3,"10-7":3,"11-7":3,"12-7":3,"13-7":3  // BLUE=seat3  (bot-left)
+};
 const getStretchSeat=(r,c)=>STRETCH_SEAT[`${r}-${c}`]??null;
 
-// Entry arrows — physical layout
+// Entry arrows — physical layout (row-col : direction, seat)
+// seat0=top-left(PINK) enters from left  at row7,col0
+// seat1=top-right(YELLOW) enters from top at row0,col7
+// seat2=bot-right(GREEN) enters from right at row7,col14
+// seat3=bot-left(BLUE) enters from bottom at row14,col7
 const ARROWS={"7-0":{dir:"right",seat:0},"0-7":{dir:"down",seat:1},"7-14":{dir:"left",seat:2},"14-7":{dir:"up",seat:3}};
 
 // Safe grey stars (neutral)
 const GREY_STARS=new Set(["2-6","8-2","6-12","12-8"]);
 
 // Colored entry stars — which global seat each belongs to
-const COLOR_STARS=new Set(["1-8","6-1","8-13","13-6"]);
-const STAR_SEAT={"1-8":1,"6-1":0,"8-13":2,"13-6":3}; // seat index
+// seat0(PINK/top-left) star at [6,1], seat1(YELLOW/top-right) star at [1,8]
+// seat2(GREEN/bot-right) star at [8,13], seat3(BLUE/bot-left) star at [13,6]
+const COLOR_STARS=new Set(["6-1","1-8","8-13","13-6"]);
+const STAR_SEAT={"6-1":0,"1-8":1,"8-13":2,"13-6":3};
 
 // Corner path cells at bend of home lanes — seat index
+// seat0(PINK/top-left)=6-6, seat1(YELLOW/top-right)=6-8
+// seat2(GREEN/bot-right)=8-8, seat3(BLUE/bot-left)=8-6
 const CORNER_SEAT={"6-6":0,"6-8":1,"8-8":2,"8-6":3};
 
 // ── POV color resolver ────────────────────────────────────────────────────────
@@ -1208,7 +1222,12 @@ const MAIN_PATH=[
 ];
 
 const PATH=new Set(MAIN_PATH.map(([r,c])=>`${r}-${c}`));
-const ENTRY_CELL={[PINK]:[6,1],[BLUE]:[1,8],[GREEN]:[8,13],[YELLOW]:[13,6]};
+// Token entry cells per physical color (where token enters main path)
+// PINK(seat0/top-left) enters at [6,1]
+// YELLOW(seat1/top-right) enters at [1,8]  ← was BLUE before
+// GREEN(seat2/bot-right) enters at [8,13]
+// BLUE(seat3/bot-left) enters at [13,6]    ← was YELLOW before
+const ENTRY_CELL={[PINK]:[6,1],[YELLOW]:[1,8],[GREEN]:[8,13],[BLUE]:[13,6]};
 const ENTRY={};
 for(const [color,[er,ec]] of Object.entries(ENTRY_CELL)){
   const idx=MAIN_PATH.findIndex(([r,c])=>r===er&&c===ec);
@@ -1218,14 +1237,20 @@ for(const [color,[er,ec]] of Object.entries(ENTRY_CELL)){
 const SAFE=new Set([...GREY_STARS,...COLOR_STARS]);
 Object.values(ENTRY_CELL).forEach(([r,c])=>SAFE.add(`${r}-${c}`));
 
+// Home stretch lanes per physical color
+// PINK(seat0/top-left)   → moves right along row 7
+// YELLOW(seat1/top-right)→ moves down  along col 7 (top to center)
+// GREEN(seat2/bot-right) → moves left  along row 7
+// BLUE(seat3/bot-left)   → moves up    along col 7 (bottom to center)
 const STRETCH={
   [PINK]:  [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],
-  [BLUE]:  [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],
+  [YELLOW]:[[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],
   [GREEN]: [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],
-  [YELLOW]:[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],
+  [BLUE]:  [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],
 };
 
-const HOME_CORNER={[PINK]:[0,0],[BLUE]:[0,9],[GREEN]:[9,9],[YELLOW]:[9,0]};
+// Home corner (top-left cell of each 6x6 home zone) per physical color
+const HOME_CORNER={[PINK]:[0,0],[YELLOW]:[0,9],[GREEN]:[9,9],[BLUE]:[9,0]};
 
 function getCell(pid,step){
   if(step<=0||step>=STEP_DONE) return null;
@@ -1320,12 +1345,12 @@ function buildBoard(){
         if(r===6&&c===6){
           const d=document.createElement("div");
           d.style.cssText=`grid-column:7/span 3;grid-row:7/span 3;overflow:hidden;`;
-          // Rule 4: Center triangles use POV display colors
-          // Physical mapping: top=seat1(BLUE), right=seat2(GREEN), bottom=seat3(YELLOW), left=seat0(PINK)
-          const cTop   = seatToDisplayColor(1); // top triangle → seat1 physical
-          const cRight = seatToDisplayColor(2); // right triangle → seat2 physical
-          const cBot   = seatToDisplayColor(3); // bottom triangle → seat3 physical
-          const cLeft  = seatToDisplayColor(0); // left triangle → seat0 physical
+          // Center triangles use POV display colors
+          // Physical mapping: top=seat1(YELLOW physical), right=seat2(GREEN), bottom=seat3(BLUE physical), left=seat0(PINK)
+          const cTop   = seatToDisplayColor(1); // top    → seat1 (YELLOW physical / top-right)
+          const cRight = seatToDisplayColor(2); // right  → seat2 (GREEN  physical / bot-right)
+          const cBot   = seatToDisplayColor(3); // bottom → seat3 (BLUE   physical / bot-left)
+          const cLeft  = seatToDisplayColor(0); // left   → seat0 (PINK   physical / top-left)
           d.innerHTML=`<svg viewBox="0 0 90 90" style="width:100%;height:100%;display:block;" preserveAspectRatio="none">
             <polygon points="45,45 0,0 90,0"  fill="${cTop}"/>
             <polygon points="45,45 90,0 90,90" fill="${cRight}"/>
