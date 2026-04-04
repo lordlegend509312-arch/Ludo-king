@@ -988,9 +988,12 @@ function syncGameState(data){
   // ── CASE 1: action="roll" ──────────────────────────────────────────────────
   // Player rolled, must pick a token. Token positions DON'T change yet.
   if(action === "roll"){
+    // ✅ FIX A: Always sync turn from server so opponent panel highlights correctly
+    G.turn    = data.turn;
     G.diceVal = dice;
     G.rolled  = true;
-    G.waiting = true;
+    G.waiting = false; // ✅ FIX A: Opponent should NOT see movable tokens (not their turn)
+    G.sixes   = data.sixes || 0;
     if(dice != null && rolledBy != null){
       animDice(rolledBy, dice, ()=>{ refreshUI(); renderTokens(); updateTurnBanner(); });
     }
@@ -1001,13 +1004,15 @@ function syncGameState(data){
   // dice + tokens in ONE Firebase write. Animate dice, then apply in callback.
   if(action === "move"){
     const applyMoveState = () => {
-      if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
+      // ✅ FIX B: Guard against overwriting tokens while local animation is running
+      if(!_animating && data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
       G.turn       = data.turn;
       G.rolled     = false;
       G.waiting    = false;
       G.diceVal    = null;
       G.sixes      = data.sixes      || 0;
       G.placements = data.placements || [];
+      G.over       = data.over       || false;
       if(G.over && !document.getElementById("win").classList.contains("show")){
         endGame(); return;
       }
@@ -1392,17 +1397,18 @@ function buildBoard(){
         d.style.cssText=`grid-column:${c+1}/span 6;grid-row:${r+1}/span 6;`;
         const br=(r===0&&c===0)?"10px 0 0 0":(r===0&&c===9)?"0 10px 0 0":(r===9&&c===0)?"0 0 0 10px":"0 0 10px 0";
 
-        // Board quadrant uses PHYSICAL color (fixed for all players — board never rotates)
-        // Only tokens and panels use POV display colors
-        const dc = SEAT_COLOR[homeSeat];
-        d.dataset.homeSeat = homeSeat; // for renderSeatVisuals recolor (tokens only)
+        // ✅ POV FIX: Home zone uses display color (POV-mapped) so tokens match their home zone.
+        // Every player sees their own home as BLUE, opponents shifted per CW offset.
+        // Board never rotates physically — only colors remap locally per client.
+        const dc = getDisplayColorForSeat(homeSeat); // POV display color
+        d.dataset.homeSeat = homeSeat;
 
         d.innerHTML=`<div style="width:100%;height:100%;background:${dc};border-radius:${br};display:flex;align-items:center;justify-content:center;">
           <div style="width:74%;height:74%;background:white;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:10%;box-sizing:border-box;">
-            <div data-slot="${r},${c},0" style="border-radius:50%;background:${lighten(dc,10)};border:2px solid ${darken(dc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
-            <div data-slot="${r},${c},1" style="border-radius:50%;background:${lighten(dc,10)};border:2px solid ${darken(dc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
-            <div data-slot="${r},${c},2" style="border-radius:50%;background:${lighten(dc,10)};border:2px solid ${darken(dc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
-            <div data-slot="${r},${c},3" style="border-radius:50%;background:${lighten(dc,10)};border:2px solid ${darken(dc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+            <div data-slot="${r},${c},0" style="border-radius:50%;background:${lighten(slotColor,10)};border:2px solid ${darken(slotColor,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+            <div data-slot="${r},${c},1" style="border-radius:50%;background:${lighten(slotColor,10)};border:2px solid ${darken(slotColor,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+            <div data-slot="${r},${c},2" style="border-radius:50%;background:${lighten(slotColor,10)};border:2px solid ${darken(slotColor,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+            <div data-slot="${r},${c},3" style="border-radius:50%;background:${lighten(slotColor,10)};border:2px solid ${darken(slotColor,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
           </div>
         </div>`;
         el.appendChild(d);
