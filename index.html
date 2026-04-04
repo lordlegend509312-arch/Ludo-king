@@ -577,6 +577,7 @@ let PLAYERS = []; // {id, seat, color, label, active, human}
 let G = { turn:0, diceVal:null, rolled:false, waiting:false, over:false, sixes:0, tokens:[], placements:[] };
 let G_PAUSED = false;
 let _rolling = false;
+let _animating = false; // true during doMove animation — blocks syncGameState token overwrite
 
 // ── UI Helpers ────────────────────────────────────────────────────────────────
 function showToast(msg, dur=2500){
@@ -949,7 +950,7 @@ function syncGameState(data){
   G.sixes = data.sixes || 0;
   G.placements = data.placements || [];
 
-  if(data.tokens){
+  if(data.tokens && !_animating){
     G.tokens = data.tokens;
   }
 
@@ -1109,18 +1110,15 @@ function seatToDisplayColor(globalSeat){
 // Controls: corner square, home tokens, lane tint, moving token tint,
 //           panel tint, dice tint, entry arrow, entry star (Rule final)
 function renderSeatVisuals(seat){
-  // POV display color — drives panels, tokens, dice only
   const color = getDisplayColorForSeat(seat);
-  // Physical color — board elements are fixed for all players (board never rotates)
-  // Board quadrant, lanes, arrows, stars stay physical always
-
-  // ── PANEL: Token icon ─────────────────────────────────────────────────────
-  const tokW = document.getElementById(`ptok-${seat}`);
-  if(tokW){ tokW.innerHTML = tokSVG(color, 36); tokW.dataset.rc = color; }
-
-  // ── PANEL: Border + glow (Rule 7) ─────────────────────────────────────────
-  const bg = document.getElementById(`pbg-${seat}`);
   const isActive = G.turn === seat && !G.over;
+
+  // ── PANEL: Token icon — only if color changed ─────────────────────────────
+  const tokW = document.getElementById(`ptok-${seat}`);
+  if(tokW && tokW.dataset.rc !== color){ tokW.innerHTML = tokSVG(color, 36); tokW.dataset.rc = color; }
+
+  // ── PANEL: Border + glow ──────────────────────────────────────────────────
+  const bg = document.getElementById(`pbg-${seat}`);
   if(bg){
     bg.style.borderColor = isActive ? color : `${color}44`;
     bg.style.boxShadow = isActive
@@ -1128,15 +1126,15 @@ function renderSeatVisuals(seat){
       : "0 4px 20px rgba(0,0,0,.6)";
   }
 
-  // ── PANEL: Label color (Rule 7) ───────────────────────────────────────────
+  // ── PANEL: Label color ────────────────────────────────────────────────────
   const lbl = document.getElementById(`lbl-${seat}`);
   if(lbl) lbl.style.color = isActive ? color : "white";
 
-  // ── PANEL: Pbox outline (Rule 7) ──────────────────────────────────────────
+  // ── PANEL: Pbox outline ───────────────────────────────────────────────────
   const box = document.getElementById(`pbox-${seat}`);
   if(box) box.style.outline = isActive ? `2px solid ${color}` : "none";
 
-  // ── DICE: Glow matches seat color (Rule 3, Rule 7) ────────────────────────
+  // ── DICE: Glow ────────────────────────────────────────────────────────────
   const diceWrap = document.getElementById(`pdw-${seat}`);
   if(diceWrap){
     diceWrap.style.borderColor = isActive ? color : "#1a1a28";
@@ -1144,19 +1142,6 @@ function renderSeatVisuals(seat){
       ? `inset 0 2px 4px rgba(255,255,255,.12), 0 0 0 2px ${color}88, 0 2px 8px rgba(0,0,0,.4)`
       : `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
   }
-
-  // ── TOKENS: Force cached token elements to use physical color always ─────────
-  // Board tokens always match physical board colors (home boxes, lanes, center)
-  const physicalColor = PLAYERS[seat]?.color;
-  if(physicalColor) Object.keys(_tokEls).forEach(key=>{
-    if(!key.startsWith(`${seat}-`)) return;
-    const {wrap} = _tokEls[key];
-    if(wrap && wrap.dataset.rc !== physicalColor){
-      const rW = parseFloat(wrap.dataset.rw || "28") || 28;
-      wrap.innerHTML = tokSVG(physicalColor, rW);
-      wrap.dataset.rc = physicalColor;
-    }
-  });
 }
 
 // Full board recolor — called on reconnect to rebuild all seat visuals (Rule 9)
@@ -1746,16 +1731,16 @@ function renderTokens(){
       const [hr,hc]=HOME_CORNER[hColor];
       const bp=baseCirclePx(hr,hc,tok.tid);
       px=bp.x;py=bp.y;scale=1.02;
-      // Home tokens use PHYSICAL color to match their home box (board never rotates)
-      color=hColor;
+      // All tokens use POV display color — consistent throughout game
+      color=getTokenDisplayColor(tok.pid);
     } else if(tok.step>=STEP_DONE){
       // Rule 1 & 9: Center position uses GLOBAL physical color (board-fixed, never rotates)
       // The center triangle quadrants are physically fixed per seat color
       const centerRC=[7,7];
       const cxy=rcToXY(centerRC[0],centerRC[1]);
       const cp2=cellPx(),half=cp2*1.5;
-      const hColor=PLAYERS[tok.pid]?.color; // global physical color — correct for board position
-      color=hColor; // physical color for center triangle matching
+      const hColor=PLAYERS[tok.pid]?.color; // global physical color — for board position
+      color=getTokenDisplayColor(tok.pid); // POV color for visual
       const offsets={[PINK]:{dx:-half*0.60,dy:0},[BLUE]:{dx:0,dy:-half*0.60},[GREEN]:{dx:half*0.60,dy:0},[YELLOW]:{dx:0,dy:half*0.60}};
       const off=offsets[hColor]||{dx:0,dy:0};
       const doneOfPid=G.tokens.filter(t=>t.pid===tok.pid&&t.step>=STEP_DONE);
@@ -1776,8 +1761,7 @@ function renderTokens(){
       const off=stackOffset(n,idx,cp);
       const xy=rcToXY(rc[0],rc[1]);
       px=xy.x+off.dx;py=xy.y+off.dy;
-      // Moving tokens use physical color to match board lanes/paths (board never rotates)
-      color=PLAYERS[tok.pid]?.color||getTokenDisplayColor(tok.pid);
+      color=getTokenDisplayColor(tok.pid);
     }
     alive.add(key);
     const rW=BASE_W*scale,rH=rW*(130/100),tipOffset=rH*(122/130);
@@ -1861,6 +1845,8 @@ function onHumanRoll(){
 function doRoll(pid){
   if(_rolling) return;
   _rolling=true;
+  // Safety: always reset _rolling after 3s max to prevent permanent lock
+  const rollSafety = setTimeout(()=>{ _rolling=false; }, 3000);
   const d3d=document.getElementById(`d3d-${pid}`);
   if(d3d) d3d.classList.add("off");
   const v=rng();
@@ -1868,7 +1854,7 @@ function doRoll(pid){
   G.diceVal=v;
   // Push dice roll to Firebase immediately so others see animation
   pushGameState({ lastAction:"roll", diceVal:v });
-  animDice(pid,v,()=>{_rolling=false;afterRoll(pid,v);});
+  animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
 }
 
 function shouldAutoMove(mv,v){
@@ -2033,11 +2019,12 @@ async function sendHomeFast(tok){
 }
 
 async function doMove(pid,tid,v){
+  _animating=true;
   const tok=tokOf(pid,tid);
-  if(!tok) return;
+  if(!tok){ _animating=false; return; }
   const allowed=movable(pid,v);
-  if(!allowed.find(t=>t.tid===tid)) return;
-  if(tok.step>=STEP_STRETCH_START&&tok.step+v>STEP_DONE) return;
+  if(!allowed.find(t=>t.tid===tid)){ _animating=false; return; }
+  if(tok.step>=STEP_STRETCH_START&&tok.step+v>STEP_DONE){ _animating=false; return; }
 
   let bonus=false;
   const diceWasSix=(v===6);
@@ -2101,6 +2088,7 @@ async function doMove(pid,tid,v){
   if(captured) bonus=true;
 
   renderTokens();await rafDelay(60);
+  _animating=false;
   nextTurn(bonus);
 
   // Push final state to Firebase after move completes
