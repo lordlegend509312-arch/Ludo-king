@@ -514,26 +514,14 @@ auth.onAuthStateChanged(() => { clearTimeout(_authTimeout); _setAuthReady(); });
 auth.signInAnonymously().catch(() => { clearTimeout(_authTimeout); _setAuthReady(); });
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-const PINK="#FF2D78", BLUE="#FFD600", GREEN="#00C853", YELLOW="#00AEEF";
+const PINK="#FF2D78", BLUE="#00AEEF", GREEN="#00C853", YELLOW="#FFD600";
 const DEF="#CFD8DC", BOARD_BG="#546E7A";
 
-// Board colors per seat (fixed, never changes — this is the ACTUAL game color)
-// Seat 0 = PINK (top-left home), Seat 1 = BLUE (top-right home)
-// Seat 2 = GREEN (bottom-right home), Seat 3 = YELLOW (bottom-left home, HOST)
-const SEAT_COLOR = [PINK, BLUE, GREEN, YELLOW]; // seat → actual board color
+const SEAT_COLOR = [PINK, BLUE, GREEN, YELLOW];
+const POV_COLORS = [BLUE, PINK, YELLOW, GREEN];
 
-// Perspective display colors: the 4 positions from any player's POV
-// Position 0 = bottom-left (ME)    → always shown as BLUE
-// Position 1 = top-left            → always shown as PINK
-// Position 2 = top-right           → always shown as YELLOW
-// Position 3 = bottom-right        → always shown as GREEN
-// (These match standard Ludo color positions on a fixed board)
-const POV_COLORS = ["#4FC3F7", "#FF2D78", "#FFD600", "#00C853"]; // [me/blue, topLeft/pink, topRight/yellow, botRight/green]
-
-// Returns what color a given seat LOOKS LIKE from MY_SEAT's perspective
 function getDisplayColorForSeat(seat){
   if(MY_SEAT === null) return SEAT_COLOR[seat] || "#888";
-  // How many positions clockwise from me?
   const offset = (seat - MY_SEAT + 4) % 4;
   return POV_COLORS[offset];
 }
@@ -664,9 +652,9 @@ window.joinRoom = async function(){
   const rData = rSnap.val();
   if(rData.status === "playing"){ showToast("Game already started"); return; }
 
-  // Find available seat
   const taken = Object.keys(rData.players||{}).map(Number);
-  const allSeats = [0,1,2,3].slice(0, rData.numPlayers);
+  const seatLayouts = { 2:[3,1], 3:[3,1,2], 4:[3,0,1,2] };
+  const allSeats = seatLayouts[rData.numPlayers] || [0,1,2,3];
   const free = allSeats.filter(s=>!taken.includes(s));
   if(free.length === 0){ showToast("Room is full"); return; }
 
@@ -852,7 +840,8 @@ let _applyingRemote = false;
 
 function syncGameState(data){
   if(_applyingRemote) return;
-  // Don't apply our own pending actions
+  // Ignore updates that WE pushed (avoid self-overwrite)
+  if(data.actionBy === MY_SEAT) return;
   const ts = data.timestamp || 0;
   if(ts <= _lastTs && _lastTs > 0) return;
   _lastTs = ts;
@@ -1144,14 +1133,29 @@ function buildBoard(){
 
 function getPanelSeats(){
   const me = MY_SEAT !== null ? MY_SEAT : 3;
-  // Positions: [topLeft, topRight, botLeft(ME), botRight]
-  const order = [
-    (me+2)%4, // top-left = opposite
-    (me+1)%4, // top-right = right opponent (clockwise)
+
+  // Find active opponents
+  const opponents = PLAYERS.filter(p => p.active && p.id !== me).map(p => p.id);
+  const numActive = opponents.length + 1; // include me
+
+  if(numActive === 2){
+    // 2 player: me = bot-left, opponent = top-right (diagonal, Ludo King style)
+    const opp = opponents[0] ?? (me+2)%4;
+    return [
+      -1,   // top-left  = empty
+      opp,  // top-right = opponent
+      me,   // bot-left  = ME
+      -1    // bot-right = empty
+    ];
+  }
+
+  // 3-4 player: standard layout
+  return [
+    (me+2)%4, // top-left
+    (me+1)%4, // top-right
     me,       // bot-left = ME
-    (me+3)%4  // bot-right = left opponent
+    (me+3)%4  // bot-right
   ];
-  return order;
 }
 
 function buildPlayers(){
@@ -1163,7 +1167,8 @@ function buildPlayers(){
   // seats[0]=topLeft, seats[1]=topRight, seats[2]=botLeft(me), seats[3]=botRight
 
   // Top row: left panel, pause btn, right panel
-  if(PLAYERS[seats[0]]?.active) top.appendChild(makePanel(seats[0],"left","top"));
+  const s0 = seats[0]; const s1 = seats[1];
+  if(s0 >= 0 && PLAYERS[s0]?.active) top.appendChild(makePanel(s0,"left","top"));
   else top.appendChild(makePlaceholder("left"));
 
   const pauseBtn=document.createElement("button");
@@ -1173,14 +1178,15 @@ function buildPlayers(){
   pauseBtn.addEventListener("click",()=>window.togglePause());
   top.appendChild(pauseBtn);
 
-  if(PLAYERS[seats[1]]?.active) top.appendChild(makePanel(seats[1],"right","top"));
+  if(s1 >= 0 && PLAYERS[s1]?.active) top.appendChild(makePanel(s1,"right","top"));
   else top.appendChild(makePlaceholder("right"));
 
   // Bot row: left panel (me), right panel
-  if(PLAYERS[seats[2]]?.active) bot.appendChild(makePanel(seats[2],"left","bot",true));
+  const s2 = seats[2]; const s3 = seats[3];
+  if(s2 >= 0 && PLAYERS[s2]?.active) bot.appendChild(makePanel(s2,"left","bot",true));
   else bot.appendChild(makePlaceholder("left"));
 
-  if(PLAYERS[seats[3]]?.active) bot.appendChild(makePanel(seats[3],"right","bot"));
+  if(s3 >= 0 && PLAYERS[s3]?.active) bot.appendChild(makePanel(s3,"right","bot"));
   else bot.appendChild(makePlaceholder("right"));
 }
 
@@ -1426,7 +1432,7 @@ function renderTokens(){
   const movSet=new Set();
   // Only show movable highlights for MY tokens on MY turn
   if(G.waiting&&!G.over&&G.turn===MY_SEAT){
-    movable(G.turn,G.diceVal).forEach(t=>movSet.add(`${t.pid}-${t.tid}`));
+    movable(MY_SEAT,G.diceVal).forEach(t=>movSet.add(`${MY_SEAT}-${t.tid}`));
   }
   const groups={};
   G.tokens.forEach(tok=>{
@@ -1490,7 +1496,8 @@ function renderTokens(){
     const els=_ensureTokEl(tok,color);
     const {wrap,shadow}=els;
     const curW=parseFloat(wrap.dataset.rw||"0");
-    if(Math.abs(curW-rW)>0.5){wrap.innerHTML=tokSVG(color,rW);wrap.dataset.rw=rW;}
+    const curColor=wrap.dataset.rc||"";
+    if(Math.abs(curW-rW)>0.5||curColor!==color){wrap.innerHTML=tokSVG(color,rW);wrap.dataset.rw=rW;wrap.dataset.rc=color;}
     wrap.style.transform=`translate(${tx}px,${ty}px)`;
     const shadowW=rW*0.60,shadowH=rW*0.16,sx=px-shadowW/2,sy=py-shadowH/2+1;
     shadow.style.transform=`translate(${sx}px,${sy}px)`;
