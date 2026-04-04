@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v6.4 (v10-debug)</title>
+<title>Ludo King — Online Multiplayer v6.4 (v11)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -346,6 +346,12 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 #debug-panel.show{display:flex;}
 .dbg-row{display:flex;align-items:center;gap:8px;}
 .dbg-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
+
+/* Board POV rotation for non-seat-3 players — rotates entire board-wrap */
+#board-wrap.pov-rotated { transform: rotate(180deg); }
+/* Counter-rotate tokens so they always face up */
+#board-wrap.pov-rotated .tok { transform-origin: center; }
+#board-wrap.pov-rotated .tok svg { transform: rotate(180deg); }
 </style>
 </head>
 <body>
@@ -1005,6 +1011,26 @@ async function loadAndStartGame(){
   renderTokens();
   updateTurnBanner();
   showToast("Game started! You are Blue seat "+MY_SEAT);
+
+  // POV ROTATION: If MY_SEAT is not seat 3 (bottom-left), rotate board 180deg
+  // so every player sees their home at bottom-left
+  // baseCirclePx() uses getBoundingClientRect() so it auto-adjusts after rotation
+  // rcToXY() uses grid math — needs cache invalidation after rotation
+  const boardWrap = document.getElementById("board-wrap");
+  if(MY_SEAT !== 3 && boardWrap){
+    boardWrap.classList.add("pov-rotated");
+    // Invalidate pixel cache so rcToXY recalculates after rotation settles
+    _cacheValid = false;
+    Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
+    // Re-render after rotation applied (next frame)
+    requestAnimationFrame(()=>{
+      _cacheValid = false;
+      Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
+      renderTokens();
+    });
+  } else if(boardWrap){
+    boardWrap.classList.remove("pov-rotated");
+  }
 
   // ✅ FIX: Only NOW allow syncGameState to process Firebase updates.
   // PLAYERS[] is fully populated, getCell() will return correct positions for all seats.
@@ -1881,6 +1907,12 @@ function boardOffset(){return{x:_ox,y:_oy};}
 const GAP=1,PAD=6;
 function rcToXY(r,c){
   const cp=cellPx(),off=boardOffset();
+  // If board is rotated 180deg for this client, mirror the coordinates
+  // so tokens land on the visually correct (rotated) cell
+  if(MY_SEAT !== 3 && document.getElementById("board-wrap")?.classList.contains("pov-rotated")){
+    const mr=14-r, mc=14-c;
+    return{x:off.x+PAD+mc*(cp+GAP)+cp/2,y:off.y+PAD+mr*(cp+GAP)+cp/2};
+  }
   return{x:off.x+PAD+c*(cp+GAP)+cp/2,y:off.y+PAD+r*(cp+GAP)+cp/2};
 }
 
