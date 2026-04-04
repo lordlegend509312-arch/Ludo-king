@@ -528,9 +528,7 @@ const POV_COLORS = [BLUE, PINK, YELLOW, GREEN];
 // Rule 5: use this for ALL rendering — tokens, panels, dice glow, labels
 function getDisplayColorForSeat(seat){
   if(MY_SEAT === null) return SEAT_COLOR[seat] || "#888";
-  // Only remap seats that are actually in the active layout — others use their physical color
-  if(!SEAT_LAYOUT_ACTIVE.includes(seat)) return SEAT_COLOR[seat] || "#888";
-  const offset = (SEAT_LAYOUT_ACTIVE.indexOf(seat) - SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT) + 4) % 4;
+  const offset = (seat - MY_SEAT + 4) % 4;
   return POV_COLORS[offset];
 }
 
@@ -773,8 +771,7 @@ function updatePlayerList(players){
     div.className = "player-slot";
     const isSelf = p.seat === MY_SEAT;
     // Rule 2: Self ALWAYS Blue in lobby. Rule 4: Others use POV color map.
-    // In lobby, SEAT_LAYOUT_ACTIVE may not be set yet — use SEAT_COLOR as safe fallback.
-    const lobbyColor = isSelf ? BLUE : (MY_SEAT !== null ? getDisplayColorForSeat(p.seat) : (SEAT_COLOR[p.seat]||"#888"));
+    const lobbyColor = isSelf ? BLUE : (MY_SEAT !== null ? getDisplayColorForSeat(p.seat) : SEAT_COLOR[p.seat]||"#888");
     const colorNames = {[BLUE]:"Blue",[PINK]:"Red",[YELLOW]:"Yellow",[GREEN]:"Green"};
     const colorLabel = colorNames[lobbyColor] || "";
     div.innerHTML = `
@@ -1082,6 +1079,69 @@ function seatToDisplayColor(globalSeat){
   return getDisplayColorForSeat(globalSeat);
 }
 
+// ── MASTER COLOR PIPELINE (Rule 4, Rule 9) ────────────────────────────────────
+// Single source of truth — ALL seat visuals go through this.
+// Call renderSeatVisuals(seat) to recolor everything for one seat atomically.
+function renderSeatVisuals(seat){
+  const color = getDisplayColorForSeat(seat); // THE single source
+
+  // 1. Panel token icon
+  const tokW = document.getElementById(`ptok-${seat}`);
+  if(tokW){ tokW.innerHTML = tokSVG(color, 36); tokW.dataset.rc = color; }
+
+  // 2. Panel border tint
+  const bg = document.getElementById(`pbg-${seat}`);
+  const isActive = G.turn === seat && !G.over;
+  if(bg){
+    bg.style.borderColor = isActive ? color : `${color}44`;
+    bg.style.boxShadow = isActive
+      ? `0 0 0 2px ${color}, 0 4px 20px ${color}55`
+      : "0 4px 20px rgba(0,0,0,.6)";
+  }
+
+  // 3. Label
+  const lbl = document.getElementById(`lbl-${seat}`);
+  if(lbl) lbl.style.color = isActive ? color : "white";
+
+  // 4. Pbox outline
+  const box = document.getElementById(`pbox-${seat}`);
+  if(box) box.style.outline = isActive ? `2px solid ${color}` : "none";
+
+  // 5. Dice box glow (Rule 3: dice owner glow matches seat color)
+  const diceWrap = document.getElementById(`pdw-${seat}`);
+  if(diceWrap){
+    diceWrap.style.borderColor = isActive ? color : "#1a1a28";
+    diceWrap.style.boxShadow = isActive
+      ? `inset 0 2px 4px rgba(255,255,255,.12), 0 0 0 2px ${color}88, 0 2px 8px rgba(0,0,0,.4)`
+      : `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
+  }
+
+  // 6. Force all cached token elements for this seat to recolor
+  // This fixes stale color cache after reconnect / MY_SEAT change
+  Object.keys(_tokEls).forEach(key=>{
+    if(!key.startsWith(`${seat}-`)) return;
+    const {wrap} = _tokEls[key];
+    if(wrap && wrap.dataset.rc !== color){
+      const rW = parseFloat(wrap.dataset.rw || "28") || 28;
+      wrap.innerHTML = tokSVG(color, rW);
+      wrap.dataset.rc = color;
+    }
+  });
+}
+
+// Full board recolor — called on reconnect to rebuild all seat visuals (Rule 9)
+function recolorAllSeats(){
+  PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
+}
+
+// Safety assert — logs mismatch if wrong color used anywhere (debug helper)
+function assertSeatColor(seat, colorUsed){
+  const expected = getDisplayColorForSeat(seat);
+  if(colorUsed !== expected){
+    console.error(`❌ COLOR MISMATCH seat=${seat} used=${colorUsed} expected=${expected}`);
+  }
+}
+
 function lighten(hex,a=15){let c=hex.replace("#","");const r=Math.min(255,parseInt(c.slice(0,2),16)+a);const g=Math.min(255,parseInt(c.slice(2,4),16)+a);const b=Math.min(255,parseInt(c.slice(4,6),16)+a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
 function darken(hex,a=18){let c=hex.replace("#","");const r=Math.max(0,parseInt(c.slice(0,2),16)-a);const g=Math.max(0,parseInt(c.slice(2,4),16)-a);const b=Math.max(0,parseInt(c.slice(4,6),16)-a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
 
@@ -1367,20 +1427,9 @@ function makePlaceholder(side){
 }
 
 // Rule 11: Instantly recolor all panel token previews after reconnect/rejoin
-// Called after MY_SEAT is known and PLAYERS is rebuilt
+// Now uses renderSeatVisuals master pipeline — single source of truth (Rule 4)
 function recolorPanels(){
-  PLAYERS.forEach(p=>{
-    if(!p.active) return;
-    const tokW = document.getElementById(`ptok-${p.id}`);
-    const dColor = getDisplayColorForSeat(p.id);
-    if(tokW){
-      tokW.innerHTML = tokSVG(dColor, 36);
-      tokW.dataset.rc = dColor; // Rule 4: keep cache in sync
-    }
-    // Also recolor panel border tint
-    const bg = document.getElementById(`pbg-${p.id}`);
-    if(bg) bg.style.borderColor = `${dColor}44`;
-  });
+  recolorAllSeats();
 }
 
 function makePanel(pid,side,pos,isMe=false){
@@ -1424,7 +1473,6 @@ function makePanel(pid,side,pos,isMe=false){
   const tokW=document.createElement("div");
   tokW.className="pbox-tok";
   tokW.id=`ptok-${pid}`; // Rule 11: id for reconnect recolor
-  tokW.dataset.rc=displayColor; // Rule 4: cache current color for change-detection in refreshUI
   tokW.style[side==="left"?"marginLeft":"marginRight"]="4px";
   tokW.innerHTML=tokSVG(displayColor, 36);
 
@@ -1708,58 +1756,31 @@ function renderTokens(){
 }
 
 function refreshUI(){
+  // Rule 4: ALL seat visuals go through renderSeatVisuals — single pipeline
   PLAYERS.forEach(p=>{
-    const active=G.turn===p.id&&!G.over;
-    const bg=document.getElementById(`pbg-${p.id}`);
-    const lbl=document.getElementById(`lbl-${p.id}`);
-    const box=document.getElementById(`pbox-${p.id}`);
-    const d3d=document.getElementById(`d3d-${p.id}`);
-    // Rule 4 & 5: always use POV display color — never raw global seat color
-    const dColor = getDisplayColorForSeat(p.id);
+    if(!p.active) return;
+    renderSeatVisuals(p.id);
 
-    // Rule 12: active player panel glows with POV color
-    if(bg){
-      bg.style.borderColor = active ? dColor : `${dColor}44`;
-      bg.style.boxShadow = active ? `0 0 0 2px ${dColor}, 0 4px 20px ${dColor}55` : "0 4px 20px rgba(0,0,0,.6)";
-    }
-    if(lbl) lbl.style.color=active?dColor:"white";
-    if(box) box.style.outline=active?`2px solid ${dColor}`:"none";
-
-    // Rule 11: Recolor panel token preview on every refresh (handles reconnect recolor pop)
-    const tokPreview = document.getElementById(`ptok-${p.id}`);
-    if(tokPreview){
-      const curColor = tokPreview.dataset.rc;
-      if(curColor !== dColor){
-        tokPreview.innerHTML = tokSVG(dColor, 36);
-        tokPreview.dataset.rc = dColor;
-      }
-    }
-
+    // Dice active/inactive state (separate from color)
+    const d3d = document.getElementById(`d3d-${p.id}`);
     if(d3d){
+      const active = G.turn === p.id && !G.over;
       const isMyTurn = G.turn === MY_SEAT && p.id === MY_SEAT;
       if(active && isMyTurn){
         d3d.classList.remove("inactive");
-        const canRoll=!G.rolled&&!G.over;
-        d3d.classList.toggle("off",!canRoll);
+        const canRoll = !G.rolled && !G.over;
+        d3d.classList.toggle("off", !canRoll);
       } else {
         d3d.classList.add("inactive");
         d3d.classList.remove("off");
       }
-      // Rule 3: dice wrapper glow matches POV display color of owner
-      const diceWrap = document.getElementById(`pdw-${p.id}`);
-      if(diceWrap){
-        diceWrap.style.boxShadow = active
-          ? `0 0 0 2px ${dColor}, inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`
-          : `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
-        diceWrap.style.borderColor = active ? dColor : "#1a1a28";
-      }
-      const cube=document.getElementById(`dcube-${p.id}`);
-      if(cube&&dAcc.last[p.id]==null&&!dAcc.busy[p.id]&&!G.rolled){
-        const tg=LAND[6];
-        cube.style.transition="none";
-        cube.style.transform=`rotateX(${tg.rx}deg) rotateY(${tg.ry}deg)`;
-        cube.style.scale="1";
-        dAcc.rx[p.id]=tg.rx;dAcc.ry[p.id]=tg.ry;dAcc.last[p.id]=6;
+      const cube = document.getElementById(`dcube-${p.id}`);
+      if(cube && dAcc.last[p.id] == null && !dAcc.busy[p.id] && !G.rolled){
+        const tg = LAND[6];
+        cube.style.transition = "none";
+        cube.style.transform = `rotateX(${tg.rx}deg) rotateY(${tg.ry}deg)`;
+        cube.style.scale = "1";
+        dAcc.rx[p.id] = tg.rx; dAcc.ry[p.id] = tg.ry; dAcc.last[p.id] = 6;
       }
     }
   });
@@ -1927,10 +1948,10 @@ async function animateMove(tok,steps){
 }
 
 async function sendHomeFast(tok){
-  const color=PLAYERS[tok.pid]?.color;
+  const color=PLAYERS[tok.pid]?.color; // physical — for board position only
   if(!color) return;
-  const displayColor=getDisplayColorForSeat(tok.pid); // Rule 4: display color for visuals
-  const [hr,hc]=HOME_CORNER[color]; // physical corner for position (Rule 1: board never rotates)
+  const displayColor=getDisplayColorForSeat(tok.pid); // Rule 3: all visuals use display color
+  const [hr,hc]=HOME_CORNER[color];
   const cacheKey=`${tok.pid}-${tok.tid}`;
   const el=(_tokEls[cacheKey]||{}).wrap||null;
   const layer=document.getElementById("tokens-layer");
@@ -1952,7 +1973,7 @@ async function sendHomeFast(tok){
   tok.step=0;
   renderTokens();await rafDelay(10);
   const bp=baseCirclePx(hr,hc,tok.tid);
-  const sparkColors=[displayColor,"white","#FFD700",displayColor]; // Rule 3: display color
+  const sparkColors=[displayColor,"white","#FFD700",displayColor];
   for(let i=0;i<4;i++){
     const sp=document.createElement("div");
     const angle=(i/4)*Math.PI*2,dist=22+Math.random()*14;
@@ -2063,18 +2084,12 @@ function nextTurn(same){
   if(same){
     const pid=G.turn;
     if(dAcc.busy[pid]) dAcc.busy[pid]=false;
+    // Rule 4: Use master pipeline — not inline ad-hoc color logic
+    PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
     PLAYERS.forEach(p=>{
       const d3d=document.getElementById(`d3d-${p.id}`);
-      const bg=document.getElementById(`pbg-${p.id}`);
-      const lbl=document.getElementById(`lbl-${p.id}`);
-      const box=document.getElementById(`pbox-${p.id}`);
-      const active=G.turn===p.id&&!G.over;
-      // Rule 5: display color from POV map, never raw global color
-      const dColor = getDisplayColorForSeat(p.id);
-      if(bg) bg.style.borderColor=active?dColor:`${dColor}44`;
-      if(lbl) lbl.style.color=active?dColor:"white";
-      if(box) box.style.outline=active?`2px solid ${dColor}`:"none";
       if(d3d){
+        const active=G.turn===p.id&&!G.over;
         const isMyTurn=G.turn===MY_SEAT&&p.id===MY_SEAT;
         if(active&&isMyTurn){d3d.classList.remove("inactive","off");}
         else{d3d.classList.add("inactive");d3d.classList.remove("off");}
