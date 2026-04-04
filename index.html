@@ -525,11 +525,22 @@ const SEAT_COLOR = [PINK, BLUE, GREEN, YELLOW];
 const POV_COLORS = [BLUE, PINK, YELLOW, GREEN];
 
 // Returns the LOCAL display color for a given global seat, from THIS client's perspective
-// Rule 5: use this for ALL rendering — tokens, panels, dice glow, labels
+// Rule 2: self always BLUE. Rule 4: single source for all rendering.
+// Formula: offset = how many steps ahead 'seat' is from MY_SEAT clockwise (0-3)
+//   offset 0 = me       → BLUE
+//   offset 1 = next CW  → PINK
+//   offset 2 = opposite → YELLOW
+//   offset 3 = prev CW  → GREEN
 function getDisplayColorForSeat(seat){
   if(MY_SEAT === null) return SEAT_COLOR[seat] || "#888";
-  const offset = (seat - MY_SEAT + 4) % 4;
-  return POV_COLORS[offset];
+  const offset = ((seat - MY_SEAT) % 4 + 4) % 4; // safe modulo — handles negatives
+  switch(offset){
+    case 0: return BLUE;   // self
+    case 1: return PINK;   // next clockwise
+    case 2: return YELLOW; // opposite
+    case 3: return GREEN;  // prev clockwise
+    default: return "#888";
+  }
 }
 
 // Rule 2: self always appears as Blue
@@ -1079,17 +1090,55 @@ function seatToDisplayColor(globalSeat){
   return getDisplayColorForSeat(globalSeat);
 }
 
-// ── MASTER COLOR PIPELINE (Rule 4, Rule 9) ────────────────────────────────────
-// Single source of truth — ALL seat visuals go through this.
-// Call renderSeatVisuals(seat) to recolor everything for one seat atomically.
+// ── MASTER COLOR PIPELINE (Rule 4, Rule 5, Rule 9) ──────────────────────────
+// Single source of truth — ALL seat visuals driven from ONE displayColor.
+// Controls: corner square, home tokens, lane tint, moving token tint,
+//           panel tint, dice tint, entry arrow, entry star (Rule final)
 function renderSeatVisuals(seat){
-  const color = getDisplayColorForSeat(seat); // THE single source
+  const color = getDisplayColorForSeat(seat); // THE single source — never use anything else
 
-  // 1. Panel token icon
+  // ── BOARD: Home quadrant square + inner token circles (Rule 5, Rule 6) ─────
+  const homeEl = document.querySelector(`#board [data-home-seat="${seat}"]`);
+  if(homeEl){
+    const outerDiv = homeEl.firstElementChild;
+    if(outerDiv){
+      outerDiv.style.background = color; // big square — Rule 6
+      homeEl.querySelectorAll('[data-slot]').forEach(slot => {
+        slot.style.background = lighten(color, 10);
+        slot.style.borderColor = darken(color, 20);
+      });
+    }
+  }
+
+  // ── BOARD: Home lane strip cells (Rule 5) ─────────────────────────────────
+  document.querySelectorAll(`#board [data-lane-seat="${seat}"]`).forEach(el => {
+    el.style.background = color;
+  });
+
+  // ── BOARD: Entry arrow cell (Rule 5) ──────────────────────────────────────
+  const arrowEl = document.querySelector(`#board [data-arrow-seat="${seat}"]`);
+  if(arrowEl){
+    const path = arrowEl.querySelector('path');
+    if(path) path.setAttribute('fill', color);
+  }
+
+  // ── BOARD: Entry star cell (Rule 5) ───────────────────────────────────────
+  const starEl = document.querySelector(`#board [data-star-seat="${seat}"]`);
+  if(starEl){
+    starEl.style.background = lighten(color);
+    const poly = starEl.querySelector('polygon');
+    if(poly){ poly.setAttribute('stroke', darken(color)); poly.setAttribute('fill', darken(color)); }
+  }
+
+  // ── BOARD: Corner cell (bend of lane) (Rule 5) ────────────────────────────
+  const cornerEl = document.querySelector(`#board [data-corner-seat="${seat}"]`);
+  if(cornerEl) cornerEl.style.background = color;
+
+  // ── PANEL: Token icon (Rule 7) ────────────────────────────────────────────
   const tokW = document.getElementById(`ptok-${seat}`);
   if(tokW){ tokW.innerHTML = tokSVG(color, 36); tokW.dataset.rc = color; }
 
-  // 2. Panel border tint
+  // ── PANEL: Border + glow (Rule 7) ─────────────────────────────────────────
   const bg = document.getElementById(`pbg-${seat}`);
   const isActive = G.turn === seat && !G.over;
   if(bg){
@@ -1099,15 +1148,15 @@ function renderSeatVisuals(seat){
       : "0 4px 20px rgba(0,0,0,.6)";
   }
 
-  // 3. Label
+  // ── PANEL: Label color (Rule 7) ───────────────────────────────────────────
   const lbl = document.getElementById(`lbl-${seat}`);
   if(lbl) lbl.style.color = isActive ? color : "white";
 
-  // 4. Pbox outline
+  // ── PANEL: Pbox outline (Rule 7) ──────────────────────────────────────────
   const box = document.getElementById(`pbox-${seat}`);
   if(box) box.style.outline = isActive ? `2px solid ${color}` : "none";
 
-  // 5. Dice box glow (Rule 3: dice owner glow matches seat color)
+  // ── DICE: Glow matches seat color (Rule 3, Rule 7) ────────────────────────
   const diceWrap = document.getElementById(`pdw-${seat}`);
   if(diceWrap){
     diceWrap.style.borderColor = isActive ? color : "#1a1a28";
@@ -1116,8 +1165,8 @@ function renderSeatVisuals(seat){
       : `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
   }
 
-  // 6. Force all cached token elements for this seat to recolor
-  // This fixes stale color cache after reconnect / MY_SEAT change
+  // ── TOKENS: Force cached token elements to recolor (Rule 6, Rule 9) ───────
+  // Fixes stale color cache after reconnect — home tokens MUST match home square
   Object.keys(_tokEls).forEach(key=>{
     if(!key.startsWith(`${seat}-`)) return;
     const {wrap} = _tokEls[key];
@@ -1252,6 +1301,7 @@ function buildBoard(){
 
         // Rule 4: Use POV display color — my home shows as Blue, others shifted
         const dc = seatToDisplayColor(homeSeat);
+        d.dataset.homeSeat = homeSeat; // for renderSeatVisuals recolor
 
         d.innerHTML=`<div style="width:100%;height:100%;background:${dc};border-radius:${br};display:flex;align-items:center;justify-content:center;">
           <div style="width:74%;height:74%;background:white;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:10%;box-sizing:border-box;">
@@ -1296,6 +1346,7 @@ function buildBoard(){
         const seat = STAR_SEAT[k];
         const dc = seatToDisplayColor(seat); // Rule 4: POV color
         d.style.background=lighten(dc);
+        d.dataset.starSeat = seat; // for renderSeatVisuals recolor
         d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;" fill="none">
           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
             stroke="${darken(dc)}" stroke-width="1.8" fill="${darken(dc)}" stroke-linejoin="round"/>
@@ -1313,6 +1364,7 @@ function buildBoard(){
       } else if(CORNER_SEAT[k] !== undefined){
         const dc = seatToDisplayColor(CORNER_SEAT[k]); // Rule 4: POV color
         d.style.background=dc;
+        d.dataset.cornerSeat = CORNER_SEAT[k]; // for renderSeatVisuals recolor
 
       // ── HOME LANE STRIPS (colored stretch lanes) ────────────────────────────
       } else {
@@ -1320,12 +1372,14 @@ function buildBoard(){
         if(stretchSeat !== null){
           const dc = seatToDisplayColor(stretchSeat); // Rule 4: POV color
           d.style.background=dc;
+          d.dataset.laneSeat = stretchSeat; // for renderSeatVisuals recolor
 
         // ── ENTRY ARROWS (into home lane) ───────────────────────────────────
         } else if(ARROWS[k]){
           d.style.background=DEF;
           const arSeat = ARROWS[k].seat;
           const dc = seatToDisplayColor(arSeat); // Rule 4: POV color
+          d.dataset.arrowSeat = arSeat; // for renderSeatVisuals recolor
           d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;"><path d="${arDir[ARROWS[k].dir]}" fill="${dc}"/></svg>`;
 
         // ── PLAIN PATH CELLS ─────────────────────────────────────────────────
