@@ -1438,32 +1438,27 @@ function getPanelSeats(){
   const me = MY_SEAT !== null ? MY_SEAT : SEAT_LAYOUT_ACTIVE[0];
   const layout = SEAT_LAYOUT_ACTIVE;
   const active = layout.filter(s => PLAYERS[s]?.active);
-  const numActive = active.length;
 
-  if(numActive <= 2){
-    // Rule 7: 2P diagonal — me at bot-left, opponent at top-right only
-    const opp = active.find(s => s !== me) ?? -1;
-    return [-1, opp, me, -1]; // [topLeft, topRight, botLeft=ME, botRight]
+  // Use CW_ORDER to correctly assign panel positions from MY POV.
+  // CW offsets from my position:
+  //   offset 0 = bot-left  = ME        (Blue)
+  //   offset 1 = top-left             (Pink)
+  //   offset 2 = top-right            (Yellow)
+  //   offset 3 = bot-right            (Green)
+  const myCW = CW_ORDER[me] ?? 0;
+
+  function seatAtOffset(offset){
+    return active.find(s => {
+      const sCW = CW_ORDER[s] ?? 0;
+      return ((sCW - myCW + 4) % 4) === offset;
+    }) ?? -1;
   }
 
-  if(numActive === 3){
-    // Rule 8: 3P triangle — find the 3 active seats in layout order
-    // From my POV: next in layout = top-right, prev in layout = bot-right, opposite = top-left
-    const myIdx = layout.indexOf(me);
-    const next  = layout[(myIdx + 1) % layout.length];
-    const prev  = layout[(myIdx + layout.length - 1) % layout.length];
-    // Find the third player (not me, not next, not prev — or pick from active)
-    const third = active.find(s => s !== me && s !== next && s !== prev);
-    // Assign: top-left = third (or -1), top-right = next, bot-right = prev
-    return [third ?? -1, next, me, prev];
-  }
+  const topLeft  = seatAtOffset(1); // CW+1 from me = top-left  (Pink)
+  const topRight = seatAtOffset(2); // CW+2 from me = top-right (Yellow)
+  const botRight = seatAtOffset(3); // CW+3 from me = bot-right (Green)
 
-  // 4P: full layout — use layout order for POV mapping
-  const myIdx = layout.indexOf(me);
-  const next   = layout[(myIdx + 1) % 4];
-  const opp    = layout[(myIdx + 2) % 4];
-  const prev   = layout[(myIdx + 3) % 4];
-  return [opp, next, me, prev]; // [topLeft, topRight, botLeft=ME, botRight]
+  return [topLeft, topRight, me, botRight]; // [topLeft, topRight, botLeft=ME, botRight]
 }
 
 function buildPlayers(){
