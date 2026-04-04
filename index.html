@@ -1109,46 +1109,12 @@ function seatToDisplayColor(globalSeat){
 // Controls: corner square, home tokens, lane tint, moving token tint,
 //           panel tint, dice tint, entry arrow, entry star (Rule final)
 function renderSeatVisuals(seat){
-  const color = getDisplayColorForSeat(seat); // THE single source — never use anything else
+  // POV display color — drives panels, tokens, dice only
+  const color = getDisplayColorForSeat(seat);
+  // Physical color — board elements are fixed for all players (board never rotates)
+  // Board quadrant, lanes, arrows, stars stay physical always
 
-  // ── BOARD: Home quadrant square + inner token circles (Rule 5, Rule 6) ─────
-  const homeEl = document.querySelector(`#board [data-home-seat="${seat}"]`);
-  if(homeEl){
-    const outerDiv = homeEl.firstElementChild;
-    if(outerDiv){
-      outerDiv.style.background = color; // big square — Rule 6
-      homeEl.querySelectorAll('[data-slot]').forEach(slot => {
-        slot.style.background = lighten(color, 10);
-        slot.style.borderColor = darken(color, 20);
-      });
-    }
-  }
-
-  // ── BOARD: Home lane strip cells (Rule 5) ─────────────────────────────────
-  document.querySelectorAll(`#board [data-lane-seat="${seat}"]`).forEach(el => {
-    el.style.background = color;
-  });
-
-  // ── BOARD: Entry arrow cell (Rule 5) ──────────────────────────────────────
-  const arrowEl = document.querySelector(`#board [data-arrow-seat="${seat}"]`);
-  if(arrowEl){
-    const path = arrowEl.querySelector('path');
-    if(path) path.setAttribute('fill', color);
-  }
-
-  // ── BOARD: Entry star cell (Rule 5) ───────────────────────────────────────
-  const starEl = document.querySelector(`#board [data-star-seat="${seat}"]`);
-  if(starEl){
-    starEl.style.background = lighten(color);
-    const poly = starEl.querySelector('polygon');
-    if(poly){ poly.setAttribute('stroke', darken(color)); poly.setAttribute('fill', darken(color)); }
-  }
-
-  // ── BOARD: Corner cell (bend of lane) (Rule 5) ────────────────────────────
-  const cornerEl = document.querySelector(`#board [data-corner-seat="${seat}"]`);
-  if(cornerEl) cornerEl.style.background = color;
-
-  // ── PANEL: Token icon (Rule 7) ────────────────────────────────────────────
+  // ── PANEL: Token icon ─────────────────────────────────────────────────────
   const tokW = document.getElementById(`ptok-${seat}`);
   if(tokW){ tokW.innerHTML = tokSVG(color, 36); tokW.dataset.rc = color; }
 
@@ -1324,9 +1290,10 @@ function buildBoard(){
         d.style.cssText=`grid-column:${c+1}/span 6;grid-row:${r+1}/span 6;`;
         const br=(r===0&&c===0)?"10px 0 0 0":(r===0&&c===9)?"0 10px 0 0":(r===9&&c===0)?"0 0 0 10px":"0 0 10px 0";
 
-        // Rule 4: Use POV display color — my home shows as Blue, others shifted
-        const dc = seatToDisplayColor(homeSeat);
-        d.dataset.homeSeat = homeSeat; // for renderSeatVisuals recolor
+        // Board quadrant uses PHYSICAL color (fixed for all players — board never rotates)
+        // Only tokens and panels use POV display colors
+        const dc = SEAT_COLOR[homeSeat];
+        d.dataset.homeSeat = homeSeat; // for renderSeatVisuals recolor (tokens only)
 
         d.innerHTML=`<div style="width:100%;height:100%;background:${dc};border-radius:${br};display:flex;align-items:center;justify-content:center;">
           <div style="width:74%;height:74%;background:white;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:10%;box-sizing:border-box;">
@@ -1345,12 +1312,12 @@ function buildBoard(){
         if(r===6&&c===6){
           const d=document.createElement("div");
           d.style.cssText=`grid-column:7/span 3;grid-row:7/span 3;overflow:hidden;`;
-          // Center triangles use POV display colors
+          // Center triangles use PHYSICAL colors (board fixed for all)
           // Physical mapping: top=seat1(YELLOW physical), right=seat2(GREEN), bottom=seat3(BLUE physical), left=seat0(PINK)
-          const cTop   = seatToDisplayColor(1); // top    → seat1 (YELLOW physical / top-right)
-          const cRight = seatToDisplayColor(2); // right  → seat2 (GREEN  physical / bot-right)
-          const cBot   = seatToDisplayColor(3); // bottom → seat3 (BLUE   physical / bot-left)
-          const cLeft  = seatToDisplayColor(0); // left   → seat0 (PINK   physical / top-left)
+          const cTop   = SEAT_COLOR[1]; // top    → seat1 (YELLOW)
+          const cRight = SEAT_COLOR[2]; // right  → seat2 (GREEN)
+          const cBot   = SEAT_COLOR[3]; // bottom → seat3 (BLUE)
+          const cLeft  = SEAT_COLOR[0]; // left   → seat0 (PINK)
           d.innerHTML=`<svg viewBox="0 0 90 90" style="width:100%;height:100%;display:block;" preserveAspectRatio="none">
             <polygon points="45,45 0,0 90,0"  fill="${cTop}"/>
             <polygon points="45,45 90,0 90,90" fill="${cRight}"/>
@@ -1369,9 +1336,9 @@ function buildBoard(){
       // ── COLORED ENTRY STARS ─────────────────────────────────────────────────
       if(COLOR_STARS.has(k)){
         const seat = STAR_SEAT[k];
-        const dc = seatToDisplayColor(seat); // Rule 4: POV color
+        const dc = SEAT_COLOR[seat]; // Physical color for board element
         d.style.background=lighten(dc);
-        d.dataset.starSeat = seat; // for renderSeatVisuals recolor
+        d.dataset.starSeat = seat;
         d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;" fill="none">
           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
             stroke="${darken(dc)}" stroke-width="1.8" fill="${darken(dc)}" stroke-linejoin="round"/>
@@ -1387,24 +1354,24 @@ function buildBoard(){
 
       // ── CORNER CELLS (bend of home lanes into main path) ────────────────────
       } else if(CORNER_SEAT[k] !== undefined){
-        const dc = seatToDisplayColor(CORNER_SEAT[k]); // Rule 4: POV color
+        const dc = SEAT_COLOR[CORNER_SEAT[k]]; // Physical color for board element
         d.style.background=dc;
-        d.dataset.cornerSeat = CORNER_SEAT[k]; // for renderSeatVisuals recolor
+        d.dataset.cornerSeat = CORNER_SEAT[k];
 
       // ── HOME LANE STRIPS (colored stretch lanes) ────────────────────────────
       } else {
         const stretchSeat = getStretchSeat(r,c);
         if(stretchSeat !== null){
-          const dc = seatToDisplayColor(stretchSeat); // Rule 4: POV color
+          const dc = SEAT_COLOR[stretchSeat]; // Physical color for board element
           d.style.background=dc;
-          d.dataset.laneSeat = stretchSeat; // for renderSeatVisuals recolor
+          d.dataset.laneSeat = stretchSeat;
 
         // ── ENTRY ARROWS (into home lane) ───────────────────────────────────
         } else if(ARROWS[k]){
           d.style.background=DEF;
           const arSeat = ARROWS[k].seat;
-          const dc = seatToDisplayColor(arSeat); // Rule 4: POV color
-          d.dataset.arrowSeat = arSeat; // for renderSeatVisuals recolor
+          const dc = SEAT_COLOR[arSeat]; // Physical color for board element
+          d.dataset.arrowSeat = arSeat;
           d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;"><path d="${arDir[ARROWS[k].dir]}" fill="${dc}"/></svg>`;
 
         // ── PLAIN PATH CELLS ─────────────────────────────────────────────────
