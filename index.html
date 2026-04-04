@@ -1228,7 +1228,8 @@ function getEntrySeat(seat){
 
 // HOME_CORNER by seat (for rendering home tokens in correct physical box)
 function getHomeCornerBySeat(seat){
-  const color = PLAYERS[seat]?.color;
+  // FIX: Use SEAT_COLOR directly - PLAYERS[] may be empty during async load
+  const color = SEAT_COLOR[seat];
   if(!color) return [9,0];
   return HOME_CORNER[color];
 }
