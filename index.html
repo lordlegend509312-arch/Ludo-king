@@ -578,6 +578,8 @@ let G = { turn:0, diceVal:null, rolled:false, waiting:false, over:false, sixes:0
 let G_PAUSED = false;
 let _rolling = false;
 let _animating = false; // true during doMove animation — blocks syncGameState token overwrite
+let _gameLoaded = false; // ✅ FIX: true only after loadAndStartGame() fully completes
+                         // Blocks syncGameState from running while PLAYERS[] is still empty
 
 // ── UI Helpers ────────────────────────────────────────────────────────────────
 function showToast(msg, dur=2500){
@@ -909,6 +911,10 @@ async function loadAndStartGame(){
 
   // Rule 2: You always see yourself as Blue — toast always says Blue
   showToast(`Game started! You are ${PLAYERS[MY_SEAT].label} — you are Blue 🔵`);
+
+  // ✅ FIX: Only NOW allow syncGameState to process Firebase updates.
+  // PLAYERS[] is fully populated, getCell() will return correct positions for all seats.
+  _gameLoaded = true;
 }
 
 function getMyColorName(){
@@ -922,6 +928,10 @@ let _applyingRemote = false;
 
 function syncGameState(data){
   if(_applyingRemote) return;
+  // ✅ FIX: Block sync until loadAndStartGame() has fully populated PLAYERS[]
+  // Without this guard, Firebase fires cb3 while we're still awaiting async loads,
+  // causing getCell() to receive empty PLAYERS → tokens render at wrong positions
+  if(!_gameLoaded) return;
   // Rule 10: Ignore updates WE pushed (avoid self-overwrite)
   if(data.actionBy === MY_SEAT) return;
   const ts = data.timestamp || 0;
@@ -1020,6 +1030,7 @@ window.leaveRoom = async function(){
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false;
   // Rule 11: Reset layout so reconnect/next game starts clean
   SEAT_LAYOUT_ACTIVE = [0,1,2,3];
+  _gameLoaded = false; // ✅ FIX: Reset so next game session starts with sync blocked until loaded
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   document.getElementById("game-wrap").style.display = "none";
   document.getElementById("status-row").style.display = "none";
@@ -1204,11 +1215,31 @@ const STRETCH={
 // Home corner (top-left cell of each 6x6 home zone) per physical color
 const HOME_CORNER={[PINK]:[0,0],[YELLOW]:[0,9],[GREEN]:[9,9],[BLUE]:[9,0]};
 
+// Seat-based entry index (architecture fix: game logic uses seat, not color)
+// Derived from ENTRY[SEAT_COLOR[seat]] but seat-keyed for clean separation
+function getEntrySeat(seat){
+  // ✅ FIX: Use SEAT_COLOR directly instead of PLAYERS[seat]?.color
+  // PLAYERS may not be populated yet during async load, but SEAT_COLOR is always available.
+  // Falling back to 0 (PINK entry) when color is missing was the silent wrong-path bug.
+  const color = SEAT_COLOR[seat];
+  if(!color) return 0;
+  return ENTRY[color] ?? 0;
+}
+
+// HOME_CORNER by seat (for rendering home tokens in correct physical box)
+function getHomeCornerBySeat(seat){
+  const color = PLAYERS[seat]?.color;
+  if(!color) return [9,0];
+  return HOME_CORNER[color];
+}
+
 function getCell(pid,step){
   if(step<=0||step>=STEP_DONE) return null;
-  const color=PLAYERS[pid]?.color;
+  // ✅ FIX: Use SEAT_COLOR[pid] directly — never depends on PLAYERS[] being populated
+  // Previously used PLAYERS[pid]?.color which returned undefined during async load race
+  const color=SEAT_COLOR[pid];
   if(!color) return null;
-  const entry=ENTRY[color];
+  const entry=getEntrySeat(pid);
   if(step<=STEP_MAIN_END){
     const idx=(entry+step-1)%MAIN_PATH.length;
     return MAIN_PATH[idx];
@@ -1726,25 +1757,24 @@ function renderTokens(){
     // color: physical for home/done (board-fixed), POV display for moving tokens
     let color;
     if(tok.step===0){
-      // Use POV display color to find the correct home box to render in
-      // e.g. joiner sees self as Blue -> must appear in Blue (bottom-left) box
-      const displayColor=getTokenDisplayColor(tok.pid);
-      const povHomeRC=HOME_CORNER[displayColor];
-      if(!povHomeRC) return;
-      const [hr,hc]=povHomeRC;
+      // Position: physical home corner by SEAT (game logic = seat based)
+      // Color: POV display color (render engine = color based)
+      const [hr,hc]=getHomeCornerBySeat(tok.pid);
       const bp=baseCirclePx(hr,hc,tok.tid);
       px=bp.x;py=bp.y;scale=1.02;
-      color=displayColor;
+      color=getTokenDisplayColor(tok.pid);
     } else if(tok.step>=STEP_DONE){
       // Rule 1 & 9: Center position uses GLOBAL physical color (board-fixed, never rotates)
       // The center triangle quadrants are physically fixed per seat color
       const centerRC=[7,7];
       const cxy=rcToXY(centerRC[0],centerRC[1]);
       const cp2=cellPx(),half=cp2*1.5;
-      // Use POV display color for center position offset too
+      // Center offset: physical color (board is fixed, center triangle is physical)
+      // Token color: POV display
+      const physColor=PLAYERS[tok.pid]?.color;
       color=getTokenDisplayColor(tok.pid);
       const offsets={[PINK]:{dx:-half*0.60,dy:0},[BLUE]:{dx:0,dy:-half*0.60},[GREEN]:{dx:half*0.60,dy:0},[YELLOW]:{dx:0,dy:half*0.60}};
-      const off=offsets[color]||{dx:0,dy:0};
+      const off=offsets[physColor]||{dx:0,dy:0};
       const doneOfPid=G.tokens.filter(t=>t.pid===tok.pid&&t.step>=STEP_DONE);
       const doneIdx=doneOfPid.findIndex(t=>t.tid===tok.tid);
       const spread=cp2*0.18,angles=[Math.PI*1.25,Math.PI*0.75,Math.PI*1.75,Math.PI*0.25];
