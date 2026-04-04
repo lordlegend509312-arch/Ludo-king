@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v6.4 (v8)</title>
+<title>Ludo King — Online Multiplayer v6.4 (v10-debug)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -334,6 +334,18 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 }
 #btn-chat-toggle:hover{background:rgba(245,197,24,.15);border-color:rgba(245,197,24,.4);color:white;}
 #btn-chat-toggle:active{transform:scale(0.92);}
+
+/* DEBUG PANEL */
+#debug-panel{
+  position:fixed;bottom:60px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,0.9);border:2px solid #F5C518;
+  border-radius:12px;padding:10px 16px;z-index:9999;
+  font-family:monospace;font-size:11px;color:white;
+  display:none;flex-direction:column;gap:4px;min-width:240px;
+}
+#debug-panel.show{display:flex;}
+.dbg-row{display:flex;align-items:center;gap:8px;}
+.dbg-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -967,16 +979,32 @@ async function loadAndStartGame(){
   _cacheValid=false;
   Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
 
-  buildBoard(); // Rule 1: Board never rotates — built once in fixed orientation
-  buildPlayers(); // Rule 6: Panel positions fixed, only colors remapped via POV
-  recolorPanels(); // Rule 11: instant recolor after reconnect — no flicker
+  // DEBUG visual panel
+  console.log("[DEBUG] MY_SEAT="+MY_SEAT);
+  const _cnames={"#FF2D78":"PINK","#00AEEF":"BLUE","#00C853":"GREEN","#FFD600":"YELLOW"};
+  const _snames=["TL","TR","BR","BL"];
+  let _dbgH="";
+  for(let s=0;s<4;s++){
+    const _dc=getDisplayColorForSeat(s);
+    console.log("  seat"+s+"("+_snames[s]+")="+_cnames[_dc]+" phys="+_cnames[SEAT_COLOR[s]]);
+    _dbgH+='<div class="dbg-row"><div class="dbg-dot" style="background:'+_dc+'"></div><span>seat'+s+'('+_snames[s]+')='+(_cnames[_dc]||_dc)+'</span></div>';
+  }
+  const _dp=document.getElementById("debug-panel");
+  const _dm=document.getElementById("dbg-myseat");
+  const _dc2=document.getElementById("dbg-colors");
+  if(_dp)_dp.classList.add("show");
+  if(_dm)_dm.innerHTML="<b>MY_SEAT="+MY_SEAT+" ("+_snames[MY_SEAT]+")</b>";
+  if(_dc2)_dc2.innerHTML=_dbgH;
+  setTimeout(()=>{if(_dp)_dp.classList.remove("show");},15000);
+
+  buildBoard();
+  buildPlayers();
+  recolorPanels();
   setSyncStatus("ok");
   refreshUI();
-  renderTokens(); // Rule 5: All tokens colored via POV map
+  renderTokens();
   updateTurnBanner();
-
-  // Rule 2: You always see yourself as Blue — toast always says Blue
-  showToast(`Game started! You are ${PLAYERS[MY_SEAT].label} — you are Blue 🔵`);
+  showToast("Game started! You are Blue seat "+MY_SEAT);
 
   // ✅ FIX: Only NOW allow syncGameState to process Firebase updates.
   // PLAYERS[] is fully populated, getCell() will return correct positions for all seats.
@@ -1043,12 +1071,16 @@ function syncGameState(data){
   // ── CASE 1: action="roll" ──────────────────────────────────────────────────
   // Player rolled, must pick a token. Token positions DON'T change yet.
   if(action === "roll"){
-    // ✅ FIX A: Always sync turn from server so opponent panel highlights correctly
     G.turn    = data.turn;
     G.diceVal = dice;
     G.rolled  = true;
-    G.waiting = false; // ✅ FIX A: Opponent should NOT see movable tokens (not their turn)
     G.sixes   = data.sixes || 0;
+    // If this roll is from ME (shouldn't reach here due to actionBy guard, but safety),
+    // or if it's an opponent's roll — opponents should NOT see movable tokens
+    // Only set waiting=false for opponents. For self, waiting is managed locally.
+    if(rolledBy !== MY_SEAT){
+      G.waiting = false; // Opponent rolled — I don't pick tokens
+    }
     if(dice != null && rolledBy != null){
       animDice(rolledBy, dice, ()=>{ refreshUI(); renderTokens(); updateTurnBanner(); });
     }
@@ -1452,12 +1484,10 @@ function buildBoard(){
         d.style.cssText=`grid-column:${c+1}/span 6;grid-row:${r+1}/span 6;`;
         const br=(r===0&&c===0)?"10px 0 0 0":(r===0&&c===9)?"0 10px 0 0":(r===9&&c===0)?"0 0 0 10px":"0 0 10px 0";
 
-        // ✅ POV FIX: Home zone uses display color (POV-mapped) so tokens match their home zone.
+        // ✅ POV FIX: Home zone background uses POV display color so tokens match their home zone.
         // Every player sees their own home as BLUE, opponents shifted per CW offset.
-        // Board never rotates physically — only colors remap locally per client.
-        // Board quadrant uses PHYSICAL color (fixed for all players — board never rotates)
-        // Tokens use POV display color via getTokenDisplayColor(pid) — separate from board
-        const dc = SEAT_COLOR[homeSeat];
+        // getDisplayColorForSeat(homeSeat) returns the correct color from THIS client's POV.
+        const dc = getDisplayColorForSeat(homeSeat); // POV-mapped color (not physical)
         d.dataset.homeSeat = homeSeat;
 
         d.innerHTML=`<div style="width:100%;height:100%;background:${dc};border-radius:${br};display:flex;align-items:center;justify-content:center;">
@@ -1477,12 +1507,11 @@ function buildBoard(){
         if(r===6&&c===6){
           const d=document.createElement("div");
           d.style.cssText=`grid-column:7/span 3;grid-row:7/span 3;overflow:hidden;`;
-          // Center triangles use PHYSICAL colors (board fixed for all)
-          // Physical mapping: top=seat1(YELLOW physical), right=seat2(GREEN), bottom=seat3(BLUE physical), left=seat0(PINK)
-          const cTop   = SEAT_COLOR[1]; // top    → seat1 (YELLOW)
-          const cRight = SEAT_COLOR[2]; // right  → seat2 (GREEN)
-          const cBot   = SEAT_COLOR[3]; // bottom → seat3 (BLUE)
-          const cLeft  = SEAT_COLOR[0]; // left   → seat0 (PINK)
+          // Center triangles use POV display colors so every player sees their triangle as BLUE
+          const cTop   = getDisplayColorForSeat(1); // top    → seat1
+          const cRight = getDisplayColorForSeat(2); // right  → seat2
+          const cBot   = getDisplayColorForSeat(3); // bottom → seat3 (self if host)
+          const cLeft  = getDisplayColorForSeat(0); // left   → seat0
           d.innerHTML=`<svg viewBox="0 0 90 90" style="width:100%;height:100%;display:block;" preserveAspectRatio="none">
             <polygon points="45,45 0,0 90,0"  fill="${cTop}"/>
             <polygon points="45,45 90,0 90,90" fill="${cRight}"/>
@@ -1501,7 +1530,7 @@ function buildBoard(){
       // ── COLORED ENTRY STARS ─────────────────────────────────────────────────
       if(COLOR_STARS.has(k)){
         const seat = STAR_SEAT[k];
-        const dc = SEAT_COLOR[seat]; // Physical color for board element
+        const dc = getDisplayColorForSeat(seat); // POV color
         d.style.background=lighten(dc);
         d.dataset.starSeat = seat;
         d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;" fill="none">
@@ -1519,7 +1548,7 @@ function buildBoard(){
 
       // ── CORNER CELLS (bend of home lanes into main path) ────────────────────
       } else if(CORNER_SEAT[k] !== undefined){
-        const dc = SEAT_COLOR[CORNER_SEAT[k]]; // Physical color for board element
+        const dc = getDisplayColorForSeat(CORNER_SEAT[k]); // POV color
         d.style.background=dc;
         d.dataset.cornerSeat = CORNER_SEAT[k];
 
@@ -1527,7 +1556,7 @@ function buildBoard(){
       } else {
         const stretchSeat = getStretchSeat(r,c);
         if(stretchSeat !== null){
-          const dc = SEAT_COLOR[stretchSeat]; // Physical color for board element
+          const dc = getDisplayColorForSeat(stretchSeat); // POV color
           d.style.background=dc;
           d.dataset.laneSeat = stretchSeat;
 
@@ -1535,7 +1564,7 @@ function buildBoard(){
         } else if(ARROWS[k]){
           d.style.background=DEF;
           const arSeat = ARROWS[k].seat;
-          const dc = SEAT_COLOR[arSeat]; // Physical color for board element
+          const dc = getDisplayColorForSeat(arSeat); // POV color
           d.dataset.arrowSeat = arSeat;
           d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;"><path d="${arDir[ARROWS[k].dir]}" fill="${dc}"/></svg>`;
 
@@ -1883,9 +1912,9 @@ function renderTokens(){
   _refreshCache();
   const cp=cellPx();
   const movSet=new Set();
-  // Only show movable highlights for MY tokens on MY turn
-  if(G.waiting&&!G.over&&G.turn===MY_SEAT){
-    movable(MY_SEAT,G.diceVal).forEach(t=>movSet.add(`${MY_SEAT}-${t.tid}`));
+  // Only show movable highlights if: it's MY turn AND I rolled AND waiting for manual pick
+  if(G.waiting && !G.over && G.turn === MY_SEAT && G.rolled){
+    movable(MY_SEAT, G.diceVal).forEach(t=>movSet.add(`${MY_SEAT}-${t.tid}`));
   }
   const groups={};
   G.tokens.forEach(tok=>{
@@ -2116,9 +2145,12 @@ function afterRoll(pid,v){
 }
 
 async function onTokClick(pid,tid){
-  if(!G.waiting||pid!==G.turn||G.over||G_PAUSED) return;
-  if(pid !== MY_SEAT) return; // Can only click my own tokens
-  const mv=movable(pid,G.diceVal);
+  // Triple guard: must be my token, my turn, and I must be waiting for a pick
+  if(pid !== MY_SEAT) return;           // Can only click MY tokens
+  if(G.turn !== MY_SEAT) return;        // Must be MY turn
+  if(!G.waiting || !G.rolled) return;   // Must have rolled and be waiting for pick
+  if(G.over || G_PAUSED) return;
+  const mv=movable(MY_SEAT, G.diceVal);
   if(!mv.find(t=>t.tid===tid)) return;
   G.waiting=false;
   await doMove(pid,tid,G.diceVal);
@@ -2617,5 +2649,11 @@ console.log("✅ All buttons bound. Board will render after seat assignment.");
 
 }); // end DOMContentLoaded
 </script>
+
+<div id="debug-panel">
+  <div style="color:#F5C518;font-weight:bold;margin-bottom:4px;">🔍 POV DEBUG</div>
+  <div id="dbg-myseat"></div>
+  <div id="dbg-colors"></div>
+</div>
 </body>
 </html>
