@@ -80,7 +80,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 .modal-btn:disabled{opacity:.4;cursor:not-allowed;}
 .room-code-display{background:var(--surface);border:2px solid var(--gold);border-radius:14px;padding:14px 24px;font-size:2rem;font-weight:900;color:var(--gold);letter-spacing:8px;font-family:'Rajdhani',sans-serif;text-align:center;}
 .waiting-dots::after{content:'';animation:dots 1.2s steps(3,end) infinite;}
-@keyframes dots{0%{content:'';}33%{content:'.';}66%{content:'..';}100%{content:'...';};}
+@keyframes dots{0%{content:'';}33%{content:'.';}66%{content:'..';}100%{content:'...';}}
 .player-slot{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;}
 .player-slot-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .player-slot-name{color:var(--text);font-size:.9rem;font-family:'Nunito',sans-serif;font-weight:700;flex:1;}
@@ -94,7 +94,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 .pcol.left{align-items:flex-start;}
 .pcol.right{align-items:flex-end;}
 .plabel{font-size:10px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;transition:color 0.3s;padding:0 4px;font-family:'Rajdhani',sans-serif;}
-.pbox{position:relative;display:flex;align-items:center;width:145px;height:76px;border-radius:12px;}
+.pbox{position:relative;display:flex;align-items:center;width:min(145px,42vw);height:76px;border-radius:12px;}
 .pbox-bg{position:absolute;inset:0;background:var(--surface);border-radius:12px;border:1.5px solid var(--border);box-shadow:0 4px 20px rgba(0,0,0,.6);transition:border-color 0.25s,box-shadow 0.25s;}
 .pbox-shine{position:absolute;inset:1px;border-radius:11px;background:linear-gradient(150deg,rgba(255,255,255,.04) 0%,transparent 55%);pointer-events:none;}
 .pbox-tok{position:relative;z-index:3;width:46px;display:flex;justify-content:center;align-items:center;flex-shrink:0;}
@@ -264,7 +264,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
     <div class="room-code-display" id="display-room-code">------</div>
     <div id="player-list" style="display:flex;flex-direction:column;gap:6px;width:100%;"></div>
     <div class="modal-sub waiting-dots" id="waiting-status">Waiting</div>
-    <button class="modal-btn" id="btn-start-game" disabled style="background:var(--surface);border:1.5px solid var(--border2);color:var(--muted);">Start Game</button>
+    <button class="modal-btn" id="btn-start-game" disabled style="display:none;background:var(--surface);border:1.5px solid var(--border2);color:var(--muted);">Start Game</button>
     <button class="modal-btn secondary" id="btn-leave-waiting">Leave Room</button>
   </div>
 </div>
@@ -523,8 +523,8 @@ function setSyncStatus(s){
 }
 function closeModals(){ document.querySelectorAll(".modal-overlay").forEach(m=>m.classList.remove("show")); }
 function escapeHtml(str){ return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function lighten(hex,a=15){let c=hex.replace("#","");const r=Math.min(255,parseInt(c.slice(0,2),16)+a);const g=Math.min(255,parseInt(c.slice(2,4),16)+a);const b=Math.min(255,parseInt(c.slice(4,6),16)+a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
-function darken(hex,a=18){let c=hex.replace("#","");const r=Math.max(0,parseInt(c.slice(0,2),16)-a);const g=Math.max(0,parseInt(c.slice(2,4),16)-a);const b=Math.max(0,parseInt(c.slice(4,6),16)-a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
+function lighten(hex,a=15){let c=String(hex||"").replace("#","");if(!/^[0-9a-fA-F]{6}$/.test(c)) return hex||"#888888";const r=Math.min(255,parseInt(c.slice(0,2),16)+a);const g=Math.min(255,parseInt(c.slice(2,4),16)+a);const b=Math.min(255,parseInt(c.slice(4,6),16)+a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
+function darken(hex,a=18){let c=String(hex||"").replace("#","");if(!/^[0-9a-fA-F]{6}$/.test(c)) return hex||"#888888";const r=Math.max(0,parseInt(c.slice(0,2),16)-a);const g=Math.max(0,parseInt(c.slice(2,4),16)-a);const b=Math.max(0,parseInt(c.slice(4,6),16)-a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
 
 // ════════════════════════════════════════════════════════════════════
 // ROOM / LOBBY
@@ -565,6 +565,9 @@ window.createRoom=async function(numPlayers){
   _presenceRef.onDisconnect().set(false);
   document.getElementById("display-room-code").textContent=code;
   document.getElementById("modal-waiting").classList.add("show");
+  // Only the host sees and controls the Start Game button
+  const _startBtn=document.getElementById("btn-start-game");
+  if(_startBtn) _startBtn.style.display="block";
   updatePlayerList({ [MY_SEAT]:{ name:MY_NAME, seat:MY_SEAT, online:true } });
   listenRoom();
 };
@@ -685,14 +688,12 @@ const homeZones=[
   {r0:9,c0:9, col:GREEN,  seat:2},  // bottom-right
   {r0:9,c0:0, col:BLUE,   seat:3},  // bottom-left
 ];
-const inHomeSeat=(r,c)=>{ for(const h of homeZones) if(r>=h.r0&&r<h.r0+6&&c>=h.c0&&c<h.c0+6) return h.seat; return null; };
+const inHomeSeat=(r,c)=>{ for(const h of homeZones) if(r>=h.r0&&r<=Math.min(h.r0+5,14)&&c>=h.c0&&c<=Math.min(h.c0+5,14)) return h.seat; return null; };
 const inCenter=(r,c)=>r>=6&&r<=8&&c>=6&&c<=8;
 
 // Server-coord stretch lanes per seat
-const BLUE_S  =new Set(["9-7","10-7","11-7","12-7","13-7","8-7"]);
-const PINK_S  =new Set(["7-1","7-2","7-3","7-4","7-5","7-6"]);
-const YELLOW_S=new Set(["1-7","2-7","3-7","4-7","5-7","6-7"]);
-const GREEN_S =new Set(["7-8","7-9","7-10","7-11","7-12","7-13"]);
+// NOTE: Per-seat stretch lane sets were removed — all stretch logic uses STRETCH_SEAT below.
+
 const STRETCH_SEAT={ "7-1":0,"7-2":0,"7-3":0,"7-4":0,"7-5":0,"7-6":0,"1-7":1,"2-7":1,"3-7":1,"4-7":1,"5-7":1,"6-7":1,"7-8":2,"7-9":2,"7-10":2,"7-11":2,"7-12":2,"7-13":2,"8-7":3,"9-7":3,"10-7":3,"11-7":3,"12-7":3,"13-7":3 };
 const getStretchSeat=(r,c)=>STRETCH_SEAT[`${r}-${c}`]??null;
 
@@ -835,18 +836,38 @@ function buildBoard(){
       // Center triangle (server coords 6-8, 6-8): draw as one 3×3 block
       if(inCenter(r,c)){
         if(r===6&&c===6){
-          // Get transformed position of center block's top-left
-          const [vr,vc]=transformRC(6,6);
+          // Get visual positions of all 4 corners of the 3×3 center block,
+          // then use the minimum visual row/col as the grid anchor.
+          // This is necessary because for rotated seats, transformRC(6,6) may
+          // NOT be the top-left corner of the center block visually.
+          const _corners=[[6,6],[6,8],[8,6],[8,8]].map(([sr,sc])=>transformRC(sr,sc));
+          const minVR=Math.min(..._corners.map(([r])=>r));
+          const minVC=Math.min(..._corners.map(([,c])=>c));
           const d=document.createElement("div");
-          d.style.cssText=`grid-column:${vc+1}/span 3;grid-row:${vr+1}/span 3;overflow:hidden;`;
-          // Center triangle colors: each quadrant = that seat's display color
-          // Seats are fixed in server coords: seat1=top, seat2=right, seat3=bottom, seat0=left
-          // After transformRC, the visual orientation changes, but we still use getDisplayColor
-          // because colors remap per-client anyway
-          const cTop  =getDisplayColor(1);
-          const cRight=getDisplayColor(2);
-          const cBot  =getDisplayColor(3);
-          const cLeft =getDisplayColor(0);
+          d.style.cssText=`grid-column:${minVC+1}/span 3;grid-row:${minVR+1}/span 3;overflow:hidden;`;
+          // Center triangle: assign colors to VISUAL quadrants (top/right/bottom/left
+          // as seen on screen after coordinate transform), so the SVG never needs rotating.
+          // Visual top    = the seat that is CW+2 from me (opposite, across the board top)
+          // Visual right  = CW+3 from me
+          // Visual bottom = CW+0 (me, bottom-left corner sees their color at bottom)
+          // Visual left   = CW+1 from me
+          // We find which global seat maps to each visual quadrant via getVisualSlot:
+          //   visualSlot 0 = me (bot-left), slot 1 = top-left, slot 2 = top-right, slot 3 = bot-right
+          // Triangle quadrant → visual direction: top=slot2 area, right=slot3, bottom=slot0, left=slot1
+          const _activeSeats=SEAT_LAYOUT_ACTIVE;
+          function _seatAtVisSlot(vs){ return _activeSeats.find(s=>getVisualSlot(s)===vs)??-1; }
+          const _s0=_seatAtVisSlot(0),_s1=_seatAtVisSlot(1),_s2=_seatAtVisSlot(2),_s3=_seatAtVisSlot(3);
+          const _col=s=>s>=0?getDisplayColor(s):"#546E7A";
+          // Map visual screen positions: top triangle → top of screen = slot2(top-right side)
+          // right triangle → right of screen = slot3(bot-right), bottom = slot0(me), left = slot1(top-left)
+          const cTop  =_col(_s2);
+          const cRight=_col(_s3);
+          const cBot  =_col(_s0);
+          const cLeft =_col(_s1);          // The colors are already remapped by getDisplayColor per-client.
+          // Physical quadrant order (server): top=seat1, right=seat2, bot=seat3, left=seat0
+          // No SVG rotation needed — colors are already assigned to correct visual quadrants above.
+          const _cRot=0;
+          
           d.innerHTML=`<svg viewBox="0 0 90 90" style="width:100%;height:100%;display:block;" preserveAspectRatio="none">
             <polygon points="45,45 0,0 90,0"  fill="${cTop}"/>
             <polygon points="45,45 90,0 90,90" fill="${cRight}"/>
@@ -939,7 +960,7 @@ function buildPlayers(){
 
 function makePlaceholder(side){
   const col=document.createElement("div"); col.className=`pcol ${side}`;
-  col.style.cssText="width:145px;height:78px;visibility:hidden;"; return col;
+  col.style.cssText="width:min(145px,42vw);height:78px;visibility:hidden;"; return col;
 }
 
 function makePanel(pid,side,pos,isMe=false){
@@ -951,7 +972,7 @@ function makePanel(pid,side,pos,isMe=false){
   box.style.flexDirection=side==="left"?"row":"row-reverse"; box.style.position="relative";
   if(isMe){ const badge=document.createElement("div"); badge.className="you-badge"; badge.textContent="YOU"; box.appendChild(badge); }
   const bg=document.createElement("div"); bg.className="pbox-bg"; bg.id=`pbg-${pid}`;
-  const shine=document.createElement("div"); shine.className="pbox-shine"; bg.appendChild(shine);
+  const bgShine=document.createElement("div"); bgShine.className="pbox-shine"; bg.appendChild(bgShine);
   const displayColor=getDisplayColor(pid);
   bg.style.borderColor=`${displayColor}44`;
   const tokW=document.createElement("div"); tokW.className="pbox-tok"; tokW.id=`ptok-${pid}`;
@@ -963,7 +984,7 @@ function makePanel(pid,side,pos,isMe=false){
   const nameDiv=document.createElement("div"); nameDiv.style.cssText="color:white;font-size:.72rem;font-weight:800;font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60px;";
   nameDiv.textContent=p.label+(isMe?" (You)":"");
   info.appendChild(nameDiv);
-  if(side==="left"){ box.appendChild(tokW); box.appendChild(diceWrap); box.appendChild(bg); box.appendChild(shine); }
+  if(side==="left"){ box.appendChild(tokW); box.appendChild(diceWrap); box.appendChild(bg); }
   else { box.appendChild(bg); const shine2=document.createElement("div"); shine2.className="pbox-shine"; box.appendChild(shine2); box.appendChild(diceWrap); box.appendChild(tokW); }
   if(pos==="top"){ col.appendChild(lbl); col.appendChild(box); } else { col.appendChild(box); col.appendChild(lbl); }
   return col;
@@ -1009,13 +1030,17 @@ const _slotPxCache={};
 function _refreshCache(){
   if(_cacheValid) return; _cacheValid=true;
   const b=document.getElementById("board");
-  if(b){ const s=parseFloat(getComputedStyle(b).getPropertyValue("--cell")); if(s>0) _cpx=s; }
-  if(!_cpx) _cpx=Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);
-  // Board and tokens-layer share the same (0,0) origin — offset is always 0
+  if(b){
+    // Use actual rendered board width divided by 15 cells + 14 gaps + 2*padding
+    const rect=b.getBoundingClientRect();
+    const computed=(rect.width-2*PAD-14*GAP)/15;
+    if(computed>0){ _cpx=computed; _ox=0; _oy=0; return; }
+  }
+  _cpx=Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);
   _ox=0; _oy=0;
 }
 function cellPx(){ return _cpx||Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40); }
-const GAP=1, PAD=6;
+const GAP=1, PAD=5; // matches CSS padding:5px on #board
 
 // rcToXY expects VISUAL coordinates (after transformRC already applied)
 function rcToXY(vr,vc){
@@ -1078,10 +1103,10 @@ function _removeTokEl(key){ if(_tokEls[key]){ _tokEls[key].wrap.remove(); _tokEl
   slot 3 = bot-right       → tokens go left
 */
 const CENTER_OFFSET_BY_SLOT=[
-  {dx: 0, dy:-1},  // slot 0 = bot-left → up
-  {dx:-1, dy: 0},  // slot 1 = top-left → right
-  {dx: 0, dy: 1},  // slot 2 = top-right → down
-  {dx: 1, dy: 0},  // slot 3 = bot-right → left
+  {dx: 0, dy:-1},  // slot 0 = bot-left  → up    (toward center)
+  {dx: 1, dy: 0},  // slot 1 = top-left  → right  (toward center) — was -1, fixed
+  {dx: 0, dy: 1},  // slot 2 = top-right → down   (toward center)
+  {dx:-1, dy: 0},  // slot 3 = bot-right → left   (toward center) — was +1, fixed
 ];
 
 function getVisualSlot(globalSeat){
@@ -1169,6 +1194,7 @@ function renderTokens(){
     const curColor=wrap.dataset.rc||"";
     if(Math.abs(curW-rW)>0.5||curColor!==color){ wrap.innerHTML=tokSVG(color,rW); wrap.dataset.rw=rW; wrap.dataset.rc=color; }
     wrap.style.transform=`translate(${tx}px,${ty}px)`;
+    wrap.dataset.px=String(px); wrap.dataset.py=String(py); // store centre for sendHomeFast
     const shadowW=rW*0.60, shadowH=rW*0.16, sx=px-shadowW/2, sy=py-shadowH/2+1;
     shadow.style.transform=`translate(${sx}px,${sy}px)`;
     shadow.style.width=`${shadowW}px`; shadow.style.height=`${shadowH}px`;
@@ -1306,7 +1332,7 @@ function shouldAutoMove(mv,v){
   return true;
 }
 
-function afterRoll(pid,v){
+async function afterRoll(pid,v){
   if(v===6){ G.sixes=(G.sixes||0)+1; if(G.sixes>=3){ G.sixes=0;G.rolled=false;G.diceVal=null;G.waiting=false;_rolling=false; renderTokens(); setTimeout(async()=>{ nextTurn(false); await pushGameState({action:"skip",dice:v,reason:"3sixes"}); },300); return; } }
   else{ G.sixes=0; }
   const mv=movable(pid,v);
@@ -1314,7 +1340,7 @@ function afterRoll(pid,v){
   if(shouldAutoMove(mv,v)){ setTimeout(async()=>await doMove(pid,mv[0].tid,v),80); return; }
   G.waiting=true;
   const selectable=mv.map(t=>t.tid);
-  pushGameState({action:"roll",dice:v,selectable});
+  await pushGameState({action:"roll",dice:v,selectable});
   renderTokens(); updateTurnBanner();
 }
 
@@ -1377,16 +1403,21 @@ async function sendHomeFast(tok){
   const el=(_tokEls[cacheKey]||{}).wrap||null;
   const layer=document.getElementById("tokens-layer");
   if(el){
-    const m=el.style.transform.match(/translate\(([^,]+),([^)]+)\)/);
-    const bx=m?m[1]:"0px", by=m?m[2]:"0px";
+    // Read current visual position from stored dataset instead of parsing transform string
+    const curX=parseFloat(el.dataset.px||"0"), curY=parseFloat(el.dataset.py||"0");
+    // curX/curY are the pixel centres stored by renderTokens
+    const bx=`${curX}px`, by=`${curY}px`;
     for(let r=0;r<2;r++){
       const ring=document.createElement("div");
-      const size=36+r*10, mx=parseFloat(bx)-size/2+14, my=parseFloat(by)-size/2+14;
+      const size=36+r*10, mx=curX-size/2, my=curY-size/2;
       ring.style.cssText=`position:absolute;transform:translate(${mx}px,${my}px) scale(0.3);--rx:${mx}px;--ry:${my}px;width:${size}px;height:${size}px;border-radius:50%;border:${3-r}px solid ${r===0?'white':displayColor};opacity:0;pointer-events:none;animation:ringPop ${0.35+r*0.12}s ${r*0.07}s ease-out forwards;`;
       layer.appendChild(ring); setTimeout(()=>ring.remove(),600);
     }
+    // Flash-scale the token before sending home
+    const rW=parseFloat(el.dataset.rw||"28");
+    const rH=rW*(130/100), tipOffset=rH*(122/130);
     el.style.transition="transform 0.14s cubic-bezier(0.36,0.07,0.19,0.97),opacity 0.14s";
-    el.style.transform=`translate(${m?m[1]:"0px"},${m?m[2]:"0px"}) scale(1.7)`;
+    el.style.transform=`translate(${curX-rW/2}px,${curY-tipOffset}px) scale(1.7)`;
     el.style.opacity="0"; await rafDelay(150); el.style.transition="none"; el.style.opacity="1";
   }
   tok.step=0; renderTokens(); await rafDelay(10);
@@ -1406,7 +1437,7 @@ async function doMove(pid,tid,v){
   _animating=true;
   const tok=tokOf(pid,tid); if(!tok){ _animating=false; return; }
   const allowed=movable(pid,v); if(!allowed.find(t=>t.tid===tid)){ _animating=false; return; }
-  if(tok.step>=STEP_STRETCH_START&&tok.step+v>STEP_DONE){ _animating=false; return; }
+  // Note: movable() already validates stretch-lane overshoot; no duplicate guard needed here.
   let bonus=false; const diceWasSix=(v===6); let captured=false;
   async function checkAndPit(cellKey,movingPid){
     const ownOnCell=G.tokens.filter(o=>{ if(o.pid!==movingPid||o.step===0||o.step>=STEP_DONE) return false; const oc=getCell(o.pid,o.step); return oc&&`${oc[0]}-${oc[1]}`===cellKey; });
@@ -1483,7 +1514,9 @@ window.togglePause=function(){
 let _resizeTimer;
 window.addEventListener("resize",()=>{
   clearTimeout(_resizeTimer);
-  _cacheValid=false; Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
+  // Fully invalidate geometry cache so next render recomputes from fresh bounding rect
+  _cacheValid=false; _cpx=0;
+  Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
   _resizeTimer=setTimeout(()=>{ buildBoard(); renderTokens(); },150);
 });
 
@@ -1507,7 +1540,7 @@ function syncGameState(data){
   if(G.over&&!document.getElementById("win").classList.contains("show")){ if(data.tokens) G.tokens=JSON.parse(JSON.stringify(data.tokens)); endGame(); return; }
   const action=data.action||data.lastAction, dice=data.dice??data.diceVal, rolledBy=data.actionBy;
   if(action==="roll"){ G.turn=data.turn; G.diceVal=dice; G.rolled=true; G.sixes=data.sixes||0; G.waiting=false; if(dice!=null&&rolledBy!=null) animDice(rolledBy,dice,()=>{ refreshUI(); renderTokens(); updateTurnBanner(); }); return; }
-  if(action==="move"){ const applyMoveState=()=>{ if(!_animating&&data.tokens) G.tokens=JSON.parse(JSON.stringify(data.tokens)); G.turn=data.turn; G.rolled=false; G.waiting=false; G.diceVal=null; G.sixes=data.sixes||0; G.placements=data.placements||[]; G.over=data.over||false; if(G.over&&!document.getElementById("win").classList.contains("show")){ endGame(); return; } refreshUI(); renderTokens(); updateTurnBanner(); }; if(dice!=null&&rolledBy!=null) animDice(rolledBy,dice,applyMoveState); else applyMoveState(); return; }
+  if(action==="move"){ const applyMoveState=()=>{ if(data.tokens) G.tokens=JSON.parse(JSON.stringify(data.tokens)); G.turn=data.turn; G.rolled=false; G.waiting=false; G.diceVal=null; G.sixes=data.sixes||0; G.placements=data.placements||[]; G.over=data.over||false; if(G.over&&!document.getElementById("win").classList.contains("show")){ endGame(); return; } refreshUI(); renderTokens(); updateTurnBanner(); }; if(dice!=null&&rolledBy!=null) animDice(rolledBy,dice,applyMoveState); else applyMoveState(); return; }
   if(action==="skip"||action==="noMove"||action==="skip3six"){ G.turn=data.turn; G.rolled=false; G.waiting=false; G.diceVal=null; G.sixes=data.sixes||0; G.placements=data.placements||[]; if(dice!=null&&rolledBy!=null) animDice(rolledBy,dice,()=>{ refreshUI(); renderTokens(); updateTurnBanner(); }); else{ refreshUI(); renderTokens(); updateTurnBanner(); } return; }
   G.turn=data.turn; G.rolled=false; G.waiting=false; G.diceVal=null; G.sixes=data.sixes||0; G.placements=data.placements||[];
   if(data.tokens&&!_animating) G.tokens=JSON.parse(JSON.stringify(data.tokens));
@@ -1535,7 +1568,9 @@ async function loadAndStartGame(){
   G={ turn:gData.turn??SEAT_LAYOUT_ACTIVE[0], diceVal:null, rolled:gData.rolled||false, waiting:gData.waiting||false, over:false, sixes:gData.sixes||0, tokens:gData.tokens||[], placements:gData.placements||[] };
   // Clear token cache — important on reconnect
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
-  _cacheValid=false; Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
+  // Fully invalidate both token geometry cache AND pixel cache before rebuild
+  _cacheValid=false; _cpx=0;
+  Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
   // NO CSS rotation here — that was the old buggy approach
   // Board is built fresh with transformRC applied inside buildBoard()
   buildBoard();
@@ -1545,7 +1580,7 @@ async function loadAndStartGame(){
   refreshUI();
   renderTokens();
   updateTurnBanner();
-  showToast("Game started! You are Blue 🔵");
+  const _myDisplayColor=getDisplayColor(MY_SEAT);const _colorNames={[BLUE]:"Blue 🔵",[PINK]:"Red 🔴",[YELLOW]:"Yellow 🟡",[GREEN]:"Green 🟢"};showToast(`Game started! You are ${_colorNames[_myDisplayColor]||"ready"}`);
   _gameLoaded=true;
 }
 
