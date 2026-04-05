@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v6.4 (v11)</title>
+<title>Ludo King — Online Multiplayer v6.4 (v12)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -347,11 +347,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 .dbg-row{display:flex;align-items:center;gap:8px;}
 .dbg-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
 
-/* Board POV rotation for non-seat-3 players — rotates entire board-wrap */
-#board-wrap.pov-rotated { transform: rotate(180deg); }
-/* Counter-rotate tokens so they always face up */
-#board-wrap.pov-rotated .tok { transform-origin: center; }
-#board-wrap.pov-rotated .tok svg { transform: rotate(180deg); }
+/* Board NEVER rotates — Rule 1. POV illusion via color remapping only. */
 </style>
 </head>
 <body>
@@ -586,27 +582,35 @@ const SEAT_COLOR = [PINK, YELLOW, GREEN, BLUE];
 // POV display colors array (for reference): bot-left=Blue, top-left=Pink, top-right=Yellow, bot-right=Green
 const POV_COLORS = [BLUE, PINK, YELLOW, GREEN];
 
-// Returns the LOCAL display color for a given global seat, from THIS client's perspective
+// Returns the LOCAL display color for a given global seat, from THIS client's perspective.
 //
-// Physical board clockwise order (starting bottom-left):
-//   bottom-left(seat3) → top-left(seat0) → top-right(seat1) → bottom-right(seat2)
+// Physical board positions (fixed, never changes):
+//   seat 3 = bottom-left  (physical BLUE)
+//   seat 0 = top-left     (physical PINK)
+//   seat 1 = top-right    (physical YELLOW)
+//   seat 2 = bottom-right (physical GREEN)
 //
-// POV colors (what every player sees):
-//   bottom-left = BLUE   (self)
-//   top-left    = PINK
-//   top-right   = YELLOW
-//   bottom-right= GREEN
-const CW_ORDER = { 3:0, 0:1, 1:2, 2:3 };
+// Every player's POV: they always see THEMSELVES at bottom-left as BLUE.
+// Other seats appear at fixed clockwise offsets from that:
+//   offset 0 = bottom-left  = self   → BLUE
+//   offset 1 = top-left              → PINK
+//   offset 2 = top-right             → YELLOW
+//   offset 3 = bottom-right          → GREEN
+//
+// Clockwise seat order on physical board: 3 → 0 → 1 → 2 → (back to 3)
+// So physical CW index: seat3=0, seat0=1, seat1=2, seat2=3
+
+// CW_INDEX[seat] = clockwise position of that seat on the physical board
+const CW_INDEX = [1, 2, 3, 0]; // seat0=1, seat1=2, seat2=3, seat3=0
+
+// POV_DISPLAY[offset] = display color seen at that clockwise offset from self
 const POV_DISPLAY = [BLUE, PINK, YELLOW, GREEN];
 
 function getDisplayColorForSeat(seat){
-  // ✅ FIX: If MY_SEAT not yet assigned, return PHYSICAL color as temporary placeholder.
-  // This is safe because loadAndStartGame() force-clears _tokEls before any render,
-  // so no element created during null-MY_SEAT will survive to the real render pass.
-  // Previously this silently created tokens with wrong POV colors that mixed with correct ones.
   if(MY_SEAT === null) return SEAT_COLOR[seat] || "#888";
-  const myCW   = CW_ORDER[MY_SEAT]  ?? 0;
-  const seatCW = CW_ORDER[seat]     ?? 0;
+  // How many CW steps is 'seat' ahead of MY_SEAT on the physical board?
+  const myCW   = CW_INDEX[MY_SEAT];
+  const seatCW = CW_INDEX[seat];
   const offset = ((seatCW - myCW) % 4 + 4) % 4;
   return POV_DISPLAY[offset];
 }
@@ -1012,28 +1016,12 @@ async function loadAndStartGame(){
   updateTurnBanner();
   showToast("Game started! You are Blue seat "+MY_SEAT);
 
-  // POV ROTATION: If MY_SEAT is not seat 3 (bottom-left), rotate board 180deg
-  // so every player sees their home at bottom-left
-  // baseCirclePx() uses getBoundingClientRect() so it auto-adjusts after rotation
-  // rcToXY() uses grid math — needs cache invalidation after rotation
+  // ✅ Board NEVER rotates — Rule 1. POV illusion is purely via color remapping.
+  // Remove pov-rotated class if somehow present from a previous session.
   const boardWrap = document.getElementById("board-wrap");
-  if(MY_SEAT !== 3 && boardWrap){
-    boardWrap.classList.add("pov-rotated");
-    // Invalidate pixel cache so rcToXY recalculates after rotation settles
-    _cacheValid = false;
-    Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
-    // Re-render after rotation applied (next frame)
-    requestAnimationFrame(()=>{
-      _cacheValid = false;
-      Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
-      renderTokens();
-    });
-  } else if(boardWrap){
-    boardWrap.classList.remove("pov-rotated");
-  }
+  if(boardWrap) boardWrap.classList.remove("pov-rotated");
 
-  // ✅ FIX: Only NOW allow syncGameState to process Firebase updates.
-  // PLAYERS[] is fully populated, getCell() will return correct positions for all seats.
+  // ✅ Only NOW allow syncGameState to process Firebase updates.
   _gameLoaded = true;
 }
 
@@ -1043,33 +1031,25 @@ function getMyColorName(){
 }
 
 // ── Sync game state from Firebase ─────────────────────────────────────────────
-let _applyingRemote = false;
-
 function syncGameState(data){
-  if(_applyingRemote) return;
-  // ✅ FIX: Block sync until loadAndStartGame() has fully populated PLAYERS[]
+  // Block sync until loadAndStartGame() has fully populated PLAYERS[]
   if(!_gameLoaded) return;
-  // ✅ FIX D: Skip updates that WE pushed — actionBy check is the single reliable guard.
-  // Old code also used timestamp (_lastTs = Date.now() vs server TIMESTAMP) which caused
-  // a mismatch: server time > local time → timestamp guard failed → own push re-applied.
-  // actionBy === MY_SEAT alone is sufficient and correct.
+  // Skip updates that WE pushed — actionBy is the sole guard against self-reapply.
   if(data.actionBy === MY_SEAT) return;
 
   setSyncStatus("ok");
 
-  // Rule 11: On reconnect, rebuild seat layout from server state
+  // On reconnect, rebuild seat layout from server state
   if(data.seatLayout){
     const changed = JSON.stringify(data.seatLayout) !== JSON.stringify(SEAT_LAYOUT_ACTIVE);
     SEAT_LAYOUT_ACTIVE = data.seatLayout;
     if(changed){
-      // Seat layout changed — rebuild panels and recolor tokens instantly (no flicker)
       buildPlayers();
       recolorPanels();
     }
   }
 
-  G.turn       = data.turn;
-  G.over       = data.over;
+  G.over       = data.over || false;
   G.sixes      = data.sixes   || 0;
   G.placements = data.placements || [];
 
@@ -1079,34 +1059,20 @@ function syncGameState(data){
     return;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ATOMIC TURN SYSTEM — 3 clean cases
-  //
-  // action="roll" → dice animate, tokens unchanged  (manual pick pending)
-  // action="move" → dice animate FIRST, tokens in callback (ONE atomic write)
-  // action="skip" → dice animate, turn passes, tokens unchanged
-  //
-  // GOLDEN RULE: G.tokens ONLY set inside animDice callback on "move".
-  // Always token.step = finalStep (absolute). Never += steps. No desync.
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const action   = data.action   || data.lastAction;
-  const dice     = data.dice     ?? data.diceVal;
+  const action   = data.action || data.lastAction;
+  const dice     = data.dice   ?? data.diceVal;
   const rolledBy = data.actionBy;
 
   // ── CASE 1: action="roll" ──────────────────────────────────────────────────
-  // Player rolled, must pick a token. Token positions DON'T change yet.
+  // Opponent rolled and is picking a token. We just animate their dice and wait.
+  // CRITICAL: Do NOT set G.waiting=true here — that is only for the local player.
+  // Do NOT highlight any tokens — only the roller picks.
   if(action === "roll"){
     G.turn    = data.turn;
     G.diceVal = dice;
     G.rolled  = true;
     G.sixes   = data.sixes || 0;
-    // If this roll is from ME (shouldn't reach here due to actionBy guard, but safety),
-    // or if it's an opponent's roll — opponents should NOT see movable tokens
-    // Only set waiting=false for opponents. For self, waiting is managed locally.
-    if(rolledBy !== MY_SEAT){
-      G.waiting = false; // Opponent rolled — I don't pick tokens
-    }
+    G.waiting = false; // NEVER set waiting for opponent's roll
     if(dice != null && rolledBy != null){
       animDice(rolledBy, dice, ()=>{ refreshUI(); renderTokens(); updateTurnBanner(); });
     }
@@ -1114,10 +1080,9 @@ function syncGameState(data){
   }
 
   // ── CASE 2: action="move" — ATOMIC ────────────────────────────────────────
-  // dice + tokens in ONE Firebase write. Animate dice, then apply in callback.
+  // Full move: animate dice then apply final token state.
   if(action === "move"){
     const applyMoveState = () => {
-      // ✅ FIX B: Guard against overwriting tokens while local animation is running
       if(!_animating && data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
       G.turn       = data.turn;
       G.rolled     = false;
@@ -1140,7 +1105,6 @@ function syncGameState(data){
   }
 
   // ── CASE 3: action="skip" — noMove or 3sixes ──────────────────────────────
-  // Turn passes, tokens unchanged. Animate dice so opponent sees roll.
   if(action === "skip" || action === "noMove" || action === "skip3six"){
     G.turn       = data.turn;
     G.rolled     = false;
@@ -1157,9 +1121,12 @@ function syncGameState(data){
   }
 
   // ── Fallback: apply full state safely ─────────────────────────────────────
-  G.turn = data.turn; G.rolled = data.rolled ?? false;
-  G.waiting = data.waiting ?? false; G.diceVal = data.diceVal ?? null;
-  G.sixes = data.sixes || 0; G.placements = data.placements || [];
+  G.turn    = data.turn;
+  G.rolled  = false; // Never inherit rolled state from Firebase on fallback
+  G.waiting = false; // Never inherit waiting state
+  G.diceVal = null;
+  G.sixes   = data.sixes || 0;
+  G.placements = data.placements || [];
   if(data.tokens && !_animating) G.tokens = JSON.parse(JSON.stringify(data.tokens));
   refreshUI(); renderTokens(); updateTurnBanner();
 }
@@ -1626,17 +1593,17 @@ function getPanelSeats(){
   const layout = SEAT_LAYOUT_ACTIVE;
   const active = layout.filter(s => PLAYERS[s]?.active);
 
-  // Use CW_ORDER to correctly assign panel positions from MY POV.
+  // Use CW_INDEX to assign panel positions from MY POV.
   // CW offsets from my position:
   //   offset 0 = bot-left  = ME        (Blue)
   //   offset 1 = top-left             (Pink)
   //   offset 2 = top-right            (Yellow)
   //   offset 3 = bot-right            (Green)
-  const myCW = CW_ORDER[me] ?? 0;
+  const myCW = CW_INDEX[me] ?? 0;
 
   function seatAtOffset(offset){
     return active.find(s => {
-      const sCW = CW_ORDER[s] ?? 0;
+      const sCW = CW_INDEX[s] ?? 0;
       return ((sCW - myCW + 4) % 4) === offset;
     }) ?? -1;
   }
@@ -1860,9 +1827,8 @@ function tokSVG(color,size=28){
 
 // Perspective-aware token color: each player sees themselves as BLUE,
 // others shift colors based on relative seat position
-function getTokenDisplayColor(pid){
-  return getDisplayColorForSeat(pid);
-}
+// Rule 4: ALL token colors come from single pipeline — getDisplayColorForSeat()
+// No separate token color function allowed.
 
 // ── Token element cache ───────────────────────────────────────────────────────
 const _tokEls={};
@@ -1906,13 +1872,8 @@ function cellPx(){return _cpx||Math.min(window.innerWidth*0.058,window.innerHeig
 function boardOffset(){return{x:_ox,y:_oy};}
 const GAP=1,PAD=6;
 function rcToXY(r,c){
+  // Board NEVER rotates (Rule 1). Straight grid math only.
   const cp=cellPx(),off=boardOffset();
-  // If board is rotated 180deg for this client, mirror the coordinates
-  // so tokens land on the visually correct (rotated) cell
-  if(MY_SEAT !== 3 && document.getElementById("board-wrap")?.classList.contains("pov-rotated")){
-    const mr=14-r, mc=14-c;
-    return{x:off.x+PAD+mc*(cp+GAP)+cp/2,y:off.y+PAD+mr*(cp+GAP)+cp/2};
-  }
   return{x:off.x+PAD+c*(cp+GAP)+cp/2,y:off.y+PAD+r*(cp+GAP)+cp/2};
 }
 
@@ -1944,8 +1905,8 @@ function renderTokens(){
   _refreshCache();
   const cp=cellPx();
   const movSet=new Set();
-  // Only show movable highlights if: it's MY turn AND I rolled AND waiting for manual pick
-  if(G.waiting && !G.over && G.turn === MY_SEAT && G.rolled){
+  // Only show movable highlights if: it's MY turn AND I rolled AND waiting for manual pick AND diceVal set
+  if(G.waiting && !G.over && G.turn === MY_SEAT && G.rolled && G.diceVal != null){
     movable(MY_SEAT, G.diceVal).forEach(t=>movSet.add(`${MY_SEAT}-${t.tid}`));
   }
   const groups={};
@@ -1979,7 +1940,7 @@ function renderTokens(){
       const [hr,hc]=getHomeCornerBySeat(tok.pid);
       const bp=baseCirclePx(hr,hc,tok.tid);
       px=bp.x;py=bp.y;scale=1.02;
-      color=getTokenDisplayColor(tok.pid);
+      color=getDisplayColorForSeat(tok.pid);
     } else if(tok.step>=STEP_DONE){
       // Rule 1 & 9: Center position uses GLOBAL physical color (board-fixed, never rotates)
       // The center triangle quadrants are physically fixed per seat color
@@ -1989,7 +1950,7 @@ function renderTokens(){
       // ✅ ROOT FIX: Center offset now pure seat-indexed — no color lookup at all
       // CENTER_OFFSET_SEAT[seat] gives direction multipliers for center triangle position
       const cOff=CENTER_OFFSET_SEAT[tok.pid]||{dx:0,dy:0};
-      color=getTokenDisplayColor(tok.pid);
+      color=getDisplayColorForSeat(tok.pid);
       const off={dx:cOff.dx*half*0.60, dy:cOff.dy*half*0.60};
       const doneOfPid=G.tokens.filter(t=>t.pid===tok.pid&&t.step>=STEP_DONE);
       const doneIdx=doneOfPid.findIndex(t=>t.tid===tok.tid);
@@ -2009,7 +1970,7 @@ function renderTokens(){
       const off=stackOffset(n,idx,cp);
       const xy=rcToXY(rc[0],rc[1]);
       px=xy.x+off.dx;py=xy.y+off.dy;
-      color=getTokenDisplayColor(tok.pid);
+      color=getDisplayColorForSeat(tok.pid);
     }
     alive.add(key);
     const rW=BASE_W*scale,rH=rW*(130/100),tipOffset=rH*(122/130);
@@ -2182,10 +2143,13 @@ async function onTokClick(pid,tid){
   if(G.turn !== MY_SEAT) return;        // Must be MY turn
   if(!G.waiting || !G.rolled) return;   // Must have rolled and be waiting for pick
   if(G.over || G_PAUSED) return;
-  const mv=movable(MY_SEAT, G.diceVal);
+  if(G.diceVal == null) return;         // Safety: no dice value
+  const dv = G.diceVal;                 // Capture before any state change
+  const mv = movable(MY_SEAT, dv);
   if(!mv.find(t=>t.tid===tid)) return;
-  G.waiting=false;
-  await doMove(pid,tid,G.diceVal);
+  G.waiting = false;
+  G.rolled  = false;
+  await doMove(pid, tid, dv);
 }
 
 function rafDelay(ms){
