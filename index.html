@@ -1397,8 +1397,49 @@ function getEntrySeat(seat){
 }
 
 // getHomeCornerBySeat: returns [r,c] top-left of seat's home zone — pure seat lookup
+// Used by GAME LOGIC only (getCell, movement, capture)
 function getHomeCornerBySeat(seat){
   return HOME_CORNER_BY_SEAT[seat] ?? [9,0];
+}
+
+// ── POV VISUAL SLOT SYSTEM ────────────────────────────────────────────────────
+// visualSlot = how far clockwise 'globalSeat' is from MY_SEAT
+//   slot 0 = self        = bottom-left = BLUE
+//   slot 1 = CW+1        = top-left    = PINK
+//   slot 2 = CW+2        = top-right   = YELLOW
+//   slot 3 = CW+3        = bottom-right= GREEN
+//
+// Physical home corners per visual slot (slot → corner on fixed board):
+//   slot 0 = bottom-left  = [9,0]
+//   slot 1 = top-left     = [0,0]
+//   slot 2 = top-right    = [0,9]
+//   slot 3 = bottom-right = [9,9]
+const HOME_CORNER_BY_SLOT = [
+  [9, 0],  // slot 0 = bottom-left (self)
+  [0, 0],  // slot 1 = top-left
+  [0, 9],  // slot 2 = top-right
+  [9, 9],  // slot 3 = bottom-right
+];
+
+// CENTER_OFFSET_BY_SLOT: direction of done-token cluster per visual slot
+const CENTER_OFFSET_BY_SLOT = [
+  {dx: 0, dy:-1, sign:-1},  // slot 0 = bottom-left → up toward center
+  {dx:-1, dy: 0, sign:-1},  // slot 1 = top-left    → right toward center
+  {dx: 0, dy: 1, sign: 1},  // slot 2 = top-right   → down toward center
+  {dx: 1, dy: 0, sign: 1},  // slot 3 = bottom-right→ left toward center
+];
+
+// getVisualSlot: convert globalSeat → visual slot for THIS client
+function getVisualSlot(globalSeat){
+  if(MY_SEAT === null) return globalSeat; // fallback before seat assigned
+  return ((CW_INDEX[globalSeat] - CW_INDEX[MY_SEAT]) % 4 + 4) % 4;
+}
+
+// getHomeCornerForRender: visual-slot-aware home corner for RENDERING only
+// Use this everywhere in renderTokens, buildBoard home circles, etc.
+function getHomeCornerForRender(globalSeat){
+  const slot = getVisualSlot(globalSeat);
+  return HOME_CORNER_BY_SLOT[slot];
 }
 
 // getCell: THE movement engine — 100% seat-based, zero color dependency
@@ -1463,48 +1504,71 @@ function buildBoard(){
   el.innerHTML="";
   const arDir={up:"M9,22L9,11L4,11L12,1L20,11L15,11L15,22Z",down:"M9,2L9,13L4,13L12,23L20,13L15,13L15,2Z",right:"M2,9L13,9L13,4L23,12L13,20L13,15L2,15Z",left:"M22,9L11,9L11,4L1,12L11,20L11,15L22,15Z"};
 
+  // ── HOME ZONES: render each seat at its VISUAL slot corner, not physical corner ──
+  // Pre-pass renders ALL 4 home zones (including inactive seats in 2P/3P).
+  // Inactive seats render greyed-out to show empty quadrant.
+  // Each globalSeat rendered exactly once at its POV-correct visual corner.
+  const _renderedHomeSeats = new Set();
+  for(const hz of homeZones){
+    const homeSeat = hz.seat;
+    if(_renderedHomeSeats.has(homeSeat)) continue;
+    _renderedHomeSeats.add(homeSeat);
+
+    // Active = seat is in the current game layout AND has a player
+    const isActive = PLAYERS[homeSeat]?.active === true;
+
+    // Active seat: POV-mapped display color. Inactive seat: grey (empty quadrant)
+    const dc = isActive ? getDisplayColorForSeat(homeSeat) : "#546E7A";
+    const circleColor = isActive ? lighten(dc,10) : "#4a5f6a";
+    const circleBorder = isActive ? darken(dc,20) : "#3a4f5a";
+
+    const [vr, vc] = getHomeCornerForRender(homeSeat); // visual corner for THIS client
+    const br=(vr===0&&vc===0)?"10px 0 0 0":(vr===0&&vc===9)?"0 10px 0 0":(vr===9&&vc===0)?"0 0 0 10px":"0 0 10px 0";
+
+    const d=document.createElement("div");
+    d.className="lc";
+    d.style.cssText=`grid-column:${vc+1}/span 6;grid-row:${vr+1}/span 6;`;
+    d.dataset.homeSeat = homeSeat;
+
+    // data-slot uses VISUAL corner coords — must match what baseCirclePx() looks up
+    d.innerHTML=`<div style="width:100%;height:100%;background:${dc};border-radius:${br};display:flex;align-items:center;justify-content:center;${isActive?'':'opacity:0.45;'}">
+      <div style="width:74%;height:74%;background:white;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:10%;box-sizing:border-box;">
+        <div data-slot="${vr},${vc},0" style="border-radius:50%;background:${circleColor};border:2px solid ${circleBorder};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+        <div data-slot="${vr},${vc},1" style="border-radius:50%;background:${circleColor};border:2px solid ${circleBorder};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+        <div data-slot="${vr},${vc},2" style="border-radius:50%;background:${circleColor};border:2px solid ${circleBorder};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+        <div data-slot="${vr},${vc},3" style="border-radius:50%;background:${circleColor};border:2px solid ${circleBorder};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+      </div>
+    </div>`;
+    el.appendChild(d);
+  }
+
   for(let r=0;r<15;r++){
     for(let c=0;c<15;c++){
       const k=`${r}-${c}`;
 
-      // ── HOME ZONES ──────────────────────────────────────────────────────────
-      const homeSeat=inHomeSeat(r,c);
-      if(homeSeat !== null){
-        const isRoot=homeZones.some(h=>h.r0===r&&h.c0===c);
-        if(!isRoot) continue;
-        const d=document.createElement("div");
-        d.className="lc";
-        d.style.cssText=`grid-column:${c+1}/span 6;grid-row:${r+1}/span 6;`;
-        const br=(r===0&&c===0)?"10px 0 0 0":(r===0&&c===9)?"0 10px 0 0":(r===9&&c===0)?"0 0 0 10px":"0 0 10px 0";
-
-        // ✅ POV FIX: Home zone background uses POV display color so tokens match their home zone.
-        // Every player sees their own home as BLUE, opponents shifted per CW offset.
-        // getDisplayColorForSeat(homeSeat) returns the correct color from THIS client's POV.
-        const dc = getDisplayColorForSeat(homeSeat); // POV-mapped color (not physical)
-        d.dataset.homeSeat = homeSeat;
-
-        d.innerHTML=`<div style="width:100%;height:100%;background:${dc};border-radius:${br};display:flex;align-items:center;justify-content:center;">
-          <div style="width:74%;height:74%;background:white;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:10%;box-sizing:border-box;">
-            <div data-slot="${r},${c},0" style="border-radius:50%;background:${lighten(dc,10)};border:2px solid ${darken(dc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
-            <div data-slot="${r},${c},1" style="border-radius:50%;background:${lighten(dc,10)};border:2px solid ${darken(dc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
-            <div data-slot="${r},${c},2" style="border-radius:50%;background:${lighten(dc,10)};border:2px solid ${darken(dc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
-            <div data-slot="${r},${c},3" style="border-radius:50%;background:${lighten(dc,10)};border:2px solid ${darken(dc,20)};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
-          </div>
-        </div>`;
-        el.appendChild(d);
-        continue;
-      }
+      // ── HOME ZONES — skip all cells that belong to any home zone ────────────
+      // Home zones are now rendered above as whole 6×6 blocks via CSS grid-span.
+      // Individual cells within those zones must be skipped here.
+      if(inHomeSeat(r,c) !== null) continue;
 
       // ── CENTER TRIANGLE ─────────────────────────────────────────────────────
       if(inCenter(r,c)){
         if(r===6&&c===6){
           const d=document.createElement("div");
           d.style.cssText=`grid-column:7/span 3;grid-row:7/span 3;overflow:hidden;`;
-          // Center triangles use POV display colors so every player sees their triangle as BLUE
-          const cTop   = getDisplayColorForSeat(1); // top    → seat1
-          const cRight = getDisplayColorForSeat(2); // right  → seat2
-          const cBot   = getDisplayColorForSeat(3); // bottom → seat3 (self if host)
-          const cLeft  = getDisplayColorForSeat(0); // left   → seat0
+          // Center triangle quadrants match the visual slot positions:
+          // top=slot2(top-right), right=slot3(bot-right), bot=slot0(self/bot-left), left=slot1(top-left)
+          // Each client sees their own color in the bottom triangle
+          // We map physical positions to visual slots:
+          // Physical top(seat1)   → getDisplayColorForSeat(1)
+          // Physical right(seat2) → getDisplayColorForSeat(2)
+          // Physical bot(seat3)   → getDisplayColorForSeat(3)
+          // Physical left(seat0)  → getDisplayColorForSeat(0)
+          // getDisplayColorForSeat already applies visualSlot mapping per client
+          const cTop   = getDisplayColorForSeat(1);
+          const cRight = getDisplayColorForSeat(2);
+          const cBot   = getDisplayColorForSeat(3);
+          const cLeft  = getDisplayColorForSeat(0);
           d.innerHTML=`<svg viewBox="0 0 90 90" style="width:100%;height:100%;display:block;" preserveAspectRatio="none">
             <polygon points="45,45 0,0 90,0"  fill="${cTop}"/>
             <polygon points="45,45 90,0 90,90" fill="${cRight}"/>
@@ -1935,9 +1999,9 @@ function renderTokens(){
     // color: physical for home/done (board-fixed), POV display for moving tokens
     let color;
     if(tok.step===0){
-      // Position: physical home corner by SEAT (game logic = seat based)
-      // Color: POV display color (render engine = color based)
-      const [hr,hc]=getHomeCornerBySeat(tok.pid);
+      // Home token: position uses visualSlot mapping (render layer)
+      // getHomeCornerForRender maps globalSeat → visualSlot → physical corner
+      const [hr,hc]=getHomeCornerForRender(tok.pid);
       const bp=baseCirclePx(hr,hc,tok.tid);
       px=bp.x;py=bp.y;scale=1.02;
       color=getDisplayColorForSeat(tok.pid);
@@ -1947,9 +2011,10 @@ function renderTokens(){
       const centerRC=[7,7];
       const cxy=rcToXY(centerRC[0],centerRC[1]);
       const cp2=cellPx(),half=cp2*1.5;
-      // ✅ ROOT FIX: Center offset now pure seat-indexed — no color lookup at all
-      // CENTER_OFFSET_SEAT[seat] gives direction multipliers for center triangle position
-      const cOff=CENTER_OFFSET_SEAT[tok.pid]||{dx:0,dy:0};
+      // Center offset uses visualSlot — so each player sees their own tokens
+      // in the correct quadrant of the center triangle from their POV
+      const slot=getVisualSlot(tok.pid);
+      const cOff=CENTER_OFFSET_BY_SLOT[slot]||{dx:0,dy:0};
       color=getDisplayColorForSeat(tok.pid);
       const off={dx:cOff.dx*half*0.60, dy:cOff.dy*half*0.60};
       const doneOfPid=G.tokens.filter(t=>t.pid===tok.pid&&t.step>=STEP_DONE);
@@ -2213,9 +2278,10 @@ async function animateMove(tok,steps){
 }
 
 async function sendHomeFast(tok){
-  // ✅ ROOT FIX: Pure seat-based — HOME_CORNER_BY_SEAT[seat] direct lookup, zero color dependency
+  // POV FIX: Use visual corner (getHomeCornerForRender) so sparkle and baseCirclePx()
+  // target the correct visual home zone on THIS client's board — not the global physical one.
   const seat=tok.pid;
-  const homeCorner=HOME_CORNER_BY_SEAT[seat];
+  const homeCorner=getHomeCornerForRender(seat); // visual slot corner for this client
   if(!homeCorner) return;
   const [hr,hc]=homeCorner;
   const displayColor=getDisplayColorForSeat(seat); // ONLY for visual effects, not logic
