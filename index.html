@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v17</title>
+<title>Ludo King — Online Multiplayer v19</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -510,7 +510,7 @@ const db = firebase.database();
 const auth = firebase.auth();
 
 // DEBUG: confirm script loaded
-console.log("✅ Script loaded OK — v17 (GLOBAL STATE → LOCAL TRANSFORM → RENDER pipeline)");
+console.log("✅ Script loaded OK — v20-fix (getRenderCell: localStep-1 only, no double rotation)");
 
 // Anonymous Auth — required for Firebase security rules
 let _authReady = false;
@@ -1457,16 +1457,18 @@ function getLocalStep(pid, globalStep){
 
 // getLocalSlot: returns visual slot of pid from MY_SEAT's perspective.
 // slot 0 = me (bottom-left/Blue), 1 = CW+1, 2 = CW+2, 3 = CW+3
+// MUST use CW_INDEX — physical order is 3→0→1→2, not 0→1→2→3.
 function getLocalSlot(pid){
   if(MY_SEAT === null) return pid;
-  return ((pid - MY_SEAT) + 4) % 4;
+  return ((CW_INDEX[pid] - CW_INDEX[MY_SEAT]) % 4 + 4) % 4;
 }
 
-// getRenderHome: correct home corner for RENDERING a pid's token, from MY POV.
-// Uses slot so self is always bottom-left, regardless of global seat.
+// getRenderHome: visual home corner for RENDERING a pid's token FROM THIS CLIENT's POV.
+// Uses visual slot (how far CW pid is from MY_SEAT) to pick the correct home zone corner.
+// slot 0 = self (bottom-left), slot 1 = top-left, slot 2 = top-right, slot 3 = bottom-right
+// ✅ FIX: use getLocalSlot(pid) → HOME_CORNER_BY_SLOT so home zone follows POV illusion.
 function getRenderHome(pid){
-  const slot = getLocalSlot(pid);
-  return HOME_CORNER_BY_SLOT[slot];
+  return HOME_CORNER_BY_SLOT[getLocalSlot(pid)] ?? [9, 0];
 }
 
 // getRenderCell: THE render-layer path lookup.
@@ -1484,11 +1486,13 @@ function getRenderCell(pid, globalStep){
     const lane = STRETCH_BY_SEAT[pid];
     return (lane && si >= 0 && si < lane.length) ? lane[si] : null;
   }
-  // Main path: normalize to MY_SEAT's perspective first
+  // getLocalStep already normalizes globalStep to MY_SEAT's perspective.
+  // localStep=1 means "at MY_SEAT's entry cell" = MAIN_PATH[ENTRY_BY_SEAT[MY_SEAT]].
+  // entryDelta is already baked into localStep inside getLocalStep(), so we must NOT
+  // add myEntry again — that would double-rotate and produce wrong cells.
+  // ✅ CORRECT: idx = (localStep - 1) % 52  (no myEntry addition)
   const localStep = getLocalStep(pid, globalStep);
-  // MY_SEAT's entry point on MAIN_PATH
-  const myEntry = ENTRY_BY_SEAT[MY_SEAT] ?? 0;
-  const idx = (myEntry + localStep - 1) % MAIN_PATH.length;
+  const idx = (localStep - 1) % MAIN_PATH.length;
   return MAIN_PATH[idx];
 }
 
@@ -2038,12 +2042,12 @@ function renderTokens(){
     movable(MY_SEAT, G.diceVal).forEach(t=>movSet.add(`${MY_SEAT}-${t.tid}`));
   }
 
-  // Build groups using getRenderCell (POV-aware) so stacking is visually correct.
-  // tokRC uses getCell (global coords) — we MUST use getRenderCell here instead.
+  // Build groups for stacking — getRenderCell handles all steps including spawn (step=1).
+  // getRenderCell is POV-aware for main path, and seat-private for stretch lane.
   const groups={};
   G.tokens.forEach(tok=>{
     if(tok.step<=0||tok.step>=STEP_DONE) return;
-    const rc=getRenderCell(tok.pid, tok.step); // ✅ POV-aware, not global
+    const rc = getRenderCell(tok.pid, tok.step);
     if(!rc) return;
     const key=`${rc[0]}-${rc[1]}`;
     if(!groups[key]) groups[key]=[];
@@ -2092,8 +2096,9 @@ function renderTokens(){
       scale=0.55; stackCount=2;
 
     } else {
-      // MOVING: use getRenderCell (POV-aware localStep) for pixel position
-      const rc=getRenderCell(tok.pid, tok.step); // ✅ LOCAL step transform applied here
+      // MOVING: getRenderCell is POV-aware for all steps including spawn (step=1).
+      // step=1 now correctly maps to pid's physical entry via myEntry anchor.
+      const rc = getRenderCell(tok.pid, tok.step);
       if(!rc) return;
       const rcKey=`${rc[0]}-${rc[1]}`;
       const grp=groups[rcKey]||[tok];
@@ -2323,19 +2328,23 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,cp){
 }
 
 async function animateMove(tok,steps){
+  // 🔥 DISCIPLINE: Never mutate tok.step during animation loop.
+  // curStep = local visual walker. tok.step updated ONCE at the very end.
+  // LOGIC (global step) stays clean throughout the animation.
   const key=`${tok.pid}-${tok.tid}`;
   _refreshCache();
   const cp=cellPx(),BASE_W=Math.round(cp*1.15);
+  let curStep=tok.step; // LOCAL — render uses this, never tok.step
+  const finalStep=Math.min(tok.step+steps, STEP_DONE);
   for(let i=0;i<steps;i++){
-    if(tok.step>=STEP_DONE) break;
-    // Use getRenderCell (POV-aware) for pixel positions — not getCell (global)
-    const prevCell=getRenderCell(tok.pid,tok.step);
-    if(!prevCell){tok.step++;continue;}
+    if(curStep>=STEP_DONE) break;
+    const prevCell=getRenderCell(tok.pid,curStep);
+    if(!prevCell){curStep++;continue;}
     const startXY=rcToXY(prevCell[0],prevCell[1]);
-    tok.step++;
-    if(tok.step>STEP_DONE) tok.step=STEP_DONE;
-    if(tok.step>=STEP_DONE){renderTokens();await rafDelay(120);break;}
-    const rc=getRenderCell(tok.pid,tok.step); // ✅ POV-aware next cell
+    curStep++;
+    if(curStep>STEP_DONE) curStep=STEP_DONE;
+    if(curStep>=STEP_DONE) break;
+    const rc=getRenderCell(tok.pid,curStep);
     if(!rc) continue;
     const endXY=rcToXY(rc[0],rc[1]);
     const els=_tokEls[key];
@@ -2346,6 +2355,9 @@ async function animateMove(tok,steps){
     await jumpStep(els.wrap,els.shadow,startXY.x,startXY.y,endXY.x,endXY.y,BASE_W,cp);
     els.wrap.style.zIndex="";
   }
+  // ✅ SINGLE atomic write to global token step — only after full animation
+  tok.step=finalStep;
+  if(tok.step>=STEP_DONE){renderTokens();await rafDelay(120);}
 }
 
 async function sendHomeFast(tok){
