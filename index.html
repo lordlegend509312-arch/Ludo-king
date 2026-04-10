@@ -836,6 +836,7 @@ window.joinRoom = async function(){
 // ── Listen to room changes ─────────────────────────────────────────────────────
 // Rule 11: listenRoom handles reconnect, spectator join, late join identically
 let _gameStarted = false; // guard against double-loading on reconnect
+let _pendingSync = null;  // ✅ FIX: queue latest Firebase update that arrived during loadAndStartGame
 
 function listenRoom(){
   const cb1 = snap=>{
@@ -875,6 +876,12 @@ function listenRoom(){
       _gameStarted = true;
       closeModals();
       _doLoadAndStartGame();
+      return;
+    }
+    // ✅ FIX: If loadAndStartGame() is still in progress (_gameStarted=true but _gameLoaded=false),
+    // queue this update so it doesn't get dropped. After loading completes, replay it.
+    if(data && _gameStarted && !_gameLoaded){
+      _pendingSync = data; // keep only latest
       return;
     }
     if(data && G.over === false) syncGameState(data);
@@ -1287,6 +1294,7 @@ window.leaveRoom = async function(){
   _listeners.forEach(fn=>fn());
   _listeners = [];
   _gameStarted = false; // Rule 11: reset for next session
+  _pendingSync = null;  // ✅ FIX: clear queued update on leave
   if(ROOM_CODE && MY_SEAT !== null){
     await db.ref(`rooms/${ROOM_CODE}/players/${MY_SEAT}/online`).set(false);
   }
@@ -2812,6 +2820,14 @@ async function _doLoadAndStartGame(){
   await loadAndStartGame();
   listenChat();
   addChatBadgeToButton();
+  // ✅ FIX: Replay any Firebase update that arrived while loadAndStartGame() was running.
+  // Without this, host's first move gets dropped if it arrives before _gameLoaded=true,
+  // causing joiner's dice to never activate (stuck on a turn that already passed).
+  if(_pendingSync){
+    const pending = _pendingSync;
+    _pendingSync = null;
+    if(G.over === false) syncGameState(pending);
+  }
 }
 
 // ── Bind ALL buttons safely ───────────────────────────────────────────────────
