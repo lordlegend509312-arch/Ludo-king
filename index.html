@@ -1892,11 +1892,10 @@ function baseCirclePx(homeR,homeC,slotIdx){
   const el=document.querySelector(`[data-slot="${ck}"]`);
   const layer=document.getElementById('tokens-layer');
   if(el&&layer){
-    // Use offsetLeft/offsetTop chain to get position unaffected by CSS rotation.
-    // Walk up from circle el to tokens-layer to accumulate unrotated offsets.
-    let ox=0,oy=0,cur=el;
-    while(cur&&cur!==layer){ox+=cur.offsetLeft;oy+=cur.offsetTop;cur=cur.offsetParent;}
-    const r={x:ox+el.offsetWidth/2, y:oy+el.offsetHeight/2};
+    const eR=el.getBoundingClientRect();
+    const lR=layer.getBoundingClientRect();
+    const r={x:eR.left-lR.left+eR.width/2, y:eR.top-lR.top+eR.height/2};
+    console.log(`baseCirclePx slot=${ck} deg=${_tokenRotationDeg} x=${r.x.toFixed(1)} y=${r.y.toFixed(1)} eR=${eR.left.toFixed(0)},${eR.top.toFixed(0)} lR=${lR.left.toFixed(0)},${lR.top.toFixed(0)}`);
     _slotPxCache[ck]=r;
     return r;
   }
