@@ -267,6 +267,8 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
   transition:transform 0.28s cubic-bezier(0.34,1.26,0.64,1);
   box-shadow:0 -8px 40px rgba(0,0,0,.6);
   overflow:hidden;
+  /* Mobile keyboard: move panel up when virtual keyboard opens */
+  padding-bottom:env(safe-area-inset-bottom,0px);
 }
 #chat-panel.open{transform:translateY(0);}
 #chat-header{
@@ -383,6 +385,16 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
         <div class="s-card-arrow">›</div>
         <div class="s-card-shine"></div>
       </div>
+    </div>
+    <!-- Rejoin banner (shown if last session had an active room) -->
+    <div id="rejoin-card" class="s-card" style="display:none;border-color:rgba(0,174,239,.4);background:rgba(0,174,239,.06);" onclick="window.tryRejoin()">
+      <div class="s-card-icon" style="background:linear-gradient(135deg,#00AEEF,#0077aa);">🔄</div>
+      <div class="s-card-text">
+        <div class="s-card-title">Rejoin Game</div>
+        <div class="s-card-sub" id="rejoin-sub">Tap to rejoin your last room</div>
+      </div>
+      <div class="s-card-arrow">›</div>
+      <div class="s-card-shine"></div>
     </div>
     <!-- Firebase connection status in lobby -->
     <div id="lobby-conn" style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:11px;font-family:'Nunito',sans-serif;color:var(--muted);">
@@ -1013,6 +1025,7 @@ async function loadAndStartGame(){
   const _myColorNames={[BLUE]:"Blue",[PINK]:"Pink",[YELLOW]:"Yellow",[GREEN]:"Green"};
   showToast("Game started! You are "+(_myColorNames[SEAT_COLOR[MY_SEAT]]||"color"));
 
+  saveSession(); // persist room+seat for rejoin on accidental refresh
   // ✅ Only NOW allow syncGameState to process Firebase updates.
   _gameLoaded = true;
 }
@@ -1152,7 +1165,54 @@ async function pushGameState(extra={}){
 }
 
 // ── Leave room ────────────────────────────────────────────────────────────────
+// ── Session persistence for rejoin ────────────────────────────────────────────
+function saveSession(){
+  if(!ROOM_CODE || MY_SEAT === null || !MY_NAME) return;
+  try { sessionStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME})); } catch(e){}
+}
+function clearSession(){
+  try { sessionStorage.removeItem('ludo_session'); } catch(e){}
+}
+function loadSession(){
+  try { const s=sessionStorage.getItem('ludo_session'); return s?JSON.parse(s):null; } catch(e){ return null; }
+}
+// Show rejoin card if session exists
+(function checkRejoin(){
+  const s=loadSession();
+  if(!s) return;
+  const card=document.getElementById('rejoin-card');
+  const sub=document.getElementById('rejoin-sub');
+  if(card){ card.style.display='flex'; }
+  if(sub){ sub.textContent=`Room ${s.code} · as ${s.name}`; }
+})();
+window.tryRejoin = async function(){
+  const s=loadSession();
+  if(!s){ clearSession(); return; }
+  MY_NAME=s.name;
+  const rSnap = await db.ref(`rooms/${s.code}`).once('value').catch(()=>null);
+  if(!rSnap||!rSnap.exists()){ showToast('Room no longer exists'); clearSession(); document.getElementById('rejoin-card').style.display='none'; return; }
+  const rData=rSnap.val();
+  if(rData.status==='waiting'){ showToast('Game not started yet'); clearSession(); return; }
+  const playerSnap=await db.ref(`rooms/${s.code}/players/${s.seat}`).once('value').catch(()=>null);
+  if(!playerSnap||!playerSnap.exists()){ showToast('Seat no longer available'); clearSession(); return; }
+  MY_SEAT=s.seat; IS_HOST=(rData.host===s.seat);
+  NUM_PLAYERS=rData.numPlayers||4;
+  ROOM_CODE=s.code;
+  roomRef=db.ref(`rooms/${s.code}`);
+  gameRef=db.ref(`rooms/${s.code}/game`);
+  playersRef=db.ref(`rooms/${s.code}/players`);
+  _presenceRef=db.ref(`rooms/${s.code}/players/${s.seat}/online`);
+  await _presenceRef.set(true);
+  _presenceRef.onDisconnect().set(false);
+  _gameStarted=false;
+  closeModals();
+  showToast('🔄 Rejoining...');
+  listenRoom();
+};
+
 window.leaveRoom = async function(){
+  clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
+  clearSession();
   _listeners.forEach(fn=>fn());
   _listeners = [];
   _gameStarted = false; // Rule 11: reset for next session
@@ -1172,6 +1232,7 @@ window.leaveRoom = async function(){
   _chatOpen = false; _unreadCount = 0; _chatListening = false; _lastChatKey = null;
   const chatPanel = document.getElementById("chat-panel");
   if(chatPanel) chatPanel.classList.remove("open");
+  const rc=document.getElementById("rejoin-card"); if(rc) rc.style.display="none";
   document.getElementById("lobby").style.display = "flex";
   closeModals();
 };
@@ -1617,10 +1678,10 @@ function getPanelSeats(){
   const cw2 = cwNext(2); // 2 steps CW = top-right
   const cw3 = cwNext(3); // 3 steps CW = bot-right
 
-  // 2P: only 1 opponent → goes to top-right (diagonal), leave top-left & bot-right empty
+  // 2P: only 1 opponent → use cw1 (first CW seat from me) so panel matches board position
+  // e.g. if opponent is physically at top-right (1 CW step), they go to top-right panel slot
   if(active.length === 2){
-    const opp = active.find(s => s !== me) ?? -1;
-    return [-1, opp, me, -1];
+    return [-1, cw1, me, -1];
   }
 
   // 3P: 2 opponents → top-left + top-right, bot-right empty
@@ -1864,42 +1925,42 @@ function _removeTokEl(key){
 }
 
 // ── Render tokens ─────────────────────────────────────────────────────────────
-let _cpx=0,_ox=0,_oy=0,_cacheValid=false;
+let _cpx=0,_cacheValid=false;
 function _refreshCache(){
   if(_cacheValid) return;
   _cacheValid=true;
-  const b=document.getElementById("board"),l=document.getElementById("tokens-layer");
+  const b=document.getElementById("board");
   if(b){const s=parseFloat(getComputedStyle(b).getPropertyValue("--cell"));if(s>0)_cpx=s;}
   if(!_cpx)_cpx=Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);
-  if(b&&l){_ox=b.offsetLeft-l.offsetLeft;_oy=b.offsetTop-l.offsetTop;}
 }
 function cellPx(){return _cpx||Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);}
-function boardOffset(){return{x:_ox,y:_oy};}
+// boardOffset: always use getBoundingClientRect — offsetLeft is parent-relative and unreliable with CSS transforms
+function boardOffset(){
+  const b=document.getElementById("board"),l=document.getElementById("tokens-layer");
+  if(b&&l){const br=b.getBoundingClientRect(),lr=l.getBoundingClientRect();return{x:br.left-lr.left,y:br.top-lr.top};}
+  return{x:0,y:0};
+}
 const GAP=1,PAD=5; // matches #board padding:5px in CSS
 
 // rcToXY: converts board grid (r,c) → pixel position on tokens-layer.
-// Board never rotates — pure math only. No sin/cos. No rotation compensation. (Rule 1, Rule 2)
 function rcToXY(r,c){
   const cp=cellPx(),off=boardOffset();
   return{x:off.x+PAD+c*(cp+GAP)+cp/2, y:off.y+PAD+r*(cp+GAP)+cp/2};
 }
 
 const _slotPxCache={};
-// baseCirclePx: reads actual rendered circle center from DOM via data-slot attribute.
+// baseCirclePx: reads the actual rendered circle position from DOM via data-slot attribute.
+// No caching — always read fresh so position is accurate after layout/rotation changes.
 function baseCirclePx(homeR,homeC,slotIdx){
-  const ck=`${homeR},${homeC},${slotIdx}`;
-  if(_slotPxCache[ck]) return _slotPxCache[ck];
-  const el=document.querySelector(`[data-slot="${ck}"]`);
+  const key=`${homeR},${homeC},${slotIdx}`;
+  const el=document.querySelector(`[data-slot="${key}"]`);
   const layer=document.getElementById('tokens-layer');
-  if(el&&layer){
-    const eR=el.getBoundingClientRect();
-    const lR=layer.getBoundingClientRect();
-    const r={x:eR.left-lR.left+eR.width/2, y:eR.top-lR.top+eR.height/2};
-    console.log(`baseCirclePx slot=${ck} deg=${_tokenRotationDeg} x=${r.x.toFixed(1)} y=${r.y.toFixed(1)} eR=${eR.left.toFixed(0)},${eR.top.toFixed(0)} lR=${lR.left.toFixed(0)},${lR.top.toFixed(0)}`);
-    _slotPxCache[ck]=r;
-    return r;
+  if(el && layer){
+    const er=el.getBoundingClientRect();
+    const lr=layer.getBoundingClientRect();
+    return{x:er.left-lr.left+er.width/2, y:er.top-lr.top+er.height/2};
   }
-  // Fallback: pure math
+  // Fallback: pure math if DOM not ready
   const cp=cellPx(),off=boardOffset();
   const zoneX=off.x+PAD+homeC*(cp+GAP);
   const zoneY=off.y+PAD+homeR*(cp+GAP);
@@ -1909,7 +1970,7 @@ function baseCirclePx(homeR,homeC,slotIdx){
   const wbY=zoneY+(zoneW-wbW)/2;
   const pad=wbW*0.10,gap=wbW*0.10,cellW=(wbW-2*pad-gap)/2;
   const col=slotIdx%2,row=Math.floor(slotIdx/2);
-  return{x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2};
+  return {x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2};
 }
 
 function renderTokens(){
@@ -1952,8 +2013,8 @@ function renderTokens(){
     let px,py,scale=1,stackCount=1;
     let color=getDisplayColorForSeat(tok.pid); 
     if(tok.step===0){
-      // HOME: tip of token points to circle center
-      const [hr,hc]=getRenderHome(tok.pid);
+      // HOME: use getRenderHome (slot-based) so self is always bottom-left
+      const [hr,hc]=getRenderHome(tok.pid); // ✅ slot-aware, not seat-aware
       const bp=baseCirclePx(hr,hc,tok.tid);
       px=bp.x; py=bp.y; scale=1.02;
     } else if(tok.step>=STEP_DONE){
@@ -1987,7 +2048,7 @@ function renderTokens(){
     }
 
     alive.add(key);
-    const rW=BASE_W*scale,rH=rW*(130/100),tipOffset=rH*(122/130);
+    const rW=BASE_W*scale,rH=rW*(130/100),tipOffset=rH*(40/130); // ball center (cy=40/130) aligns to circle center
     const tx=px-rW/2,ty=py-tipOffset;
     const els=_ensureTokEl(tok,color);
     const {wrap,shadow}=els;
@@ -2001,7 +2062,8 @@ function renderTokens(){
     wrap.style.transformOrigin = `${rW/2}px ${rH/2}px`;
     wrap.style.transform=`translate(${tx}px,${ty}px) rotate(${_tr}deg)`;
     const shadowW=rW*0.60,shadowH=rW*0.16,sx=px-shadowW/2,sy=py-shadowH/2+1;
-    shadow.style.transform=`translate(${sx}px,${sy}px) rotate(${_tokenRotationDeg}deg)`;
+    // Shadow is a flat ellipse — no rotation needed, always stays horizontal under token
+    shadow.style.transform=`translate(${sx}px,${sy}px)`;
     shadow.style.width=`${shadowW}px`; shadow.style.height=`${shadowH}px`;
     const showShadow=tok.step>0&&tok.step<STEP_DONE&&stackCount===1;
     shadow.style.opacity=showShadow?"1":"0";
@@ -2059,11 +2121,35 @@ function updateTurnBanner(){
     banner.textContent = `${turnName}'s turn`;
     banner.style.color = turnDisplayColor; // Rule 5: color matches their POV-mapped color
   }
+  resetTurnTimeout(); // restart AFK timer on every turn change
+}
+
+// ── Turn timeout ──────────────────────────────────────────────────────────────
+// If a player is AFK/disconnected and doesn't roll, host auto-skips after 45s.
+// Only the host runs this to avoid duplicate skips.
+let _turnTimeoutTimer = null;
+const TURN_TIMEOUT_MS = 45000;
+
+function resetTurnTimeout(){
+  clearTimeout(_turnTimeoutTimer);
+  _turnTimeoutTimer = null;
+  if(!IS_HOST || !ROOM_CODE || G.over) return;
+  // Only start timer when it's NOT my turn (opponent might be AFK)
+  if(G.turn === MY_SEAT) return;
+  _turnTimeoutTimer = setTimeout(async()=>{
+    // Re-check: still same turn, not rolled, game not over
+    if(G.over || G.rolled || G.turn === MY_SEAT) return;
+    showToast(`⏱ ${PLAYERS[G.turn]?.label||"Player"} took too long — skipping turn`);
+    const skippedTurn = G.turn;
+    G.rolled=false; G.diceVal=null; G.waiting=false;
+    nextTurn(false);
+    await pushGameState({ action:"skip", dice:null, reason:"timeout", skippedSeat:skippedTurn });
+  }, TURN_TIMEOUT_MS);
 }
 
 // ── Game flow ─────────────────────────────────────────────────────────────────
 function onHumanRoll(){
-  if(G.rolled||G.over||G_PAUSED) return;
+  if(G.rolled||G.over||G_PAUSED||_rolling) return; // _rolling guard prevents double-tap race on mobile
   if(G.turn !== MY_SEAT) return; // Not my turn
   doRoll(G.turn);
 }
@@ -2120,8 +2206,8 @@ function afterRoll(pid,v){
       renderTokens();
       // ✅ ATOMIC: ONE push, action="skip", reason="3sixes"
       setTimeout(async()=>{
-        nextTurn(false);
         await pushGameState({ action:"skip", dice:v, reason:"3sixes" });
+        nextTurn(false);
       },300);
       return;
     }
@@ -2133,8 +2219,8 @@ function afterRoll(pid,v){
     renderTokens();refreshUI();
     // ✅ ATOMIC: ONE push, action="skip", reason="noMove"
     setTimeout(async()=>{
-      nextTurn(false);
       await pushGameState({ action:"skip", dice:v, reason:"noMove" });
+      nextTurn(false);
     },300);
     return;
   }
@@ -2181,7 +2267,7 @@ const JUMP_MS=160;
 
 function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,cp){
   return new Promise(resolve=>{
-    const rH=rW*(130/100),tipOffset=rH*(122/130);
+    const rH=rW*(130/100),tipOffset=rH*(40/130); // ball center aligned
     const shadowW=rW*0.60,shadowH=rW*0.16;
     const h=cp*0.65;
     let t0=null;
@@ -2252,7 +2338,7 @@ async function sendHomeFast(tok){
     const bx=m?m[1]:"0px",by=m?m[2]:"0px";
     for(let r=0;r<2;r++){
       const ring=document.createElement("div");
-      const size=36+r*10,mx=parseFloat(bx)-size/2+14,my=parseFloat(by)-size/2+14;
+      const size=36+r*10,_tipOff=(28*(130/100))*(40/130),mx=parseFloat(bx)-size/2,my=parseFloat(by)-_tipOff-size/2+_tipOff*0.5;
       ring.style.cssText=`position:absolute;transform:translate(${mx}px,${my}px) scale(0.3);--rx:${mx}px;--ry:${my}px;width:${size}px;height:${size}px;border-radius:50%;border:${3-r}px solid ${r===0?'white':displayColor};opacity:0;pointer-events:none;animation:ringPop ${0.35+r*0.12}s ${r*0.07}s ease-out forwards;`;
       layer.appendChild(ring);setTimeout(()=>ring.remove(),600);
     }
@@ -2301,14 +2387,33 @@ async function doMove(pid,tid,v){
     });
     if(ownOnCell.length>=2) return;
     if(ownOnCell.length===1&&enemiesOnCell.length>=1){
-      await sendHomeFast(enemiesOnCell[0]);
-      captured=true;
+      // Capture all enemies from different players (3P/4P: multiple players may share cell)
+      // Group by pid — only capture one token per enemy player (can't capture a block of 2)
+      const capturedPids=new Set();
+      for(const enemy of enemiesOnCell){
+        if(capturedPids.has(enemy.pid)) continue;
+        const samePlayerOnCell=enemiesOnCell.filter(e=>e.pid===enemy.pid);
+        if(samePlayerOnCell.length>=2) continue; // block of 2 = safe, skip
+        await sendHomeFast(enemy);
+        capturedPids.add(enemy.pid);
+        captured=true;
+      }
     }
   }
 
   if(tok.step===0&&v===6){
+    // Animate spawn: slide from home circle → entry cell (no abrupt teleport)
+    const spawnKey=`${tok.pid}-${tok.tid}`;
+    const [spawnHr,spawnHc]=getRenderHome(tok.pid);
+    const spawnStart=baseCirclePx(spawnHr,spawnHc,tok.tid);
     tok.step=1;bonus=diceWasSix;
-    renderTokens();await rafDelay(50);
+    renderTokens();await rafDelay(20);
+    const entryRC=getRenderCell(tok.pid,1);
+    if(entryRC&&_tokEls[spawnKey]){
+      const entryXY=rcToXY(entryRC[0],entryRC[1]);
+      const cp2=cellPx(),BASE_W2=Math.round(cp2*1.15);
+      await jumpStep(_tokEls[spawnKey].wrap,_tokEls[spawnKey].shadow,spawnStart.x,spawnStart.y,entryXY.x,entryXY.y,BASE_W2,cp2);
+    }
     const entryCellKey=getCell(pid,1);
     if(entryCellKey){
       const eck=`${entryCellKey[0]}-${entryCellKey[1]}`;
@@ -2329,6 +2434,7 @@ async function doMove(pid,tid,v){
         if(remaining.length===1&&!G.placements.includes(remaining[0].id))
           G.placements.push(remaining[0].id);
         G.over=true;
+        _animating=false;
         await pushGameState({lastAction:"win"});
         endGame();return;
       }
@@ -2368,10 +2474,8 @@ async function doMove(pid,tid,v){
     }
   });
 
-  nextTurn(bonus);
-
-  // ✅ SINGLE ATOMIC Firebase write: action="move" + dice + moves[] + full token state
-  // Opponent: animDice(dice) → callback: apply moves[] → renderTokens()
+  // ✅ Push BEFORE nextTurn so Firebase state matches what opponents will receive.
+  // If push fails, local state and server stay consistent (both still on same turn).
   await pushGameState({
     action: "move",
     dice: v,
@@ -2379,6 +2483,7 @@ async function doMove(pid,tid,v){
     movedPid: pid,
     movedTid: tid
   });
+  nextTurn(bonus);
 }
 
 function nextTurn(same){
@@ -2467,7 +2572,11 @@ window.addEventListener("resize",()=>{
   clearTimeout(_resizeTimer);
   _cacheValid=false;
   Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
-  _resizeTimer=setTimeout(renderTokens,100);
+  _resizeTimer=setTimeout(()=>{
+    // Re-apply board rotation so _tokenRotationDeg stays in sync after resize
+    if(MY_SEAT !== null) applyBoardRotation();
+    else renderTokens();
+  },100);
 });
 
 document.addEventListener("contextmenu",e=>e.preventDefault());
@@ -2483,6 +2592,20 @@ let _chatOpen = false;
 let _unreadCount = 0;
 let _chatListening = false;
 let _lastChatKey = null;
+
+// Mobile keyboard: move chat panel above virtual keyboard using visualViewport
+if(window.visualViewport){
+  window.visualViewport.addEventListener("resize", ()=>{
+    const panel = document.getElementById("chat-panel");
+    if(!panel) return;
+    const keyboardHeight = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+    if(keyboardHeight > 50){
+      panel.style.bottom = keyboardHeight + "px";
+    } else {
+      panel.style.bottom = "0px";
+    }
+  });
+}
 
 window.toggleChat = function(){
   _chatOpen = !_chatOpen;
