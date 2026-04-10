@@ -998,11 +998,15 @@ async function loadAndStartGame(){
   document.getElementById("game-wrap").style.display = "inline-flex";
   document.getElementById("status-row").style.display = "flex";
 
+  const _initTurn = gData.turn ?? SEAT_LAYOUT_ACTIVE[0];
+  // ✅ FIX: If it's MY turn when I load/join, never inherit rolled=true from Firebase.
+  // This prevents stale rolled=true from blocking the joiner's dice on their first turn.
+  const _myTurnNow = (_initTurn === MY_SEAT);
   G = {
-    turn: gData.turn ?? SEAT_LAYOUT_ACTIVE[0],
+    turn: _initTurn,
     diceVal: null,
-    rolled: gData.rolled || false,
-    waiting: gData.waiting || false,
+    rolled: _myTurnNow ? false : (gData.rolled || false),
+    waiting: _myTurnNow ? false : (gData.waiting || false),
     over: false,
     sixes: gData.sixes || 0,
     tokens: gData.tokens || [],
@@ -1084,6 +1088,9 @@ function syncGameState(data){
     G.rolled  = true;
     G.sixes   = data.sixes || 0;
     G.waiting = false; // NEVER set waiting for opponent's roll
+    // ✅ FIX: If somehow this roll update arrives but turn is already MY_SEAT,
+    // clear rolled so my dice doesn't stay blocked.
+    if(G.turn === MY_SEAT){ G.rolled = false; G.diceVal = null; }
     if(dice != null && rolledBy != null){
       animDice(rolledBy, dice, ()=>{
         refreshUI();   // ← updates dice inactive/active classes for ALL players
