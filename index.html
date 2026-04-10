@@ -2063,11 +2063,13 @@ function renderTokens(){
     const curW=parseFloat(wrap.dataset.rw||"0");
     const curColor=wrap.dataset.rc||"";
     if(Math.abs(curW-rW)>0.5||curColor!==color){wrap.innerHTML=tokSVG(color,rW);wrap.dataset.rw=rW;wrap.dataset.rc=color;}
-    // Counter-rotate tokens so they always face up regardless of board rotation
+    // Counter-rotate tokens so they always face up regardless of board rotation.
+    // transformOrigin must be at the TOKEN TIP (bottom-centre of SVG = y:tipOffset),
+    // NOT the bounding-box centre. Rotating around the tip keeps the token grounded
+    // at the cell centre — rotating around the centre would flip it upside-down for
+    // joiner (180°) and misplace it for seat-0/seat-2 (90°/270°).
     const _tr = _tokenRotationDeg;
-    const _tcx = tx + rW/2;
-    const _tcy = ty + rH/2;
-    wrap.style.transformOrigin = `${rW/2}px ${rH/2}px`;
+    wrap.style.transformOrigin = `${rW/2}px ${tipOffset}px`;
     wrap.style.transform=`translate(${tx}px,${ty}px) rotate(${_tr}deg)`;
     const shadowW=rW*0.60,shadowH=rW*0.16,sx=px-shadowW/2,sy=py-shadowH/2+1;
     // Shadow is a flat ellipse — no rotation needed, always stays horizontal under token
