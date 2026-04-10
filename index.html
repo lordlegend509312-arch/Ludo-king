@@ -588,11 +588,15 @@ const CW_INDEX = [1, 2, 3, 0];
 // MY_SLOT: position index in SEAT_LAYOUT_ACTIVE (0=Host,1=J1,2=J2,3=J3)
 let MY_SLOT = 0;
 
-// BOARD_DEG: CSS rotation degrees for this client's board view
-// [0°, 90°, 180°, 270°] for slots [0,1,2,3]
-const SLOT_ROTATION = [0, 90, 180, 270];
+// BOARD_DEG: CSS rotation degrees per SEAT so that each player's home corner
+// rotates to bottom-left position.
+// Seat 0 (PINK,   top-left)      → 90°  CW brings it to bottom-left
+// Seat 1 (YELLOW, top-right)     → 180° CW brings it to bottom-left
+// Seat 2 (GREEN,  bottom-right)  → 270° CW brings it to bottom-left
+// Seat 3 (BLUE,   bottom-left)   → 0°   already correct
+const SEAT_ROTATION = [90, 180, 270, 0];
 
-function getBoardRotation(){ return SLOT_ROTATION[MY_SLOT] || 0; }
+function getBoardRotation(){ return MY_SEAT !== null ? (SEAT_ROTATION[MY_SEAT] || 0) : 0; }
 
 // Always returns real physical color — no remapping ever
 function getDisplayColorForSeat(seat){ return SEAT_COLOR[seat] || "#888"; }
@@ -987,7 +991,7 @@ async function loadAndStartGame(){
   buildBoard();
   buildPlayers();
   PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
-  applyBoardRotation(); // CSS rotate board based on MY_SLOT
+  applyBoardRotation(); // CSS rotate board based on MY_SEAT so self is always bottom-left
   setSyncStatus("ok");
   refreshUI();
   renderTokens();
