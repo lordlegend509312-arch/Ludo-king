@@ -75,8 +75,20 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
   border-radius:14px;padding:14px 24px;
   font-size:2rem;font-weight:900;color:var(--gold);
   letter-spacing:8px;font-family:'Rajdhani',sans-serif;
-  text-align:center;
+  text-align:center;cursor:pointer;transition:background 0.15s;
 }
+.room-code-display:hover{background:var(--surface2);}
+.copy-hint{
+  font-size:11px;color:var(--muted);font-family:'Nunito',sans-serif;
+  font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  text-align:center;margin-top:-6px;
+}
+.copy-toast{
+  font-size:12px;color:var(--green);font-family:'Nunito',sans-serif;
+  font-weight:800;letter-spacing:1px;text-align:center;
+  opacity:0;transition:opacity 0.2s;
+}
+.copy-toast.show{opacity:1;}
 .waiting-dots::after{content:'';animation:dots 1.2s steps(3,end) infinite;}
 @keyframes dots{0%{content:'';}33%{content:'.';}66%{content:'..';}100%{content:'...';};}
 
@@ -399,7 +411,9 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
   <div class="modal-box">
     <div class="modal-title">Waiting for Players</div>
     <div class="modal-sub">Share this code with friends</div>
-    <div class="room-code-display" id="display-room-code">------</div>
+    <div class="room-code-display" id="display-room-code" title="Tap to copy">------</div>
+    <div class="copy-hint">📋 Tap to copy</div>
+    <div class="copy-toast" id="copy-toast">✓ Copied!</div>
     <div id="player-list" style="display:flex;flex-direction:column;gap:6px;width:100%;"></div>
     <div class="modal-sub waiting-dots" id="waiting-status">Waiting</div>
     <button class="modal-btn" id="btn-start-game" disabled style="background:var(--surface);border:1.5px solid var(--border2);color:var(--muted);">Start Game</button>
@@ -1857,7 +1871,7 @@ function _refreshCache(){
   const b=document.getElementById("board"),l=document.getElementById("tokens-layer");
   if(b){const s=parseFloat(getComputedStyle(b).getPropertyValue("--cell"));if(s>0)_cpx=s;}
   if(!_cpx)_cpx=Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);
-  if(b&&l){const br=b.getBoundingClientRect(),lr=l.getBoundingClientRect();_ox=br.left-lr.left;_oy=br.top-lr.top;}
+  if(b&&l){_ox=b.offsetLeft-l.offsetLeft;_oy=b.offsetTop-l.offsetTop;}
 }
 function cellPx(){return _cpx||Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);}
 function boardOffset(){return{x:_ox,y:_oy};}
@@ -1968,7 +1982,7 @@ function renderTokens(){
     }
 
     alive.add(key);
-    const rW=BASE_W*scale,rH=rW*(130/100),tipOffset=rH*(122/130);
+    const rW=BASE_W*scale,rH=rW*(130/100),tipOffset=rH*(40/130); // ball center (cy=40/130) aligns to circle center
     const tx=px-rW/2,ty=py-tipOffset;
     const els=_ensureTokEl(tok,color);
     const {wrap,shadow}=els;
@@ -2006,9 +2020,10 @@ function refreshUI(){
     if(d3d){
       const active = G.turn === p.id && !G.over;
       const isMyTurn = G.turn === MY_SEAT && p.id === MY_SEAT;
-      if(active && isMyTurn){
+      if(active){
         d3d.classList.remove("inactive");
-        const canRoll = !G.rolled && !G.over;
+        // Clickable only on MY turn; opponent dice visible but non-clickable
+        const canRoll = isMyTurn && !G.rolled && !G.over;
         d3d.classList.toggle("off", !canRoll);
       } else {
         d3d.classList.add("inactive");
@@ -2161,7 +2176,7 @@ const JUMP_MS=160;
 
 function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,cp){
   return new Promise(resolve=>{
-    const rH=rW*(130/100),tipOffset=rH*(122/130);
+    const rH=rW*(130/100),tipOffset=rH*(40/130); // ball center aligned
     const shadowW=rW*0.60,shadowH=rW*0.16;
     const h=cp*0.65;
     let t0=null;
@@ -2393,7 +2408,7 @@ function nextTurn(same){
       if(d3d){
         const active=G.turn===p.id&&!G.over;
         const isMyTurn=G.turn===MY_SEAT&&p.id===MY_SEAT;
-        if(active&&isMyTurn){d3d.classList.remove("inactive","off");}
+        if(active){d3d.classList.remove("inactive");d3d.classList.toggle("off",!isMyTurn||G.rolled||G.over);}
         else{d3d.classList.add("inactive");d3d.classList.remove("off");}
       }
     });
@@ -2645,6 +2660,37 @@ window.closeModals = closeModals;
 // It is called inside loadAndStartGame() AFTER MY_SEAT is assigned,
 // so all POV home colors render correctly from the start. (Rule 4)
 console.log("✅ All buttons bound. Board will render after seat assignment.");
+
+// ── Room Code Copy ─────────────────────────────────────────────────────────────
+const _rcDisplay = document.getElementById("display-room-code");
+const _copyToast = document.getElementById("copy-toast");
+let _copyTimer = null;
+if(_rcDisplay){
+  _rcDisplay.addEventListener("click", function(){
+    const code = _rcDisplay.textContent.trim();
+    if(!code || code === "------") return;
+    // Try Clipboard API first, fallback to execCommand
+    const doCopy = () => {
+      if(_copyTimer) clearTimeout(_copyTimer);
+      _copyToast.classList.add("show");
+      _copyTimer = setTimeout(()=>_copyToast.classList.remove("show"), 1800);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(doCopy).catch(()=>{
+        // Fallback
+        const ta = document.createElement("textarea");
+        ta.value = code; ta.style.cssText="position:fixed;opacity:0;";
+        document.body.appendChild(ta); ta.select(); document.execCommand("copy");
+        document.body.removeChild(ta); doCopy();
+      });
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = code; ta.style.cssText="position:fixed;opacity:0;";
+      document.body.appendChild(ta); ta.select(); document.execCommand("copy");
+      document.body.removeChild(ta); doCopy();
+    }
+  });
+}
 
 }); // end DOMContentLoaded
 </script>
