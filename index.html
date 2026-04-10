@@ -1885,11 +1885,25 @@ function rcToXY(r,c){
 }
 
 const _slotPxCache={};
-// baseCirclePx: pure math home circle positioning — no DOM queries, no trig. (Rule 1, Rule 2)
-// Board never rotates so pixel positions are always stable pure-math results.
+// baseCirclePx: reads actual rendered circle center + size from DOM via data-slot.
+// Returns {x, y, r} where x,y = center in tokens-layer coords, r = circle radius in px.
 function baseCirclePx(homeR,homeC,slotIdx){
   const ck=`${homeR},${homeC},${slotIdx}`;
   if(_slotPxCache[ck]) return _slotPxCache[ck];
+  const el=document.querySelector(`[data-slot="${homeR},${homeC},${slotIdx}"]`);
+  const layer=document.getElementById('tokens-layer');
+  if(el && layer){
+    const er=el.getBoundingClientRect();
+    const lr=layer.getBoundingClientRect();
+    const result={
+      x: er.left - lr.left + er.width/2,
+      y: er.top  - lr.top  + er.height/2,
+      r: Math.min(er.width, er.height) / 2
+    };
+    _slotPxCache[ck]=result;
+    return result;
+  }
+  // Fallback: pure math if DOM not ready
   const cp=cellPx(),off=boardOffset();
   const zoneX=off.x+PAD+homeC*(cp+GAP);
   const zoneY=off.y+PAD+homeR*(cp+GAP);
@@ -1899,12 +1913,7 @@ function baseCirclePx(homeR,homeC,slotIdx){
   const wbY=zoneY+(zoneW-wbW)/2;
   const pad=wbW*0.10,gap=wbW*0.10,cellW=(wbW-2*pad-gap)/2;
   const col=slotIdx%2,row=Math.floor(slotIdx/2);
-  const result={
-    x:wbX+pad+col*(cellW+gap)+cellW/2,
-    y:wbY+pad+row*(cellW+gap)+cellW/2
-  };
-  _slotPxCache[ck]=result;
-  return result;
+  return {x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2, r:cellW/2};
 }
 
 function renderTokens(){
@@ -1947,10 +1956,14 @@ function renderTokens(){
     let px,py,scale=1,stackCount=1;
     let color=getDisplayColorForSeat(tok.pid); 
     if(tok.step===0){
-      // HOME: use getRenderHome (slot-based) so self is always bottom-left
-      const [hr,hc]=getRenderHome(tok.pid); // ✅ slot-aware, not seat-aware
+      // HOME: position token so ball sits exactly inside its circle
+      const [hr,hc]=getRenderHome(tok.pid);
       const bp=baseCirclePx(hr,hc,tok.tid);
-      px=bp.x; py=bp.y; scale=1.02;
+      px=bp.x; py=bp.y;
+      // Scale token so its ball (dia = rW * 38/100) matches circle diameter (bp.r*2)
+      // ball dia in SVG = 2*19 = 38 out of 100 width → scale rW so 0.38*rW = bp.r*2*0.88
+      if(bp.r) scale=(bp.r*2*0.88)/(BASE_W*0.38);
+      else scale=1.02;
     } else if(tok.step>=STEP_DONE){
       // DONE/CENTER: use physical seat direction — CSS rotation handles POV
       const centerRC=[7,7];
