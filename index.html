@@ -1875,7 +1875,7 @@ function _refreshCache(){
 }
 function cellPx(){return _cpx||Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);}
 function boardOffset(){return{x:_ox,y:_oy};}
-const GAP=1,PAD=6;
+const GAP=1,PAD=5; // matches #board padding:5px in CSS
 
 // rcToXY: converts board grid (r,c) → pixel position on tokens-layer.
 // Board never rotates — pure math only. No sin/cos. No rotation compensation. (Rule 1, Rule 2)
