@@ -1885,25 +1885,22 @@ function rcToXY(r,c){
 }
 
 const _slotPxCache={};
-// baseCirclePx: reads actual rendered circle center + size from DOM via data-slot.
-// Returns {x, y, r} where x,y = center in tokens-layer coords, r = circle radius in px.
+// baseCirclePx: reads actual rendered circle center from DOM via data-slot attribute.
 function baseCirclePx(homeR,homeC,slotIdx){
   const ck=`${homeR},${homeC},${slotIdx}`;
   if(_slotPxCache[ck]) return _slotPxCache[ck];
-  const el=document.querySelector(`[data-slot="${homeR},${homeC},${slotIdx}"]`);
+  const el=document.querySelector(`[data-slot="${ck}"]`);
   const layer=document.getElementById('tokens-layer');
-  if(el && layer){
-    const er=el.getBoundingClientRect();
-    const lr=layer.getBoundingClientRect();
-    const result={
-      x: er.left - lr.left + er.width/2,
-      y: er.top  - lr.top  + er.height/2,
-      r: Math.min(er.width, er.height) / 2
-    };
-    _slotPxCache[ck]=result;
-    return result;
+  if(el&&layer){
+    // Use offsetLeft/offsetTop chain to get position unaffected by CSS rotation.
+    // Walk up from circle el to tokens-layer to accumulate unrotated offsets.
+    let ox=0,oy=0,cur=el;
+    while(cur&&cur!==layer){ox+=cur.offsetLeft;oy+=cur.offsetTop;cur=cur.offsetParent;}
+    const r={x:ox+el.offsetWidth/2, y:oy+el.offsetHeight/2};
+    _slotPxCache[ck]=r;
+    return r;
   }
-  // Fallback: pure math if DOM not ready
+  // Fallback: pure math
   const cp=cellPx(),off=boardOffset();
   const zoneX=off.x+PAD+homeC*(cp+GAP);
   const zoneY=off.y+PAD+homeR*(cp+GAP);
@@ -1913,7 +1910,7 @@ function baseCirclePx(homeR,homeC,slotIdx){
   const wbY=zoneY+(zoneW-wbW)/2;
   const pad=wbW*0.10,gap=wbW*0.10,cellW=(wbW-2*pad-gap)/2;
   const col=slotIdx%2,row=Math.floor(slotIdx/2);
-  return {x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2, r:cellW/2};
+  return{x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2};
 }
 
 function renderTokens(){
@@ -1956,14 +1953,10 @@ function renderTokens(){
     let px,py,scale=1,stackCount=1;
     let color=getDisplayColorForSeat(tok.pid); 
     if(tok.step===0){
-      // HOME: position token so ball sits exactly inside its circle
+      // HOME: tip of token points to circle center
       const [hr,hc]=getRenderHome(tok.pid);
       const bp=baseCirclePx(hr,hc,tok.tid);
-      px=bp.x; py=bp.y;
-      // Scale token so its ball (dia = rW * 38/100) matches circle diameter (bp.r*2)
-      // ball dia in SVG = 2*19 = 38 out of 100 width → scale rW so 0.38*rW = bp.r*2*0.88
-      if(bp.r) scale=(bp.r*2*0.88)/(BASE_W*0.38);
-      else scale=1.02;
+      px=bp.x; py=bp.y; scale=1.02;
     } else if(tok.step>=STEP_DONE){
       // DONE/CENTER: use physical seat direction — CSS rotation handles POV
       const centerRC=[7,7];
@@ -1995,7 +1988,7 @@ function renderTokens(){
     }
 
     alive.add(key);
-    const rW=BASE_W*scale,rH=rW*(130/100),tipOffset=rH*(40/130); // ball center (cy=40/130) aligns to circle center
+    const rW=BASE_W*scale,rH=rW*(130/100),tipOffset=rH*(122/130);
     const tx=px-rW/2,ty=py-tipOffset;
     const els=_ensureTokEl(tok,color);
     const {wrap,shadow}=els;
@@ -2189,7 +2182,7 @@ const JUMP_MS=160;
 
 function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,cp){
   return new Promise(resolve=>{
-    const rH=rW*(130/100),tipOffset=rH*(40/130); // ball center aligned
+    const rH=rW*(130/100),tipOffset=rH*(122/130);
     const shadowW=rW*0.60,shadowH=rW*0.16;
     const h=cp*0.65;
     let t0=null;
