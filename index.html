@@ -953,8 +953,13 @@ window.hostStartGame = async function(){
     timestamp: firebase.database.ServerValue.TIMESTAMP
   };
 
-  await gameRef.set(initGame);
-  await roomRef.update({ status: "playing" });
+  try {
+    await gameRef.set(initGame);
+    await roomRef.update({ status: "playing" });
+  } catch(e) {
+    console.error("❌ Game start failed:", e);
+    showToast("❌ Failed to start game — check connection");
+  }
 };
 
 // ── Load and start game ────────────────────────────────────────────────────────
@@ -1034,9 +1039,11 @@ async function loadAndStartGame(){
 // ── Sync game state from Firebase ─────────────────────────────────────────────
 function syncGameState(data){
   // Block sync until loadAndStartGame() has fully populated PLAYERS[]
-  if(!_gameLoaded) return;
+  if(!_gameLoaded){ console.warn("⏳ syncGameState: game not loaded yet, skipping update"); return; }
   // Skip updates that WE pushed — actionBy is the sole guard against self-reapply.
   if(data.actionBy === MY_SEAT) return;
+  // Don't block opponent updates based on _animating — only local doMove uses _animating
+  // _animating flag is local to MY token moves and should not affect opponent sync
 
   setSyncStatus("ok");
 
@@ -1078,16 +1085,22 @@ function syncGameState(data){
     G.sixes   = data.sixes || 0;
     G.waiting = false; // NEVER set waiting for opponent's roll
     if(dice != null && rolledBy != null){
-      animDice(rolledBy, dice, ()=>{ refreshUI(); renderTokens(); updateTurnBanner(); });
+      animDice(rolledBy, dice, ()=>{
+        refreshUI();   // ← updates dice inactive/active classes for ALL players
+        renderTokens();
+        updateTurnBanner();
+      });
+    } else {
+      refreshUI(); renderTokens(); updateTurnBanner();
     }
     return;
   }
 
   // ── CASE 2: action="move" — ATOMIC ────────────────────────────────────────
-  // Full move: animate dice then apply final token state.
+  // Full move: animate dice, then animate token movement step-by-step, then apply final state.
   if(action === "move"){
-    const applyMoveState = () => {
-      if(!_animating && data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
+    const applyFinalState = () => {
+      if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
       G.turn       = data.turn;
       G.rolled     = false;
       G.waiting    = false;
@@ -1095,15 +1108,65 @@ function syncGameState(data){
       G.sixes      = data.sixes      || 0;
       G.placements = data.placements || [];
       G.over       = data.over       || false;
+      _animating   = false;
       if(G.over && !document.getElementById("win").classList.contains("show")){
         endGame(); return;
       }
       refreshUI(); renderTokens(); updateTurnBanner();
     };
+
+    // Animate opponent's move with step-by-step token animation
+    const runMoveAnim = async () => {
+      const moves = data.moves || [];
+      // Find the primary move (type "open" or "move") for the moved token
+      const primaryMove = moves.find(m => m.type === "open" || m.type === "move");
+      if(primaryMove && dice != null){
+        const { pid, tid, type, finalStep } = primaryMove;
+        const tok = tokOf(pid, tid);
+        if(tok && !_animating){
+          _animating = true;
+          if(type === "open" && tok.step === 0){
+            // Spawn animation from home to entry cell
+            const spawnKey = `${pid}-${tid}`;
+            const [spawnHr, spawnHc] = getRenderHome(pid);
+            const spawnStart = baseCirclePx(spawnHr, spawnHc, tid);
+            tok.step = 1;
+            renderTokens(); await rafDelay(20);
+            const entryRC = getRenderCell(pid, 1);
+            if(entryRC && _tokEls[spawnKey]){
+              const entryXY = rcToXY(entryRC[0], entryRC[1]);
+              const cp2 = cellPx(), BASE_W2 = Math.round(cp2 * 1.15);
+              await jumpStep(_tokEls[spawnKey].wrap, _tokEls[spawnKey].shadow, spawnStart.x, spawnStart.y, entryXY.x, entryXY.y, BASE_W2, cp2);
+            }
+          } else if(type === "move" && tok.step > 0){
+            // Step-by-step walk animation
+            const steps = finalStep - tok.step;
+            if(steps > 0 && steps <= 6){
+              await animateMove(tok, steps);
+            }
+          }
+        }
+      }
+      // Handle any captured tokens (step=0 in final state that were not 0 before)
+      if(data.tokens){
+        data.tokens.forEach(ft => {
+          if(ft.step === 0){
+            const lt = tokOf(ft.pid, ft.tid);
+            if(lt && lt.step > 0){
+              // This token was captured — send home fast visually
+              sendHomeFast(lt);
+            }
+          }
+        });
+      }
+      await rafDelay(80);
+      applyFinalState();
+    };
+
     if(dice != null && rolledBy != null){
-      animDice(rolledBy, dice, applyMoveState);
+      animDice(rolledBy, dice, () => { runMoveAnim(); });
     } else {
-      applyMoveState();
+      runMoveAnim();
     }
     return;
   }
