@@ -2286,8 +2286,8 @@ function afterRoll(pid,v){
       renderTokens();
       // ✅ ATOMIC: ONE push, action="skip", reason="3sixes"
       setTimeout(async()=>{
+        nextTurn(false); // ✅ FIX: nextTurn pehle so G.turn is updated before push
         await pushGameState({ action:"skip", dice:v, reason:"3sixes" });
-        nextTurn(false);
       },300);
       return;
     }
@@ -2299,8 +2299,8 @@ function afterRoll(pid,v){
     renderTokens();refreshUI();
     // ✅ ATOMIC: ONE push, action="skip", reason="noMove"
     setTimeout(async()=>{
+      nextTurn(false); // ✅ FIX: nextTurn pehle so G.turn updated before push
       await pushGameState({ action:"skip", dice:v, reason:"noMove" });
-      nextTurn(false);
     },300);
     return;
   }
@@ -2554,8 +2554,10 @@ async function doMove(pid,tid,v){
     }
   });
 
-  // ✅ Push BEFORE nextTurn so Firebase state matches what opponents will receive.
-  // If push fails, local state and server stay consistent (both still on same turn).
+  // ✅ FIX: nextTurn() PEHLE call karo taaki G.turn update ho next player pe,
+  // PHIR push karo — warna Firebase mein purana (mover ka) turn jaata tha
+  // aur joiner ko dice kabhi shift nahi hota tha.
+  nextTurn(bonus);
   await pushGameState({
     action: "move",
     dice: v,
@@ -2563,7 +2565,6 @@ async function doMove(pid,tid,v){
     movedPid: pid,
     movedTid: tid
   });
-  nextTurn(bonus);
 }
 
 function nextTurn(same){
