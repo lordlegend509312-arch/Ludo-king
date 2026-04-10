@@ -147,6 +147,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
   transition:transform 0.6s cubic-bezier(0.34,1.26,0.64,1);
   transform-origin:center center;
   flex-shrink:0;
+  overflow:visible;
 }
 /* tokens-layer rotates WITH board-wrap, tokens themselves counter-rotate */
 #board{
@@ -172,7 +173,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 .face-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.65) 0%,transparent 50%);border-radius:7px;pointer-events:none;z-index:2;}
 .ddot{width:7px;height:7px;background:radial-gradient(circle at 33% 28%,#4a3878,#0e0c22);border-radius:50%;position:absolute;box-shadow:0 1px 2px rgba(0,0,0,.55);z-index:3;}
 
-#tokens-layer{position:absolute;top:0;left:0;pointer-events:none;}
+#tokens-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;}
 .tok{position:absolute;pointer-events:none;will-change:transform;transition:none;left:0;top:0;}
 .tok.movable{pointer-events:auto;cursor:pointer;}
 .tok.movable::after{content:"";position:absolute;inset:-10px;border-radius:50%;}
@@ -1934,12 +1935,10 @@ function _refreshCache(){
   if(!_cpx)_cpx=Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);
 }
 function cellPx(){return _cpx||Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);}
-// boardOffset: always use getBoundingClientRect — offsetLeft is parent-relative and unreliable with CSS transforms
-function boardOffset(){
-  const b=document.getElementById("board"),l=document.getElementById("tokens-layer");
-  if(b&&l){const br=b.getBoundingClientRect(),lr=l.getBoundingClientRect();return{x:br.left-lr.left,y:br.top-lr.top};}
-  return{x:0,y:0};
-}
+// boardOffset: board and tokens-layer are co-located inside board-wrap (both at top:0,left:0)
+// After tokens-layer got width:100%/height:100%, their rects are identical — offset is always (0,0)
+// PAD is already added in rcToXY separately
+function boardOffset(){ return{x:0,y:0}; }
 const GAP=1,PAD=5; // matches #board padding:5px in CSS
 
 // rcToXY: converts board grid (r,c) → pixel position on tokens-layer.
@@ -2048,7 +2047,10 @@ function renderTokens(){
     }
 
     alive.add(key);
-    const rW=BASE_W*scale,rH=rW*(130/100),tipOffset=rH*(40/130); // ball center (cy=40/130) aligns to circle center
+    const rW=BASE_W*scale,rH=rW*(130/100);
+    // Ludo King style: token tip at cell centre, body extends upward
+    // SVG tip is at y=122/130 of total height
+    const tipOffset=rH*(122/130);
     const tx=px-rW/2,ty=py-tipOffset;
     const els=_ensureTokEl(tok,color);
     const {wrap,shadow}=els;
@@ -2267,7 +2269,7 @@ const JUMP_MS=160;
 
 function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,cp){
   return new Promise(resolve=>{
-    const rH=rW*(130/100),tipOffset=rH*(40/130); // ball center aligned
+    const rH=rW*(130/100),tipOffset=rH*(122/130); // tip at cell centre (Ludo King style)
     const shadowW=rW*0.60,shadowH=rW*0.16;
     const h=cp*0.65;
     let t0=null;
