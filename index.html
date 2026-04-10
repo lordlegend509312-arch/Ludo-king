@@ -1426,8 +1426,14 @@ function getHomeCornerBySeat(seat){
 // Uses visual slot (how far CW pid is from MY_SEAT) to pick the correct home zone corner.
 // slot 0 = self (bottom-left), slot 1 = top-left, slot 2 = top-right, slot 3 = bottom-right
 function getRenderHome(pid){
-  // v22: physical home corner — CSS rotation handles POV, no slot remapping
-  return HOME_CORNER_BY_SEAT[pid] ?? [9, 0];
+  // Tokens are counter-rotated so they stay at absolute pixel positions.
+  // Must return the VISUAL corner (post board-rotation) so the token lands
+  // on the correct home zone visually.
+  // After board rotates CW by SEAT_ROTATION[MY_SEAT], physical seat pid
+  // appears at visual corner: ((pid - MY_SEAT + 3) % 4 + 4) % 4
+  if(MY_SEAT === null) return HOME_CORNER_BY_SEAT[pid] ?? [9,0];
+  const visualCorner = ((pid - MY_SEAT + 3) % 4 + 4) % 4;
+  return HOME_CORNER_BY_SEAT[visualCorner] ?? [9,0];
 }
 
 // getRenderCell: THE render-layer path lookup.
