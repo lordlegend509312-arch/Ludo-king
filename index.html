@@ -165,41 +165,20 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 
 .star-svg{width:82%;height:82%;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,200,.8));}
 
-/* ── NEW DICE: 2D flat idle, 3D only during animation ── */
-.dice-wrap{width:38px;height:38px;position:relative;cursor:pointer;flex-shrink:0;}
-.dice-wrap.off{cursor:default;pointer-events:none;}
-.dice-wrap.inactive{opacity:0;pointer-events:none;}
-
-/* 2D flat face — shown at rest */
-.dice-flat{
-  position:absolute;inset:0;
-  border-radius:7px;
-  background:linear-gradient(145deg,#fff,#f5ebd8);
-  border:1.5px solid #cdb880;
-  box-shadow:0 2px 6px rgba(0,0,0,.35),inset 0 1px 2px rgba(255,255,255,.8);
-  display:flex;align-items:center;justify-content:center;
-  transition:transform 0.08s ease,box-shadow 0.08s ease;
-}
-.dice-flat.hidden{opacity:0;pointer-events:none;}
-.dice-flat-shine{position:absolute;inset:0;border-radius:6px;background:linear-gradient(135deg,rgba(255,255,255,.65) 0%,transparent 50%);pointer-events:none;}
-.dice-flat-dots{position:relative;width:100%;height:100%;}
-.fdot{width:6px;height:6px;background:radial-gradient(circle at 33% 28%,#4a3878,#0e0c22);border-radius:50%;position:absolute;box-shadow:0 1px 2px rgba(0,0,0,.55);}
-
-/* 3D cube — shown only during roll animation */
-.dice-3d-wrap{
-  position:absolute;inset:0;
-  perspective:500px;
-  opacity:0;pointer-events:none;
-}
-.dice-3d-wrap.rolling{opacity:1;}
-.dice-cube{
+/* ── CANVAS DICE ── */
+.dice-canvas-wrap{
   width:38px;height:38px;
-  transform-style:preserve-3d;
-  will-change:transform;
+  position:relative;
+  cursor:pointer;
+  flex-shrink:0;
 }
-.dice-face{position:absolute;width:38px;height:38px;border-radius:7px;border:1.5px solid #cdb880;backface-visibility:hidden;overflow:hidden;}
-.face-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.65) 0%,transparent 50%);border-radius:7px;pointer-events:none;z-index:2;}
-.ddot{width:7px;height:7px;background:radial-gradient(circle at 33% 28%,#4a3878,#0e0c22);border-radius:50%;position:absolute;box-shadow:0 1px 2px rgba(0,0,0,.55);z-index:3;}
+.dice-canvas-wrap.off{cursor:default;pointer-events:none;}
+.dice-canvas-wrap.inactive{opacity:0;pointer-events:none;}
+.dice-canvas-wrap canvas{
+  position:absolute;top:0;left:0;
+  width:38px;height:38px;
+  border-radius:7px;
+}
 
 #tokens-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;}
 .tok{position:absolute;pointer-events:none;will-change:transform;transition:none;left:0;top:0;}
@@ -216,13 +195,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 .sparkle{position:absolute;left:0;top:0;pointer-events:none;border-radius:50%;animation:sparkleFly var(--sd,0.6s) ease-out forwards;}
 @keyframes sparkleFly{0%{opacity:1;transform:var(--st) scale(1);}100%{opacity:0;transform:var(--st) translate(var(--sx),var(--sy)) scale(0);}}
 
-@keyframes diceLand{
-  0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1.18);}
-  55%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(0.93);}
-  80%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1.05);}
-  100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1);}
-}
-.dice-cube.landing{animation:diceLand 0.35s cubic-bezier(0.36,0.07,0.19,0.97) forwards;}
+/* canvas dice landing handled in JS */
 
 #status-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px;}
 #btn-back,#btn-pause{
@@ -1902,191 +1875,313 @@ function makePanel(pid,side,pos,isMe=false){
   return col;
 }
 
-// ── NEW DICE SYSTEM: 2D flat idle + 3D only during animation ─────────────────
-// Ludo King style: rest=flat 2D, click=rise+3D spin, land=back to flat 2D
-const DOTS={1:["cc"],2:["tl","br"],3:["tl","cc","br"],4:["tl","tr","bl","br"],5:["tl","tr","cc","bl","br"],6:["tl","tr","ml","mr","bl","br"]};
-const DOT_POS={
-  tl:{top:"14%",left:"14%"},tr:{top:"14%",right:"14%"},
-  ml:{top:"50%",left:"14%",transform:"translateY(-50%)"},
-  mr:{top:"50%",right:"14%",transform:"translateY(-50%)"},
-  bl:{bottom:"14%",left:"14%"},br:{bottom:"14%",right:"14%"},
-  cc:{top:"50%",left:"50%",transform:"translate(-50%,-50%)"}
+// ── Canvas Dice (Ludo King style) ─────────────────────────────────────────────
+// Rest state: flat 2D on canvas. Click: 3D bounce + spin anim, then snap back 2D.
+// All drawing happens on the canvas — no CSS 3D, no face-alignment glitch.
+
+const _diceState = {}; // pid → { canvas, busy, lastVal, raf }
+
+// Dot positions for each face value (normalised 0..1 coords)
+const _DOTMAP = {
+  1: [[0.5,  0.5]],
+  2: [[0.27, 0.27], [0.73, 0.73]],
+  3: [[0.27, 0.27], [0.5,  0.5],  [0.73, 0.73]],
+  4: [[0.27, 0.27], [0.73, 0.27], [0.27, 0.73], [0.73, 0.73]],
+  5: [[0.27, 0.27], [0.73, 0.27], [0.5,  0.5],  [0.27, 0.73], [0.73, 0.73]],
+  6: [[0.27, 0.22], [0.73, 0.22], [0.27, 0.5],  [0.73, 0.5],  [0.27, 0.78], [0.73, 0.78]]
 };
-// 3D cube face definitions (only used during animation)
-const FACE_DEFS=[
-  {n:1,bg:"linear-gradient(145deg,#fff,#f5ebd8)",tf:"rotateY(0deg)"},
-  {n:6,bg:"linear-gradient(145deg,#e8dfc8,#d5c9a8)",tf:"rotateY(180deg)"},
-  {n:2,bg:"linear-gradient(145deg,#ede4cc,#ddd0ac)",tf:"rotateY(90deg)"},
-  {n:5,bg:"linear-gradient(145deg,#ede4cc,#ddd0ac)",tf:"rotateY(-90deg)"},
-  {n:3,bg:"linear-gradient(145deg,#fff,#f8f0de)",tf:"rotateX(90deg)"},
-  {n:4,bg:"linear-gradient(145deg,#d8d0b4,#c8bc98)",tf:"rotateX(-90deg)"}
-];
-// Target 3D rotation so correct face lands up for each value
-const LAND={1:{rx:0,ry:0},2:{rx:0,ry:-90},3:{rx:-90,ry:0},4:{rx:90,ry:0},5:{rx:0,ry:90},6:{rx:0,ry:180}};
-const dAcc={rx:{},ry:{},busy:{},last:{}};
 
-function rng(){if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(1);while(true){crypto.getRandomValues(a);if(a[0]<252)return(a[0]%6)+1;}}return Math.floor(Math.random()*6)+1;}
-function eio(t){return t<.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1;}
-function lerp(a,b,t){return a+(b-a)*t;}
-
-// Build flat 2D dot face for a given value
-function makeFlatFace(val){
-  const container=document.createElement("div");
-  container.className="dice-flat-dots";
-  (DOTS[val]||[]).forEach(pos=>{
-    const dot=document.createElement("div");
-    dot.className="fdot";
-    const ps=DOT_POS[pos];
-    if(ps) Object.assign(dot.style,ps);
-    container.appendChild(dot);
+// Draw a single 2D dice face onto canvas at given position/size/scale
+// scaleX/scaleY for squash-stretch, yOff for bounce height
+function _drawDice2D(canvas, val, scaleX, scaleY, yOff, alpha){
+  const DPR = window.devicePixelRatio || 1;
+  const W = canvas.width / DPR;   // logical px
+  const H = canvas.height / DPR;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+  // Centre + apply squash-stretch + yOff
+  ctx.translate(canvas.width/2, canvas.height/2 + yOff*DPR);
+  ctx.scale(scaleX * DPR, scaleY * DPR);
+  const S = W/2; // half-size
+  const R = S * 0.22; // corner radius
+  // ── Body ──
+  ctx.beginPath();
+  ctx.moveTo(-S+R, -S);
+  ctx.lineTo( S-R, -S);
+  ctx.quadraticCurveTo( S, -S,  S, -S+R);
+  ctx.lineTo( S,  S-R);
+  ctx.quadraticCurveTo( S,  S,  S-R,  S);
+  ctx.lineTo(-S+R,  S);
+  ctx.quadraticCurveTo(-S,  S, -S,  S-R);
+  ctx.lineTo(-S, -S+R);
+  ctx.quadraticCurveTo(-S, -S, -S+R, -S);
+  ctx.closePath();
+  // gradient fill (warm ivory like original)
+  const grd = ctx.createLinearGradient(-S,-S, S, S);
+  grd.addColorStop(0, "#fffdf4");
+  grd.addColorStop(1, "#ede4c8");
+  ctx.fillStyle = grd;
+  ctx.fill();
+  // border
+  ctx.strokeStyle = "#cdb880";
+  ctx.lineWidth = 0.06 * W;
+  ctx.stroke();
+  // ── Shine overlay ──
+  ctx.beginPath();
+  ctx.moveTo(-S+R, -S);
+  ctx.lineTo( S-R, -S);
+  ctx.quadraticCurveTo( S, -S,  S, -S+R);
+  ctx.lineTo( S,  S-R);
+  ctx.quadraticCurveTo( S,  S,  S-R,  S);
+  ctx.lineTo(-S+R,  S);
+  ctx.quadraticCurveTo(-S,  S, -S,  S-R);
+  ctx.lineTo(-S, -S+R);
+  ctx.quadraticCurveTo(-S, -S, -S+R, -S);
+  ctx.closePath();
+  const sg = ctx.createLinearGradient(-S,-S, S*0.4, S*0.4);
+  sg.addColorStop(0, "rgba(255,255,255,0.62)");
+  sg.addColorStop(0.45,"rgba(255,255,255,0.08)");
+  sg.addColorStop(1,   "rgba(255,255,255,0)");
+  ctx.fillStyle = sg;
+  ctx.fill();
+  // ── Dots ──
+  const n = Math.max(1,Math.min(6,Math.round(val)||1));
+  const dots = _DOTMAP[n] || _DOTMAP[1];
+  const dotR = S * 0.155;
+  dots.forEach(([nx,ny])=>{
+    const dx = (nx-0.5)*(W*0.86);
+    const dy = (ny-0.5)*(W*0.86);
+    // dot shadow
+    ctx.beginPath();
+    ctx.arc(dx+dotR*0.25, dy+dotR*0.3, dotR, 0, Math.PI*2);
+    ctx.fillStyle = "rgba(0,0,0,0.22)";
+    ctx.fill();
+    // dot body
+    const dg = ctx.createRadialGradient(dx-dotR*0.3, dy-dotR*0.3, 0, dx, dy, dotR);
+    dg.addColorStop(0, "#4a3878");
+    dg.addColorStop(1, "#0e0c22");
+    ctx.beginPath();
+    ctx.arc(dx, dy, dotR, 0, Math.PI*2);
+    ctx.fillStyle = dg;
+    ctx.fill();
   });
-  return container;
+  ctx.restore();
 }
 
-// Update flat face to show new value
-function setFlatVal(pid, val){
-  const flat=document.getElementById(`dflat-${pid}`);
-  if(!flat) return;
-  const dotsEl=flat.querySelector(".dice-flat-dots");
-  if(dotsEl) dotsEl.remove();
-  flat.appendChild(makeFlatFace(val));
-  dAcc.last[pid]=val;
-}
-
-// Main dice animation: flat→rise→3D spin→land→flat
-function animDice(pid, finalVal, cb){
-  const wrap=document.getElementById(`d3d-${pid}`);
-  const flat=document.getElementById(`dflat-${pid}`);
-  const d3dWrap=document.getElementById(`d3dw-${pid}`);
-  const cube=document.getElementById(`dcube-${pid}`);
-  if(!wrap||!flat||!cube){dAcc.busy[pid]=false;if(cb)cb();return;}
-  if(dAcc.busy[pid]){setTimeout(()=>animDice(pid,finalVal,cb),50);return;}
-  dAcc.busy[pid]=true;
-
-  const tg=LAND[finalVal];
-  // Normalize accumulated rotation to avoid giant numbers
-  let curRx=dAcc.rx[pid]||0, curRy=dAcc.ry[pid]||0;
-  curRx=((curRx%360)+360)%360; curRy=((curRy%360)+360)%360;
-  dAcc.rx[pid]=curRx; dAcc.ry[pid]=curRy;
-  const dX=((tg.rx-curRx)%360+360)%360, dY=((tg.ry-curRy)%360+360)%360;
-  const eRx=curRx+360+dX, eRy=curRy+360+dY;
-
-  // ── Phase 1: flat face rises up (60ms) ──
-  flat.classList.remove("hidden");
-  d3dWrap.classList.remove("rolling");
-  flat.style.transition="transform 0.06s ease-out";
-  flat.style.transform="translateY(-6px) scale(1.08)";
-
-  setTimeout(()=>{
-    // ── Phase 2: swap to 3D, hide flat, start spin ──
-    flat.classList.add("hidden");
-    d3dWrap.classList.add("rolling");
-    // Set cube start rotation = same as flat was showing
-    cube.style.transition="none";
-    cube.style.transform=`rotateX(${curRx}deg) rotateY(${curRy}deg)`;
-
-    const DUR=340; let t0=null;
-    function easeInOut(t){return t<.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1;}
-    // Arc: rises then falls, with upward peak at t=0.45
-    function arc(t){return -38*4*t*(1-t);}
-    // Squash on landing
-    function squash(t){
-      if(t<0.82) return {sx:1,sy:1};
-      const p=(t-0.82)/0.18;
-      if(p<0.4){const e=p/0.4; return {sx:lerp(1,1.12,e),sy:lerp(1,0.85,e)};}
-      const e=(p-0.4)/0.6; return {sx:lerp(1.12,1,easeInOut(e)),sy:lerp(0.85,1,easeInOut(e))};
+// Draw 3D perspective face — used during spin animation
+// angle: rotation angle in radians (around Y axis), faceVal: which face value to show
+function _drawDice3D(canvas, angle, faceVal, yOff, scaleX, scaleY){
+  const DPR = window.devicePixelRatio || 1;
+  const W = canvas.width / DPR;
+  const H = canvas.height / DPR;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(canvas.width/2, canvas.height/2 + yOff*DPR);
+  ctx.scale(scaleX * DPR, scaleY * DPR);
+  const S = W/2;
+  const R = S * 0.22;
+  // Perspective squish: cos of angle determines visible width of main face
+  const cosA = Math.abs(Math.cos(angle));
+  const sinA = Math.sin(angle);
+  // Draw side face when rotating
+  if(Math.abs(sinA) > 0.05){
+    const sideW = Math.abs(sinA) * S * 0.92;
+    const sideX = sinA > 0 ? S * cosA : -S * cosA - sideW;
+    // lighter side
+    ctx.fillStyle = sinA > 0 ? "#c8b888" : "#d8c898";
+    ctx.fillRect(sideX, -S+R, sideW, S*2-R*2);
+    // top/bottom of side
+    const sideTop = [[sideX, -S+R],[sideX+sideW, -S],[sideX+sideW,-S]];
+    ctx.fillStyle = "#b8a870";
+    ctx.beginPath();
+    if(sinA > 0){
+      ctx.moveTo(sideX, -S+R);
+      ctx.lineTo(sideX+sideW, -S);
+      ctx.lineTo(sideX+sideW, -S+R);
+      ctx.closePath();
+    } else {
+      ctx.moveTo(sideX+sideW, -S+R);
+      ctx.lineTo(sideX, -S);
+      ctx.lineTo(sideX, -S+R);
+      ctx.closePath();
     }
-
-    function tick(now){
-      if(!t0) t0=now;
-      const t=Math.min((now-t0)/DUR,1);
-      const ease=easeInOut(t);
-      const rx=lerp(curRx,eRx,ease), ry=lerp(curRy,eRy,ease);
-      const {sx,sy}=squash(t);
-      // All transforms in ONE property — no separate scale
-      cube.style.transform=`translateY(${arc(t)}px) rotateX(${rx}deg) rotateY(${ry}deg) scaleX(${sx}) scaleY(${sy})`;
-      if(t<1){requestAnimationFrame(tick);}
-      else{
-        // ── Phase 3: snap cube to exact landing rotation ──
-        cube.style.transform=`rotateX(${eRx}deg) rotateY(${eRy}deg) scale(1.1)`;
-        dAcc.rx[pid]=eRx; dAcc.ry[pid]=eRy;
-
-        // ── Phase 4: quick settle bounce, then swap back to flat ──
-        setTimeout(()=>{
-          cube.style.transition="transform 0.12s cubic-bezier(0.36,0.07,0.19,0.97)";
-          cube.style.transform=`rotateX(${eRx}deg) rotateY(${eRy}deg) scale(1)`;
-          setTimeout(()=>{
-            // ── Phase 5: show flat face with result, hide 3D ──
-            cube.style.transition="";
-            setFlatVal(pid, finalVal);
-            flat.style.transition="none";
-            flat.style.transform="translateY(-4px) scale(1.08)";
-            flat.classList.remove("hidden");
-            d3dWrap.classList.remove("rolling");
-            // Flat settles down
-            requestAnimationFrame(()=>{
-              flat.style.transition="transform 0.14s cubic-bezier(0.34,1.4,0.64,1)";
-              flat.style.transform="translateY(0px) scale(1)";
-            });
-            dAcc.busy[pid]=false;
-            if(cb) cb();
-          },110);
-        },25);
-      }
-    }
-    requestAnimationFrame(tick);
-  },65);
+    ctx.fill();
+  }
+  // Draw main face (squished horizontally)
+  const faceW = cosA * S;
+  const faceX = -faceW;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(faceX, -S, faceW*2, S*2);
+  ctx.clip();
+  // body
+  ctx.beginPath();
+  const cr = R * cosA;
+  ctx.moveTo(faceX+cr, -S);
+  ctx.lineTo(faceX+faceW*2-cr, -S);
+  ctx.quadraticCurveTo(faceX+faceW*2, -S, faceX+faceW*2, -S+R);
+  ctx.lineTo(faceX+faceW*2, S-R);
+  ctx.quadraticCurveTo(faceX+faceW*2, S, faceX+faceW*2-cr, S);
+  ctx.lineTo(faceX+cr, S);
+  ctx.quadraticCurveTo(faceX, S, faceX, S-R);
+  ctx.lineTo(faceX, -S+R);
+  ctx.quadraticCurveTo(faceX, -S, faceX+cr, -S);
+  ctx.closePath();
+  const grd = ctx.createLinearGradient(faceX, -S, faceX+faceW*2, S);
+  grd.addColorStop(0, "#fffdf4");
+  grd.addColorStop(1, "#ede4c8");
+  ctx.fillStyle = grd;
+  ctx.fill();
+  ctx.strokeStyle = "#cdb880";
+  ctx.lineWidth = 0.06*W;
+  ctx.stroke();
+  // dots (scaled by cosA)
+  const n = Math.max(1,Math.min(6,Math.round(faceVal)||1));
+  const dots = _DOTMAP[n] || _DOTMAP[1];
+  const dotR = S * 0.155 * Math.max(0.3, cosA);
+  const dotAreaW = faceW * 2 * 0.86;
+  dots.forEach(([nx,ny])=>{
+    const dx = faceX + faceW + (nx-0.5)*dotAreaW;
+    const dy = (ny-0.5)*(W*0.86);
+    const dg = ctx.createRadialGradient(dx-dotR*0.3, dy-dotR*0.3, 0, dx, dy, dotR);
+    dg.addColorStop(0, "#4a3878");
+    dg.addColorStop(1, "#0e0c22");
+    ctx.beginPath();
+    ctx.arc(dx, dy, dotR, 0, Math.PI*2);
+    ctx.fillStyle = dg;
+    ctx.fill();
+  });
+  // shine
+  const sg = ctx.createLinearGradient(faceX, -S, faceX+faceW*0.8, S*0.4);
+  sg.addColorStop(0, "rgba(255,255,255,0.55)");
+  sg.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = sg;
+  ctx.beginPath();
+  ctx.rect(faceX, -S, faceW*2, S*2);
+  ctx.fill();
+  ctx.restore();
+  ctx.restore();
 }
 
 function makeDice(pid){
-  const TZ=19;
-  // Outer wrapper — this is what gets .inactive/.off
-  const wrap=document.createElement("div");
-  wrap.className="dice-wrap inactive";
-  wrap.id=`d3d-${pid}`;
-
-  // ── 2D flat face (shown at rest) ──
-  const flat=document.createElement("div");
-  flat.className="dice-flat";
-  flat.id=`dflat-${pid}`;
-  const shine=document.createElement("div");
-  shine.className="dice-flat-shine";
-  flat.appendChild(shine);
-  flat.appendChild(makeFlatFace(6)); // default show 6
-  wrap.appendChild(flat);
-
-  // ── 3D cube wrapper (shown only during animation) ──
-  const d3dWrap=document.createElement("div");
-  d3dWrap.className="dice-3d-wrap";
-  d3dWrap.id=`d3dw-${pid}`;
-  const cube=document.createElement("div");
-  cube.className="dice-cube";
-  cube.id=`dcube-${pid}`;
-  FACE_DEFS.forEach(({n,bg,tf})=>{
-    const f=document.createElement("div");
-    f.className="dice-face lc";
-    f.style.cssText=`background:${bg};transform:${tf} translateZ(${TZ}px);`;
-    const fs=document.createElement("div");
-    fs.className="face-shine";
-    f.appendChild(fs);
-    (DOTS[n]||[]).forEach(pos=>{
-      const dot=document.createElement("div");
-      dot.className="ddot";
-      const ps=DOT_POS[pos];
-      if(ps) Object.assign(dot.style,ps);
-      f.appendChild(dot);
-    });
-    cube.appendChild(f);
-  });
-  d3dWrap.appendChild(cube);
-  wrap.appendChild(d3dWrap);
-
-  wrap.addEventListener("click",function(){
-    if(this.classList.contains("off")||this.classList.contains("inactive")) return;
+  const DPR = window.devicePixelRatio || 1;
+  const wrap = document.createElement("div");
+  wrap.className = "dice-canvas-wrap inactive";
+  wrap.id = `d3d-${pid}`;
+  const canvas = document.createElement("canvas");
+  canvas.id = `dcube-${pid}`;
+  // Physical canvas size uses DPR for crisp rendering
+  canvas.width  = Math.round(38 * DPR);
+  canvas.height = Math.round(38 * DPR);
+  canvas.style.width  = "38px";
+  canvas.style.height = "38px";
+  wrap.appendChild(canvas);
+  // Init state
+  _diceState[pid] = { canvas, busy: false, lastVal: 6, raf: null };
+  // Draw initial 2D face (6)
+  _drawDice2D(canvas, 6, 1, 1, 0, 1);
+  wrap.addEventListener("click", function(){
+    if(this.classList.contains("off") || this.classList.contains("inactive")) return;
     onHumanRoll();
   });
   return wrap;
 }
+
+function animDice(pid, finalVal, cb){
+  const st = _diceState[pid];
+  if(!st){ if(cb) cb(); return; }
+  if(st.busy){ setTimeout(()=>animDice(pid,finalVal,cb), 50); return; }
+  st.busy = true;
+  const canvas = st.canvas;
+  // Animation parameters — Ludo King style:
+  // Phase 1 (0→0.7): dice bounces UP (arc), spins Y fast (2.5 full rotations + align)
+  // Phase 2 (0.7→0.85): comes down, lands with squash
+  // Phase 3 (0.85→1): bounces back to normal, snaps to 2D
+  const DUR = 420; // ms — snappy Ludo King feel
+  const SPINS = 1.5; // extra full 360° rotations before landing
+  // We spin around Y axis. Final display angle = 0 (face-on).
+  // Total rotation = SPINS*2π (extra) + 0 (land angle, we always land face-on because we draw final val at end)
+  const totalRot = SPINS * Math.PI * 2;
+  let t0 = null;
+  // Face sequence during spin — cycle through 1-6 naturally
+  const spinFaces = [1,2,3,4,5,6,1,2,3,4,5,6];
+  function easeOut3(t){ return 1 - Math.pow(1-t, 3); }
+  function easeInOut(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+  function tick(now){
+    if(!t0) t0 = now;
+    const raw = Math.min((now - t0) / DUR, 1);
+    // ── Arc height (bounce up then come down) ──
+    // Peak at t=0.38, lands at t=0.82, then tiny bounce at t=0.92
+    let yOff = 0;
+    if(raw < 0.82){
+      const p = raw / 0.82;
+      // smooth arc: goes up to -38px, comes back
+      yOff = -38 * 4 * p * (1 - p);
+    } else if(raw < 1.0){
+      const p = (raw - 0.82) / 0.18;
+      // tiny bounce on land: squash, then micro-bounce
+      yOff = p < 0.5 ? 0 : -4 * Math.sin((p-0.5)*Math.PI*2)*0.5;
+    }
+    // ── Squash-stretch ──
+    let sx = 1, sy = 1;
+    if(raw < 0.82){
+      // slight stretch when airborne
+      const p = raw / 0.82;
+      const stretch = 1 + 0.08 * Math.sin(p * Math.PI);
+      sx = 1 / stretch; sy = stretch;
+    } else {
+      const p = (raw - 0.82) / 0.18;
+      if(p < 0.35){
+        // squash on impact
+        const sq = p / 0.35;
+        sx = 1 + 0.18*sq; sy = 1 - 0.16*sq;
+      } else {
+        // spring back
+        const sp = (p - 0.35) / 0.65;
+        const bounce = 1 - Math.pow(1-sp, 3);
+        sx = 1 + 0.18*(1-bounce)*0.4; sy = 1 - 0.16*(1-bounce)*0.4;
+      }
+    }
+    // ── Spin angle ──
+    // During flight (0→0.82): spin totalRot, eased out so it slows as it lands
+    // After landing (0.82→1): face-on (angle=0, draw 2D)
+    if(raw < 0.82){
+      const spinT = easeOut3(raw / 0.82);
+      const angle = totalRot * spinT;
+      // Face shown = changes as we spin — pick from sequence
+      const faceIdx = Math.floor((angle / (Math.PI * 2)) * 3) % spinFaces.length;
+      const showFace = raw > 0.7 ? finalVal : spinFaces[faceIdx];
+      _drawDice3D(canvas, angle % (Math.PI*2), showFace, yOff, sx, sy);
+    } else {
+      // Landing phase: draw 2D final value with squash anim
+      _drawDice2D(canvas, finalVal, sx, sy, yOff, 1);
+    }
+    if(raw < 1){
+      st.raf = requestAnimationFrame(tick);
+    } else {
+      // Settled — draw clean 2D final
+      _drawDice2D(canvas, finalVal, 1, 1, 0, 1);
+      st.lastVal = finalVal;
+      st.busy = false;
+      st.raf = null;
+      if(cb) cb();
+    }
+  }
+  if(st.raf){ cancelAnimationFrame(st.raf); st.raf = null; }
+  st.raf = requestAnimationFrame(tick);
+}
+
+function rng(){if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(1);while(true){crypto.getRandomValues(a);if(a[0]<252)return(a[0]%6)+1;}}return Math.floor(Math.random()*6)+1;}
+function eio(t){return t<.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1;}
+function lerp(a,b,t){return a+(b-a)*t;}
+function arcY(t){if(t<.82){const p=t/.82;return-52*4*p*(1-p);}const p=(t-.82)/.18;return 4*Math.sin((1-Math.pow(1-p,3))*Math.PI);}
+function sqX(t){if(t<.82)return 1;const p=(t-.82)/.18;return p<.4?lerp(1,1.14,p/.4):lerp(1.14,1,(1-Math.pow(1-(p-.4)/.6,3)));}
+function sqY(t){if(t<.82)return 1;const p=(t-.82)/.18;return p<.4?lerp(1,.82,p/.4):lerp(.82,1,(1-Math.pow(1-(p-.4)/.6,3)));}
+
+// animDice and makeDice defined above (canvas-based)
 
 function tokSVG(color,size=28){
   const dk=(hex)=>{const n=parseInt(hex.slice(1),16);const r=Math.max(0,(n>>16)-50);const g=Math.max(0,((n>>8)&0xff)-50);const b=Math.max(0,(n&0xff)-50);return`#${((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1)}`;};
@@ -2314,10 +2409,11 @@ function refreshUI(){
         d3d.classList.add("inactive");
         d3d.classList.remove("off");
       }
-      // Init flat face to 6 if never rolled yet
-      if(dAcc.last[p.id] == null && !dAcc.busy[p.id] && !G.rolled){
-        setFlatVal(p.id, 6);
-        dAcc.rx[p.id]=0; dAcc.ry[p.id]=0;
+      // Canvas dice: ensure initial face drawn when first shown
+      const st = _diceState[p.id];
+      if(st && st.canvas && !st.busy){
+        const showVal = st.lastVal || 6;
+        _drawDice2D(st.canvas, showVal, 1, 1, 0, 1);
       }
     }
   });
@@ -2732,7 +2828,7 @@ function nextTurn(same){
   }
   if(same){
     const pid=G.turn;
-    if(dAcc.busy[pid]) dAcc.busy[pid]=false;
+    if(_diceState[pid]) _diceState[pid].busy=false;
     // Rule 4: Use master pipeline — not inline ad-hoc color logic
     PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
     PLAYERS.forEach(p=>{
