@@ -689,10 +689,9 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 </div>
 
 <!-- Firebase SDKs -->
-<!-- Firebase SDKs via CDN (no module imports needed) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
 // ══════════════════════════════════════════════════════════════════
 // 🔊 SOUND ENGINE V3 — All sounds synced to DICE_DUR_MS=480ms
@@ -3138,9 +3137,6 @@ async function sendHomeFast(tok){
   const BASE_W=Math.round(cp*1.15);
   const rH=BASE_W*(130/100),tipOffset=rH*(122/130);
   const SLIDE_MS=55;
-  const stepsBack=[];
-  for(let s=tok.step;s>=1;s--) stepsBack.push(s);
-
   const stepsBack=[];
   for(let s=tok.step;s>=1;s--) stepsBack.push(s);
 
