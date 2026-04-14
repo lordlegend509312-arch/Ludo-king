@@ -3744,8 +3744,7 @@ function _attachSwipeReply(swipeWrap, replyIcon, msg, name, color, isMine){
       replyIcon.classList.remove("popped");
     }
 
-    // Prevent page scroll during horizontal swipe
-    if(Math.abs(dx) > 8) e.preventDefault();
+    // Prevent page scroll during horizontal swipe — handled by CSS touch-action:pan-y
   }
 
   function onEnd(){
@@ -3766,17 +3765,18 @@ function _attachSwipeReply(swipeWrap, replyIcon, msg, name, color, isMine){
     active = false;
   }
 
-  // Touch events (mobile)
+  // Touch events (mobile) — all passive so they never block clicks
   swipeWrap.addEventListener("touchstart", onStart, {passive:true});
-  swipeWrap.addEventListener("touchmove",  onMove,  {passive:false});
+  swipeWrap.addEventListener("touchmove",  onMove,  {passive:true});
   swipeWrap.addEventListener("touchend",   onEnd,   {passive:true});
   swipeWrap.addEventListener("touchcancel",onEnd,   {passive:true});
 
-  // Mouse events (desktop, for testing)
+  // Mouse events (desktop) — scoped to swipeWrap, no global window listeners
   let mouseDown = false;
   swipeWrap.addEventListener("mousedown", e=>{ mouseDown=true; onStart(e); });
-  window.addEventListener("mousemove", e=>{ if(mouseDown) onMove(e); });
-  window.addEventListener("mouseup",   e=>{ if(mouseDown){ mouseDown=false; onEnd(); } });
+  swipeWrap.addEventListener("mousemove", e=>{ if(mouseDown) onMove(e); });
+  swipeWrap.addEventListener("mouseup",   e=>{ if(mouseDown){ mouseDown=false; onEnd(); } });
+  swipeWrap.addEventListener("mouseleave",e=>{ if(mouseDown){ mouseDown=false; onEnd(); } });
 }
 
 function listenChat(){
