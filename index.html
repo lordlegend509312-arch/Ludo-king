@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v22</title>
+<title>Ludo King — Online Multiplayer v27</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -395,6 +395,97 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 #btn-chat-toggle:hover{background:rgba(245,197,24,.15);border-color:rgba(245,197,24,.4);color:white;}
 #btn-chat-toggle:active{transform:scale(0.92);}
 
+/* ── SWIPE-TO-REPLY ── */
+/* Wrapper so each msg can slide independently */
+.chat-msg-swipe{
+  position:relative;
+  touch-action:pan-y;
+  will-change:transform;
+  transition:transform 0.22s cubic-bezier(0.22,1,0.36,1);
+}
+.chat-msg-swipe.swiping{transition:none;}
+
+/* Reply icon that appears behind the sliding message */
+.chat-reply-icon{
+  position:absolute;
+  top:50%;right:4px;
+  transform:translateY(-50%) scale(0.5);
+  width:28px;height:28px;
+  background:var(--border2);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;
+  opacity:0;
+  transition:opacity 0.15s,transform 0.15s;
+  pointer-events:none;
+  color:white;
+}
+/* Mine messages: icon on left */
+.chat-msg.mine .chat-reply-icon{right:auto;left:4px;}
+
+.chat-reply-icon.visible{
+  opacity:1;
+  transform:translateY(-50%) scale(1);
+}
+.chat-reply-icon.popped{
+  transform:translateY(-50%) scale(1.35);
+}
+
+/* Reply preview bar above input */
+#chat-reply-bar{
+  display:none;
+  align-items:center;gap:8px;
+  padding:6px 10px 4px;
+  background:var(--surface);
+  border-top:1px solid var(--border2);
+  flex-shrink:0;
+  animation:replyBarIn 0.18s cubic-bezier(0.34,1.26,0.64,1);
+}
+@keyframes replyBarIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+#chat-reply-bar.show{display:flex;}
+#chat-reply-bar-line{
+  width:3px;height:100%;min-height:28px;border-radius:3px;
+  background:var(--gold);flex-shrink:0;
+}
+#chat-reply-bar-content{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;gap:1px;
+}
+#chat-reply-bar-name{
+  font-size:.68rem;font-weight:800;color:var(--gold);
+  font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#chat-reply-bar-text{
+  font-size:.72rem;color:var(--muted);
+  font-family:'Nunito',sans-serif;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#chat-reply-cancel{
+  background:none;border:none;color:var(--muted);font-size:16px;
+  cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0;
+}
+#chat-reply-cancel:hover{color:white;}
+
+/* Quoted reply bubble inside a message */
+.chat-reply-quote{
+  background:rgba(255,255,255,.05);
+  border-left:3px solid var(--gold);
+  border-radius:0 6px 6px 0;
+  padding:4px 8px;
+  margin-bottom:4px;
+  max-width:100%;
+}
+.chat-reply-quote-name{
+  font-size:.65rem;font-weight:800;color:var(--gold);
+  font-family:'Nunito',sans-serif;margin-bottom:1px;
+}
+.chat-reply-quote-text{
+  font-size:.7rem;color:var(--muted);
+  font-family:'Nunito',sans-serif;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:200px;
+}
+
 /* ── SPAWN BOUNCE ── */
 @keyframes tokSpawnBounce{
   0%{transform:var(--sp-base) scale(0) translateY(8px);}
@@ -583,6 +674,14 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
     <button id="chat-close">✕</button>
   </div>
   <div id="chat-messages"></div>
+  <div id="chat-reply-bar">
+    <div id="chat-reply-bar-line"></div>
+    <div id="chat-reply-bar-content">
+      <div id="chat-reply-bar-name"></div>
+      <div id="chat-reply-bar-text"></div>
+    </div>
+    <button id="chat-reply-cancel" onclick="window.clearReply()">✕</button>
+  </div>
   <div id="chat-input-row">
     <input id="chat-input" type="text" maxlength="120" placeholder="Say something..." autocomplete="off">
     <button id="chat-send">➤</button>
@@ -676,16 +775,26 @@ const SFX=(() => {
     src.start(start);src.stop(start+dur+0.02);
   }
 
+  // FIX: dice roll noise buffer cached — allocated once per AudioContext, reused on every roll
+  // Previously created fresh on every roll causing GC pressure and first-roll audio stutter
+  let _diceNoiseBuf=null;
+  let _diceNoiseBufSr=0;
+  function getDiceNoiseBuf(ctx,durSecs){
+    const needed=Math.floor(ctx.sampleRate*(durSecs+0.04));
+    if(_diceNoiseBuf && _diceNoiseBufSr===ctx.sampleRate && _diceNoiseBuf.length>=needed) return _diceNoiseBuf;
+    _diceNoiseBuf=ctx.createBuffer(1,needed,ctx.sampleRate);
+    _diceNoiseBufSr=ctx.sampleRate;
+    const d=_diceNoiseBuf.getChannelData(0);for(let i=0;i<needed;i++)d[i]=Math.random()*2-1;
+    return _diceNoiseBuf;
+  }
+
   // SOUND_SYNC: diceRoll spans exactly DICE_DUR_MS=480ms
   // hits spread dense-to-sparse matching the visual spin-to-settle
   // final thud lands at t=DA exactly when dice animation ends
   function diceRoll(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.62);
     const DA=DICE_DUR_MS/1000; // 0.48s — matches animation exactly
-    const rLen=Math.floor(ctx.sampleRate*(DA+0.04));
-    const rBuf=ctx.createBuffer(1,rLen,ctx.sampleRate);
-    const rD=rBuf.getChannelData(0);for(let i=0;i<rLen;i++)rD[i]=Math.random()*2-1;
-    const rSrc=ctx.createBufferSource();rSrc.buffer=rBuf;
+    const rSrc=ctx.createBufferSource();rSrc.buffer=getDiceNoiseBuf(ctx,DA);
     const rF=ctx.createBiquadFilter();rF.type='bandpass';rF.frequency.value=260;rF.Q.value=0.8;
     const rG=ctx.createGain();
     rG.gain.setValueAtTime(0.0001,t);
@@ -832,11 +941,17 @@ const SFX=(() => {
     [523,659,784].forEach(f=>tn(ctx,{type:'sine',freq:f,start:t+0.65,dur:0.65,gain:0.28,attack:0.02,dest:out,vRate:4,vDepth:3}));
   });}
 
-  // SOUND_SYNC: tokenStep throttle = 80ms (tighter than JUMP_MS=130ms — every step sounds)
+  function chatPing(){synth(ctx=>{
+    const t=ctx.currentTime;const out=mkOut(ctx,0.38);
+    tn(ctx,{type:'sine',freq:1320,freqEnd:1100,start:t,dur:0.09,gain:0.45,attack:0.003,dest:out});
+    tn(ctx,{type:'sine',freq:1760,freqEnd:1320,start:t+0.055,dur:0.07,gain:0.28,attack:0.002,dest:out});
+  });}
+
+  // SOUND_SYNC: tokenStep throttle = 100ms — slightly under JUMP_MS=130ms so every step sounds
   let _lastStepTime=0;
   function tokenStepThrottled(){
     const now=Date.now();
-    if(now-_lastStepTime<80)return;
+    if(now-_lastStepTime<100)return;
     _lastStepTime=now;tokenStep();
   }
 
@@ -850,7 +965,7 @@ const SFX=(() => {
   return{
     diceRoll,tokenStep:tokenStepThrottled,tokenSpawn,tokenCapture,
     reverseWalk,safeStar,homeStretch,tokenDone,rolledSix,noMove,
-    threeSixesSkip,win,lose,gameStart,toggleMute,isMuted:()=>_muted,
+    threeSixesSkip,win,lose,gameStart,chatPing,toggleMute,isMuted:()=>_muted,
   };
 })();
 </script>
@@ -874,7 +989,7 @@ const db = firebase.database();
 const auth = firebase.auth();
 
 // DEBUG: confirm script loaded
-console.log("✅ Script loaded OK — v22 (CSS board rotation per slot: 0°/90°/180°/270°, no color remapping)");
+console.log("✅ Script loaded OK — v27 (STEP_DONE fix, home triangle fix, spawn pos fix, win screen fix, _slotPxCache fix)");
 
 // Anonymous Auth — required for Firebase security rules
 let _authReady = false;
@@ -992,7 +1107,7 @@ let _tokenRotationDeg = 0;
 
 const STEP_MAIN_END = 51;
 const STEP_STRETCH_START = 52;
-const STEP_DONE = 57;
+const STEP_DONE = 57; // step 57 = finished/center (stretch cells = 52..56, 5 cells)
 
 // ── Game state ─────────────────────────────────────────────────────────────────
 let ROOM_CODE = null;
@@ -1382,7 +1497,7 @@ async function loadAndStartGame(){
   renderTokens();
   updateTurnBanner();
   const _myColorNames={[BLUE]:"Blue",[PINK]:"Pink",[YELLOW]:"Yellow",[GREEN]:"Green"};
-  showToast("Game started! You are "+(_myColorNames[SEAT_COLOR[MY_SEAT]]||"color"));
+  showToast("Game started! You are "+(_myColorNames[SEAT_COLOR[MY_SEAT]]||""));
 
   saveSession(); // persist room+seat for rejoin on accidental refresh
   SFX.gameStart();
@@ -1487,7 +1602,7 @@ function syncGameState(data){
             // Spawn animation from home to entry cell
             SFX.tokenSpawn();
             const spawnKey = `${pid}-${tid}`;
-            const [spawnHr, spawnHc] = getRenderHome(pid);
+            const [spawnHr, spawnHc] = getHomeCornerBySeat(pid); // physical home corner
             const spawnStart = baseCirclePx(spawnHr, spawnHc, tid);
             tok.step = 1;
             renderTokens(); await rafDelay(20);
@@ -1511,15 +1626,17 @@ function syncGameState(data){
       }
       // Handle any captured tokens (step=0 in final state that were not 0 before)
       if(data.tokens){
+        const capturePromises=[];
         data.tokens.forEach(ft => {
           if(ft.step === 0){
             const lt = tokOf(ft.pid, ft.tid);
             if(lt && lt.step > 0){
               // This token was captured — send home fast visually
-              sendHomeFast(lt);
+              capturePromises.push(sendHomeFast(lt));
             }
           }
         });
+        if(capturePromises.length>0) await Promise.all(capturePromises);
       }
       await rafDelay(80);
       applyFinalState();
@@ -1642,27 +1759,138 @@ window.tryRejoin = async function(){
   listenRoom();
 };
 
-window.leaveRoom = async function(){
+// ── Host-leave detection ───────────────────────────────────────────────────────
+// When host goes offline mid-game, show reconnect overlay so joiners know what happened.
+// Host listens to self (no-op). Joiner listens to host's online flag.
+let _hostOfflineTimer = null;
+let _hostLeaveOverlay = null;
+
+function showHostLeaveOverlay(){
+  if(_hostLeaveOverlay) return; // already shown
+  const div = document.createElement("div");
+  div.id = "host-leave-overlay";
+  div.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);z-index:350;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;`;
+  div.innerHTML = `
+    <div style="font-size:2.2rem;">🔌</div>
+    <div style="color:white;font-size:1.15rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:1px;text-align:center;">Host Disconnected</div>
+    <div style="color:rgba(240,240,255,.55);font-size:.82rem;font-family:'Nunito',sans-serif;text-align:center;max-width:240px;line-height:1.5;">Waiting for host to reconnect…<br>The game will resume automatically.</div>
+    <div id="host-leave-dots" style="color:rgba(240,240,255,.4);font-size:.78rem;font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:2px;">● ● ●</div>
+    <button onclick="window.leaveToLobby()" style="margin-top:8px;padding:12px 32px;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;color:var(--muted);font-size:.85rem;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;letter-spacing:.5px;">🏠 Leave Game</button>
+  `;
+  document.body.appendChild(div);
+  _hostLeaveOverlay = div;
+  // Animate the dots
+  let dotFrame = 0;
+  const dotStates = ["● ○ ○","● ● ○","● ● ●","○ ● ●","○ ○ ●","○ ○ ○"];
+  const dotsEl = div.querySelector("#host-leave-dots");
+  _hostLeaveOverlay._dotTimer = setInterval(()=>{
+    if(dotsEl) dotsEl.textContent = dotStates[dotFrame++ % dotStates.length];
+  }, 320);
+}
+
+function hideHostLeaveOverlay(){
+  if(!_hostLeaveOverlay) return;
+  clearInterval(_hostLeaveOverlay._dotTimer);
+  _hostLeaveOverlay.remove();
+  _hostLeaveOverlay = null;
+  clearTimeout(_hostOfflineTimer);
+  _hostOfflineTimer = null;
+  showToast("🟢 Host reconnected — game resuming!");
+}
+
+function listenHostOnline(){
+  // Only non-host players listen — host watching themselves is pointless
+  if(IS_HOST || !ROOM_CODE) return;
+  // Find host seat from room data
+  db.ref(`rooms/${ROOM_CODE}/host`).once('value').then(snap=>{
+    const hostSeat = snap.val();
+    if(hostSeat === null || hostSeat === undefined) return;
+    const hostOnlineRef = db.ref(`rooms/${ROOM_CODE}/players/${hostSeat}/online`);
+    const cbHost = snapH=>{
+      const online = snapH.val() === true;
+      if(!online){
+        // Give host 8 seconds grace period before showing overlay (network blip)
+        if(!_hostOfflineTimer && !_hostLeaveOverlay){
+          _hostOfflineTimer = setTimeout(()=>{
+            if(!G.over) showHostLeaveOverlay();
+          }, 8000);
+        }
+      } else {
+        // Host came back online
+        if(_hostOfflineTimer){ clearTimeout(_hostOfflineTimer); _hostOfflineTimer=null; }
+        if(_hostLeaveOverlay) hideHostLeaveOverlay();
+      }
+    };
+    hostOnlineRef.on('value', cbHost);
+    _listeners.push(()=>hostOnlineRef.off('value', cbHost));
+  }).catch(()=>{});
+}
+
+// ── leaveToLobby: go back to lobby BUT keep session for rejoin card ────────────
+// Used by: btn-back (in-game 🏠), pause Leave Game, host-leave-overlay Leave
+// Session is preserved so rejoin card appears on return to lobby
+window.leaveToLobby = async function(){
   clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
-  clearSession();
+  clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
+  if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
+  // ✅ DO NOT clearSession() — keep it so rejoin card shows
   _listeners.forEach(fn=>fn());
   _listeners = [];
-  _gameStarted = false; // Rule 11: reset for next session
-  _pendingSync = null;  // ✅ FIX: clear queued update on leave
+  _gameStarted = false;
+  _pendingSync = null;
   if(ROOM_CODE && MY_SEAT !== null){
     await db.ref(`rooms/${ROOM_CODE}/players/${MY_SEAT}/online`).set(false);
   }
+  // Show rejoin card before wiping state
+  const _savedCode = ROOM_CODE;
+  const _savedName = MY_NAME;
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
-  // Rule 11: Reset layout so reconnect/next game starts clean
+  _rolling = false; _animating = false;
   SEAT_LAYOUT_ACTIVE = [0,1,2,3];
-  _gameLoaded = false; // ✅ FIX: Reset so next game session starts with sync blocked until loaded
+  _gameLoaded = false;
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   document.getElementById("game-wrap").style.display = "none";
   document.getElementById("status-row").style.display = "none";
   document.getElementById("win").classList.remove("show");
   document.getElementById("pause-overlay").classList.remove("show");
-  // Rule 11: Reset chat state for clean reconnect
   _chatOpen = false; _unreadCount = 0; _chatListening = false; _lastChatKey = null;
+  _replyTarget = null;
+  const chatPanel = document.getElementById("chat-panel");
+  if(chatPanel) chatPanel.classList.remove("open");
+  // Show rejoin card (session still exists)
+  const s = loadSession();
+  const rc = document.getElementById("rejoin-card");
+  const rsub = document.getElementById("rejoin-sub");
+  if(rc && s){ rc.style.display="flex"; if(rsub) rsub.textContent=`Room ${s.code} · as ${s.name}`; }
+  document.getElementById("lobby").style.display = "flex";
+  closeModals();
+};
+
+// ── leaveRoom: permanently leave — clears session ─────────────────────────────
+// Used by: waiting room Leave Room, Play Again (win screen), host-leave forced exit
+window.leaveRoom = async function(){
+  clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
+  clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
+  if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
+  clearSession(); // intentional leave — wipe session
+  _listeners.forEach(fn=>fn());
+  _listeners = [];
+  _gameStarted = false;
+  _pendingSync = null;
+  if(ROOM_CODE && MY_SEAT !== null){
+    await db.ref(`rooms/${ROOM_CODE}/players/${MY_SEAT}/online`).set(false);
+  }
+  ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
+  _rolling = false; _animating = false;
+  SEAT_LAYOUT_ACTIVE = [0,1,2,3];
+  _gameLoaded = false;
+  Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
+  document.getElementById("game-wrap").style.display = "none";
+  document.getElementById("status-row").style.display = "none";
+  document.getElementById("win").classList.remove("show");
+  document.getElementById("pause-overlay").classList.remove("show");
+  _chatOpen = false; _unreadCount = 0; _chatListening = false; _lastChatKey = null;
+  _replyTarget = null;
   const chatPanel = document.getElementById("chat-panel");
   if(chatPanel) chatPanel.classList.remove("open");
   const rc=document.getElementById("rejoin-card"); if(rc) rc.style.display="none";
@@ -1670,7 +1898,7 @@ window.leaveRoom = async function(){
   closeModals();
 };
 
-window.backToLobby = window.leaveRoom;
+window.backToLobby = window.leaveToLobby;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // GAME ENGINE (ported from offline version with online sync)
@@ -1913,8 +2141,8 @@ function movable(pid,dv){
     if(t.step>=STEP_DONE) return false;
     if(t.step>=STEP_STRETCH_START){
       const targetStep=t.step+dv;
-      if(targetStep>STEP_DONE) return false;
-      return true;
+      if(targetStep>STEP_DONE) return false; // overshoot past finish = not allowed
+      return true;  // targetStep === STEP_DONE (57) = finish = allowed
     }
     const targetStep=t.step+dv;
     if(targetStep>STEP_DONE) return false;
@@ -2249,6 +2477,10 @@ function animDice(pid,finalVal,cb){
   if(!cube){dAcc.busy[pid]=false;if(cb)cb();return;}
   if(dAcc.busy[pid]){setTimeout(()=>animDice(pid,finalVal,cb),50);return;}
   dAcc.busy[pid]=true;
+  // Safety: if rAF gets interrupted (tab hidden, GC pause), unlock after 900ms max
+  const _busyGuard=setTimeout(()=>{
+    if(dAcc.busy[pid]){dAcc.busy[pid]=false;if(cb)cb();}
+  },900);
   const tg=LAND[finalVal];
   const curRx=dAcc.rx[pid]||0,curRy=dAcc.ry[pid]||0;
   const normRx=((curRx%360)+360)%360,normRy=((curRy%360)+360)%360;
@@ -2274,6 +2506,7 @@ function animDice(pid,finalVal,cb){
       cube.style.transform=`rotateX(${eRx}deg) rotateY(${eRy}deg) scaleX(1) scaleY(1)`;
       dAcc.rx[pid]=eRx;dAcc.ry[pid]=eRy;dAcc.last[pid]=finalVal;
       dAcc.busy[pid]=false;
+      clearTimeout(_busyGuard);
       if(cb)cb();
     }
   }
@@ -2337,6 +2570,7 @@ function tokSVG(color,size=28){
 
 // ── Token element cache ───────────────────────────────────────────────────────
 const _tokEls={};
+const _slotPxCache={}; // cache for slot pixel positions (invalidated on resize/rotation)
 function _ensureTokEl(tok,color){
   const key=`${tok.pid}-${tok.tid}`;
   const layer=document.getElementById("tokens-layer");
@@ -2411,19 +2645,10 @@ function rcToXY(r,c){
   return{x:off.x+PAD+c*(cp+GAP)+cp/2, y:off.y+PAD+r*(cp+GAP)+cp/2};
 }
 
-const _slotPxCache={};
-// baseCirclePx: reads the actual rendered circle position from DOM via data-slot attribute.
-// No caching — always read fresh so position is accurate after layout/rotation changes.
+// baseCirclePx: pure-math home circle position — always correct regardless of board rotation.
+// getBoundingClientRect was removed: it returns VISUAL (post-rotation) coords which are wrong
+// when tokens-layer is inside a rotated board-wrap — pure math uses the unrotated grid space.
 function baseCirclePx(homeR,homeC,slotIdx){
-  const key=`${homeR},${homeC},${slotIdx}`;
-  const el=document.querySelector(`[data-slot="${key}"]`);
-  const layer=document.getElementById('tokens-layer');
-  if(el && layer){
-    const er=el.getBoundingClientRect();
-    const lr=layer.getBoundingClientRect();
-    return{x:er.left-lr.left+er.width/2, y:er.top-lr.top+er.height/2};
-  }
-  // Fallback: pure math if DOM not ready
   const cp=cellPx(),off=boardOffset();
   const zoneX=off.x+PAD+homeC*(cp+GAP);
   const zoneY=off.y+PAD+homeR*(cp+GAP);
@@ -2433,7 +2658,7 @@ function baseCirclePx(homeR,homeC,slotIdx){
   const wbY=zoneY+(zoneW-wbW)/2;
   const pad=wbW*0.10,gap=wbW*0.10,cellW=(wbW-2*pad-gap)/2;
   const col=slotIdx%2,row=Math.floor(slotIdx/2);
-  return {x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2};
+  return{x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2};
 }
 
 function renderTokens(){
@@ -2476,8 +2701,8 @@ function renderTokens(){
     let px,py,scale=1,stackCount=1;
     let color=getDisplayColorForSeat(tok.pid); 
     if(tok.step===0){
-      // HOME: use getRenderHome (slot-based) so self is always bottom-left
-      const [hr,hc]=getRenderHome(tok.pid); // ✅ slot-aware, not seat-aware
+      // HOME: use physical home corner — CSS board rotation handles POV
+      const [hr,hc]=getHomeCornerBySeat(tok.pid);
       const bp=baseCirclePx(hr,hc,tok.tid);
       px=bp.x; py=bp.y; scale=1.02;
     } else if(tok.step>=STEP_DONE){
@@ -2580,11 +2805,11 @@ function refreshUI(){
         d3d.classList.remove("off");
       }
       const cube = document.getElementById(`dcube-${p.id}`);
-      if(cube && dAcc.last[p.id] == null && !dAcc.busy[p.id] && !G.rolled){
+      if(cube && dAcc.last[p.id] == null && !dAcc.busy[p.id]){
+        // Set initial resting face (6) only once — when never rolled before
         const tg = LAND[6];
         cube.style.transition = "none";
-        cube.style.transform = `rotateX(${tg.rx}deg) rotateY(${tg.ry}deg)`;
-        cube.style.scale = "1";
+        cube.style.transform = `rotateX(${tg.rx}deg) rotateY(${tg.ry}deg) scaleX(1) scaleY(1)`;
         dAcc.rx[p.id] = tg.rx; dAcc.ry[p.id] = tg.ry; dAcc.last[p.id] = 6;
       }
     }
@@ -2620,8 +2845,8 @@ function resetTurnTimeout(){
   // Only start timer when it's NOT my turn (opponent might be AFK)
   if(G.turn === MY_SEAT) return;
   _turnTimeoutTimer = setTimeout(async()=>{
-    // Re-check: still same turn, not rolled, game not over
-    if(G.over || G.rolled || G.turn === MY_SEAT) return;
+    // Re-check: still same turn, not rolled, not waiting for pick, game not over
+    if(G.over || G.rolled || G.waiting || G.turn === MY_SEAT) return;
     showToast(`⏱ ${PLAYERS[G.turn]?.label||"Player"} took too long — skipping turn`);
     const skippedTurn = G.turn;
     G.rolled=false; G.diceVal=null; G.waiting=false;
@@ -2632,15 +2857,15 @@ function resetTurnTimeout(){
 
 // ── Game flow ─────────────────────────────────────────────────────────────────
 function onHumanRoll(){
-  if(G.rolled||G.over||G_PAUSED||_rolling) return; // _rolling guard prevents double-tap race on mobile
-  if(G.turn !== MY_SEAT) return; // Not my turn
+  if(G.rolled||G.over||G_PAUSED||_rolling||_animating) return;
+  if(G.turn !== MY_SEAT) return;
   doRoll(G.turn);
 }
 
 function doRoll(pid){
   if(_rolling) return;
   _rolling=true;
-  const rollSafety=setTimeout(()=>{_rolling=false;},3000);
+  const rollSafety=setTimeout(()=>{_rolling=false;},1500);
   const d3d=document.getElementById(`d3d-${pid}`);
   if(d3d) d3d.classList.add("off");
   const v=rng();
@@ -2761,6 +2986,7 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
     const shadowW=rW*0.60,shadowH=rW*0.16;
     const h=cp*0.65;
     let t0=null;
+    let _soundFired=false; // fire tokenStep once at arc peak (~t=0.5) via rAF — no setTimeout jitter
     if(layer)spawnTrailDot(startX,startY,color,layer);
     function tick(now){
       if(!t0) t0=now;
@@ -2780,11 +3006,11 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
         shadowEl.style.transform=`translate(${x-shadowW/2}px,${y-shadowH/2+1}px) scaleX(${shadowScale})`;
         shadowEl.style.opacity=shadowOpacity;
       }
+      // Fire step sound at arc peak (t≥0.45) via rAF — no setTimeout jitter
+      if(!_soundFired && t>=0.45){_soundFired=true;SFX.tokenStep();}
       if(t<1) requestAnimationFrame(tick);
       else { resolve(); }
     }
-    // SOUND_SYNC: tokenStep fires at JUMP_MS*0.55 = arc peak — token is highest point
-    setTimeout(()=>SFX.tokenStep(), Math.round(JUMP_MS*0.55));
     requestAnimationFrame(tick);
   });
 }
@@ -2807,7 +3033,6 @@ async function animateMove(tok,steps){
     if(!prevCell){curStep++;continue;}
     const startXY=rcToXY(prevCell[0],prevCell[1]);
     curStep++;
-    if(curStep>STEP_DONE) curStep=STEP_DONE;
     if(curStep>=STEP_DONE) break;
     const rc=getRenderCell(tok.pid,curStep);
     if(!rc) continue;
@@ -2848,7 +3073,7 @@ async function animateMove(tok,steps){
       setTimeout(()=>{if(oEls.wrap)oEls.wrap.style.transition="";},JUMP_MS+10);
     });
     // ─────────────────────────────────────────────────────────────────────────
-    // Fire homeStretch sound exactly when first entering stretch lane
+    // Fire homeStretch sound exactly when token first lands on stretch lane entry
     if(!_homeStretchFired && curStep===STEP_STRETCH_START){
       SFX.homeStretch();
       _homeStretchFired=true;
@@ -2861,14 +3086,16 @@ async function animateMove(tok,steps){
     }
     await jumpStep(els.wrap,els.shadow,startXY.x,startXY.y,endXY.x,endXY.y,BASE_W,color,cp,layer);
     delete els.wrap.dataset.animating;
-    // Landing squash animation
+    // Landing squash animation — use requestAnimationFrame instead of offsetWidth reflow
     const _tx2=endXY.x-BASE_W/2,_ty2=endXY.y-BASE_W*(130/100)*(122/130);
     const _sqBase=`translate(${_tx2}px,${_ty2}px) rotate(${_tokenRotationDeg}deg)`;
     els.wrap.style.setProperty('--sq-base',_sqBase);
+    // Remove+add class in next rAF to avoid forced layout reflow (was: void offsetWidth)
     els.wrap.classList.remove('tok-land');
-    void els.wrap.offsetWidth; // reflow trigger
-    els.wrap.classList.add('tok-land');
-    setTimeout(()=>els.wrap.classList.remove('tok-land'),250);
+    requestAnimationFrame(()=>{
+      if(els.wrap) els.wrap.classList.add('tok-land');
+      setTimeout(()=>{ if(els.wrap) els.wrap.classList.remove('tok-land'); },250);
+    });
     els.wrap.style.zIndex="";
   }
   // ✅ SINGLE atomic write to global token step — only after full animation
@@ -2879,7 +3106,7 @@ async function animateMove(tok,steps){
 async function sendHomeFast(tok){
   SFX.tokenCapture();
   const seat=tok.pid;
-  const homeCorner=getRenderHome(seat);
+  const homeCorner=getHomeCornerBySeat(seat); // physical home corner — correct for ALL board rotations
   if(!homeCorner) return;
   const [hr,hc]=homeCorner;
   const displayColor=getDisplayColorForSeat(seat);
@@ -2914,6 +3141,10 @@ async function sendHomeFast(tok){
   const stepsBack=[];
   for(let s=tok.step;s>=1;s--) stepsBack.push(s);
 
+  const stepsBack=[];
+  for(let s=tok.step;s>=1;s--) stepsBack.push(s);
+
+  let localStep=tok.step; // use local var — don't mutate tok.step during anim
   for(let i=0;i<stepsBack.length;i++){
     const fromStep=stepsBack[i],toStep=fromStep-1;
     const fromCell=getRenderCell(tok.pid,fromStep); if(!fromCell) continue;
@@ -2924,7 +3155,7 @@ async function sendHomeFast(tok){
       const toCell=getRenderCell(tok.pid,toStep); if(!toCell) continue;
       endXY=rcToXY(toCell[0],toCell[1]);
     }
-    tok.step=toStep;
+    localStep=toStep;
     await new Promise(resolve=>{
       const ex=endXY.x-BASE_W/2,ey=endXY.y-tipOffset;
       els.wrap.style.transition=`transform ${SLIDE_MS}ms linear`;
@@ -2982,6 +3213,7 @@ async function doMove(pid,tid,v){
   async function checkAndPit(cellKey,movingPid,movingTid){
     const ownOnCell=G.tokens.filter(o=>{
       if(o.pid!==movingPid||o.step===0||o.step>=STEP_DONE) return false;
+      if(o.tid===movingTid) return false; // exclude the moving token itself
       const oc=getCell(o.pid,o.step);
       return oc&&`${oc[0]}-${oc[1]}`===cellKey;
     });
@@ -2990,8 +3222,9 @@ async function doMove(pid,tid,v){
       const oc=getCell(o.pid,o.step);
       return oc&&`${oc[0]}-${oc[1]}`===cellKey;
     });
+    // A block of 2+ own tokens already there = safe cell (moving token joins = 3 but enemies can't attack block)
     if(ownOnCell.length>=2) return;
-    if(ownOnCell.length===1&&enemiesOnCell.length>=1){
+    if(enemiesOnCell.length>=1){
       // Capture all enemies from different players (3P/4P: multiple players may share cell)
       // Group by pid — only capture one token per enemy player (can't capture a block of 2)
       const capturedPids=new Set();
@@ -3009,7 +3242,7 @@ async function doMove(pid,tid,v){
   if(tok.step===0&&v===6){
     // Animate spawn: bounce on home circle → jump to entry cell
     const spawnKey=`${tok.pid}-${tok.tid}`;
-    const [spawnHr,spawnHc]=getRenderHome(tok.pid);
+    const [spawnHr,spawnHc]=getHomeCornerBySeat(tok.pid); // physical home corner
     const spawnStart=baseCirclePx(spawnHr,spawnHc,tok.tid);
     tok.step=1;bonus=diceWasSix;
     SFX.tokenSpawn();
@@ -3035,9 +3268,9 @@ async function doMove(pid,tid,v){
       const spawnLayer=document.getElementById('tokens-layer');
       await jumpStep(_tokEls[spawnKey].wrap,_tokEls[spawnKey].shadow,spawnStart.x,spawnStart.y,entryXY.x,entryXY.y,BASE_W2,spawnColor,cp2,spawnLayer);
     }
-    const entryCellKey=getCell(pid,1);
-    if(entryCellKey){
-      const eck=`${entryCellKey[0]}-${entryCellKey[1]}`;
+    const entryCell=getCell(pid,1);
+    if(entryCell){
+      const eck=`${entryCell[0]}-${entryCell[1]}`;
       if(!SAFE.has(eck)) await checkAndPit(eck,pid,tok.tid);
     }
   } else {
@@ -3046,7 +3279,6 @@ async function doMove(pid,tid,v){
   }
 
   if(tok.step>=STEP_DONE){
-    tok.step=STEP_DONE;
     SFX.tokenDone();
     renderTokens();await rafDelay(100);
     if(toksOf(pid).every(t=>t.step>=STEP_DONE)){
@@ -3088,14 +3320,13 @@ async function doMove(pid,tid,v){
   const movesPayload = [];
   const finalTok = tokOf(pid, tid);
   if(finalTok){
-    const moveType = finalTok.step === 1 && v === 6 ? "open" : "move";
+    const moveType = (finalTok.step === 1 && v === 6) ? "open" : "move";
     movesPayload.push({ pid, tid, type: moveType, finalStep: finalTok.step });
   }
-  // Include any captured tokens (sent home)
+  // Captured tokens: include all step=0 opponent tokens so joiner can reconcile
   G.tokens.forEach(t => {
-    if(t.step === 0 && !(t.pid === pid && t.tid === tid)){
-      // Check if this token was just captured (step became 0 this turn)
-      // We include all step=0 tokens that belong to opponents — opponent will reconcile
+    if(t.pid !== pid && t.step === 0){
+      movesPayload.push({ pid: t.pid, tid: t.tid, type: "home", finalStep: 0 });
     }
   });
 
@@ -3116,6 +3347,7 @@ function nextTurn(same){
   // Rule 9: Turn order uses GLOBAL seat IDs from the fixed layout — never display colors
   G.rolled=false;_rolling=false;G.diceVal=null;G.waiting=false;
   if(!same){
+    G.sixes=0; // reset six counter on turn change
     // Advance turn along the fixed seat layout order
     const layout = SEAT_LAYOUT_ACTIVE;
     const curIdx = layout.indexOf(G.turn);
@@ -3151,7 +3383,7 @@ function nextTurn(same){
   }
   refreshUI();
   renderTokens();
-  updateTurnBanner();
+  updateTurnBanner(); // also calls resetTurnTimeout()
 }
 
 function endGame(){
@@ -3162,17 +3394,18 @@ function endGame(){
   const lines=G.placements.map((pid,i)=>{
     const name = pid === MY_SEAT ? "You" : (PLAYERS[pid]?.label||`P${pid}`);
     const dColor = getDisplayColorForSeat(pid);
-    const colorNames = {[BLUE]:"Blue",[PINK]:"Red",[YELLOW]:"Yellow",[GREEN]:"Green"};
+    const colorNames = {[BLUE]:"Blue",[PINK]:"Pink",[YELLOW]:"Yellow",[GREEN]:"Green"};
     const colorName = colorNames[dColor] || "";
     return `${medals[i]||"  "} ${name} (${colorName})`;
   });
 
   const winner=G.placements[0];
   const isIWinner = winner === MY_SEAT;
-  const heading = isIWinner
-    ? `🎉 You Win! 🔵`
-    : `🎉 ${PLAYERS[winner]?.label||"Winner"} Wins!`;
   const winColor = getDisplayColorForSeat(winner);
+  const winColorEmoji = winColor===BLUE?"🔵":winColor===PINK?"🔴":winColor===YELLOW?"🟡":"🟢";
+  const heading = isIWinner
+    ? `🎉 You Win! ${winColorEmoji}`
+    : `🎉 ${PLAYERS[winner]?.label||"Winner"} Wins!`;
 
   if(isIWinner) SFX.win(); else SFX.lose();
 
@@ -3320,6 +3553,7 @@ window.toggleChat = function(){
     }, 300);
   } else {
     panel.classList.remove("open");
+    window.clearReply(); // clear pending reply when closing chat
   }
 };
 
@@ -3353,19 +3587,51 @@ function appendChatMessage(msg, isHistory){
     div.textContent = msg.text;
     el.appendChild(div);
   } else {
-    const color = getDisplayColorForSeat(msg.seat);     const name = msg.name || `P${msg.seat+1}`;
+    const color = getDisplayColorForSeat(msg.seat);
+    const name = msg.name || `P${msg.seat+1}`;
     const time = new Date(msg.ts || Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+    // Outer swipe wrapper
+    const swipeWrap = document.createElement("div");
+    swipeWrap.className = "chat-msg-swipe";
+
+    // Reply icon (hidden until swipe)
+    const replyIcon = document.createElement("div");
+    replyIcon.className = "chat-reply-icon";
+    replyIcon.textContent = "↩";
+
+    // Inner message div
     const div = document.createElement("div");
     div.className = `chat-msg${isMine?" mine":""}`;
+
+    // Build reply quote if this msg is a reply
+    let replyQuoteHTML = "";
+    if(msg.replyTo){
+      const rName = escapeHtml(msg.replyTo.name || "Someone");
+      const rText = escapeHtml((msg.replyTo.text||"").slice(0,60));
+      const rColor = msg.replyTo.color || "var(--gold)";
+      replyQuoteHTML = `<div class="chat-reply-quote">
+        <div class="chat-reply-quote-name" style="color:${rColor}">${rName}</div>
+        <div class="chat-reply-quote-text">${rText}</div>
+      </div>`;
+    }
+
     div.innerHTML = `
       <div class="chat-msg-meta">
         <div class="chat-msg-dot" style="background:${color}"></div>
         <span class="chat-msg-name" style="color:${color}">${isMine?"You":escapeHtml(name)}</span>
         <span class="chat-msg-time">${time}</span>
       </div>
+      ${replyQuoteHTML}
       <div class="chat-msg-text">${escapeHtml(msg.text)}</div>
     `;
-    el.appendChild(div);
+
+    swipeWrap.appendChild(replyIcon);
+    swipeWrap.appendChild(div);
+    el.appendChild(swipeWrap);
+
+    // Attach swipe handler
+    _attachSwipeReply(swipeWrap, replyIcon, msg, name, color, isMine);
   }
   scrollChatBottom();
   if(!isHistory && !isMine && !_chatOpen){
@@ -3384,10 +3650,135 @@ window.sendChat = function(){
   const text = inp.value.trim();
   if(!text) return;
   inp.value = "";
+  const payload = { seat:MY_SEAT, name:MY_NAME, text, ts:Date.now(), type:"user" };
+  // Attach reply context if replying
+  if(_replyTarget){
+    payload.replyTo = {
+      name: _replyTarget.name,
+      text: _replyTarget.text,
+      color: _replyTarget.color,
+    };
+    window.clearReply();
+  }
   const chatRef = db.ref(`rooms/${ROOM_CODE}/chat`);
-  chatRef.push({ seat:MY_SEAT, name:MY_NAME, text, ts:Date.now(), type:"user" })
-    .catch(()=>showToast("Chat send failed"));
+  chatRef.push(payload).catch(()=>showToast("Chat send failed"));
 };
+
+// ── Reply state ──────────────────────────────────────────────────────────────
+let _replyTarget = null; // { name, text, color }
+
+window.clearReply = function(){
+  _replyTarget = null;
+  const bar = document.getElementById("chat-reply-bar");
+  if(bar) bar.classList.remove("show");
+};
+
+function _setReply(name, text, color){
+  _replyTarget = { name, text, color };
+  const bar    = document.getElementById("chat-reply-bar");
+  const barName= document.getElementById("chat-reply-bar-name");
+  const barText= document.getElementById("chat-reply-bar-text");
+  if(!bar) return;
+  barName.textContent = name;
+  barName.style.color = color;
+  barText.textContent = text.slice(0, 80);
+  bar.classList.add("show");
+  // Focus input
+  const inp = document.getElementById("chat-input");
+  if(inp) setTimeout(()=>inp.focus(), 60);
+}
+
+// ── Swipe-to-reply handler (Instagram style) ────────────────────────────────
+// Right-to-left swipe for others' msgs, left-to-right for mine (mirrored)
+// Threshold: 60px drag triggers reply
+const SWIPE_TRIGGER = 60;
+const SWIPE_MAX     = 72;
+
+function _attachSwipeReply(swipeWrap, replyIcon, msg, name, color, isMine){
+  let startX = 0, startY = 0, curX = 0;
+  let active = false, triggered = false;
+
+  function onStart(e){
+    const touch = e.touches ? e.touches[0] : e;
+    startX = touch.clientX;
+    startY = touch.clientY;
+    curX   = 0;
+    active = true;
+    triggered = false;
+    swipeWrap.classList.add("swiping");
+  }
+
+  function onMove(e){
+    if(!active) return;
+    const touch = e.touches ? e.touches[0] : e;
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    // If predominantly vertical scroll, abort
+    if(!triggered && Math.abs(dy) > Math.abs(dx) + 8){ active=false; _resetSwipe(swipeWrap,replyIcon); return; }
+
+    // Direction logic: others swipe RIGHT (positive dx), mine swipe LEFT (negative dx)
+    const dir = isMine ? -1 : 1;
+    const raw = dx * dir; // positive = correct swipe direction
+    if(raw < 0){ _resetSwipe(swipeWrap,replyIcon); return; }
+
+    curX = Math.min(raw, SWIPE_MAX);
+    // Rubber-band easing past 45px
+    const visual = curX <= 45 ? curX : 45 + (curX - 45) * 0.4;
+    swipeWrap.style.transform = `translateX(${visual * dir}px)`;
+
+    // Show icon after 20px
+    if(curX > 20){
+      replyIcon.classList.add("visible");
+    } else {
+      replyIcon.classList.remove("visible");
+    }
+
+    // Pop icon at trigger threshold
+    if(curX >= SWIPE_TRIGGER && !triggered){
+      triggered = true;
+      replyIcon.classList.add("popped");
+      // Haptic
+      if(navigator.vibrate) navigator.vibrate(18);
+    }
+    if(curX < SWIPE_TRIGGER && triggered){
+      triggered = false;
+      replyIcon.classList.remove("popped");
+    }
+
+    // Prevent page scroll during horizontal swipe
+    if(Math.abs(dx) > 8) e.preventDefault();
+  }
+
+  function onEnd(){
+    if(!active) return;
+    active = false;
+    swipeWrap.classList.remove("swiping");
+    if(triggered){
+      // Trigger reply
+      _setReply(isMine ? "You" : name, msg.text, color);
+    }
+    _resetSwipe(swipeWrap, replyIcon);
+  }
+
+  function _resetSwipe(wrap, icon){
+    wrap.classList.remove("swiping");
+    wrap.style.transform = "";
+    icon.classList.remove("visible","popped");
+    active = false;
+  }
+
+  // Touch events (mobile)
+  swipeWrap.addEventListener("touchstart", onStart, {passive:true});
+  swipeWrap.addEventListener("touchmove",  onMove,  {passive:false});
+  swipeWrap.addEventListener("touchend",   onEnd,   {passive:true});
+  swipeWrap.addEventListener("touchcancel",onEnd,   {passive:true});
+
+  // Mouse events (desktop, for testing)
+  let mouseDown = false;
+  swipeWrap.addEventListener("mousedown", e=>{ mouseDown=true; onStart(e); });
+  window.addEventListener("mousemove", e=>{ if(mouseDown) onMove(e); });
+  window.addEventListener("mouseup",   e=>{ if(mouseDown){ mouseDown=false; onEnd(); } });
+}
 
 function listenChat(){
   if(_chatListening || !ROOM_CODE) return;
@@ -3465,19 +3856,20 @@ bindBtn("btn-confirm-name", ()=>window.confirmHostName());
 
 // Waiting room
 bindBtn("btn-start-game",   ()=>window.hostStartGame());
+// Waiting room — permanent leave, session clear
 bindBtn("btn-leave-waiting",()=>window.leaveRoom());
 
 // Join modal
 bindBtn("btn-join",         ()=>window.joinRoom());
 bindBtn("btn-cancel-join",  ()=>closeModals());
 
-// Game controls
-bindBtn("btn-back",         ()=>window.leaveRoom());
+// Game controls — leaveToLobby keeps session for rejoin card
+bindBtn("btn-back",         ()=>window.leaveToLobby());
 bindBtn("btn-chat-toggle",  ()=>window.toggleChat());
 
 // Pause
 bindBtn("btn-resume",       ()=>window.togglePause());
-bindBtn("btn-leave-pause",  ()=>window.leaveRoom());
+bindBtn("btn-leave-pause",  ()=>window.leaveToLobby());
 
 // Win screen
 bindBtn("btn-play-again",   ()=>restartGame());
