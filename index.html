@@ -3515,8 +3515,7 @@ document.addEventListener("contextmenu",e=>e.preventDefault());
 document.addEventListener("selectstart",e=>e.preventDefault());
 document.addEventListener("dragstart",e=>e.preventDefault());
 document.addEventListener("touchstart",e=>{if(e.touches.length>1)e.preventDefault();},{passive:false});
-let _lastTap=0;
-document.addEventListener("touchend",e=>{const now=Date.now();if(now-_lastTap<300)e.preventDefault();_lastTap=now;},{passive:false});
+
 window.addEventListener("wheel",e=>{if(e.ctrlKey)e.preventDefault();},{passive:false});
 
 // ── CHAT ──────────────────────────────────────────────────────────────────────
