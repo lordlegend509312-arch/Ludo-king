@@ -248,11 +248,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 #sync-dot.err{background:#FF2D78;box-shadow:0 0 6px #FF2D78;}
 
 /* Turn indicator */
-#turn-banner{
-  text-align:center;font-size:11px;font-family:'Rajdhani',sans-serif;
-  font-weight:700;letter-spacing:1px;color:var(--muted);
-  flex:1;padding:0 4px;
-}
+
 
 #btn-mute{
   width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
@@ -262,6 +258,15 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 #btn-mute:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:white;}
 #btn-mute:active{transform:scale(0.92);}
 #btn-mute.muted{background:rgba(255,60,60,.15);border-color:rgba(255,60,60,.4);color:#FF2D78;}
+
+#btn-perf{
+  width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
+  background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;align-self:center;flex-shrink:0;
+}
+#btn-perf:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:white;}
+#btn-perf:active{transform:scale(0.92);}
+#btn-perf.on{background:rgba(0,200,83,.12);border-color:rgba(0,200,83,.45);color:#00C853;}
 
 #pause-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:150;align-items:center;justify-content:center;}
 #pause-overlay.show{display:flex;}
@@ -637,8 +642,8 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
   <div id="status-row" style="display:none;">
     <button id="btn-back" title="Leave">🏠</button>
     <div id="sync-bar"><div id="sync-dot" class="warn"></div><span id="sync-text">Syncing...</span></div>
-    <div id="turn-banner"></div>
     <button id="btn-mute" title="Mute">🔊</button>
+    <button id="btn-perf" title="Performance Mode">⚡</button>
     <button id="btn-chat-toggle" title="Chat">💬</button>
   </div>
 </div>
@@ -666,6 +671,20 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 
 <!-- ── TOAST ── -->
 <div id="toast"></div>
+
+<!-- ── AFK BOT VOTE BANNER ── -->
+<div id="afk-vote-banner" style="display:none;position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:300;background:rgba(13,13,26,.96);border:1.5px solid #FF2D78;border-radius:16px;padding:12px 18px;min-width:260px;max-width:320px;text-align:center;box-shadow:0 8px 32px rgba(255,45,120,.25);backdrop-filter:blur(8px);">
+  <div id="afk-vote-title" style="color:#FF2D78;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:800;letter-spacing:.5px;margin-bottom:4px;">🤖 Player AFK</div>
+  <div id="afk-vote-sub" style="color:rgba(240,240,255,.65);font-family:'Nunito',sans-serif;font-size:.75rem;margin-bottom:10px;line-height:1.4;"></div>
+  <div id="afk-vote-tally" style="color:rgba(240,240,255,.45);font-family:'Nunito',sans-serif;font-size:.7rem;margin-bottom:8px;"></div>
+  <button id="afk-vote-btn" onclick="castBotVote()" style="background:linear-gradient(135deg,#FF2D78,#c4005a);border:none;border-radius:10px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:.9rem;font-weight:800;padding:8px 22px;cursor:pointer;letter-spacing:.5px;transition:all .15s;">✓ Let Computer Play</button>
+  <div id="afk-vote-already" style="display:none;color:var(--green);font-family:'Nunito',sans-serif;font-size:.75rem;margin-top:6px;">✓ You voted</div>
+</div>
+
+<!-- ── AFK TURN TIMER BAR ── -->
+<div id="afk-timer-bar-wrap" style="display:none;position:fixed;top:0;left:0;width:100%;height:3px;z-index:299;background:rgba(255,255,255,.1);">
+  <div id="afk-timer-bar" style="height:100%;width:100%;background:linear-gradient(90deg,#00C853,#FFD600,#FF2D78);transition:width linear;"></div>
+</div>
 
 <!-- ── CHAT PANEL ── -->
 <div id="chat-panel">
@@ -1045,6 +1064,63 @@ _connRef.on("value", snap => {
   }
 });
 
+// ── Performance Mode ──────────────────────────────────────────────────────────
+// Sirf local device pe — dusre player ko affect nahi karta, sync same rehta hai
+let PERF_MODE = (()=>{
+  try{ return localStorage.getItem('ludo_perf')==='1'; }catch(e){ return false; }
+})();
+
+function applyPerfMode(){
+  const btn = document.getElementById('btn-perf');
+  if(!btn) return;
+  if(PERF_MODE){
+    btn.classList.add('on');
+    btn.title = 'Performance Mode: ON (tap to turn off)';
+    // Inject/update perf stylesheet
+    let s = document.getElementById('perf-style');
+    if(!s){ s = document.createElement('style'); s.id = 'perf-style'; document.head.appendChild(s); }
+    s.textContent = `
+      /* ⚡ PERF MODE: disable all cosmetic infinite animations */
+      .tok-ring { animation: none !important; display: none !important; }
+      @keyframes movablePulse { from{opacity:1;transform:scale(1);} to{opacity:1;transform:scale(1);} }
+      .tok-trail { display: none !important; }
+      .sparkle  { display: none !important; }
+      @keyframes tokLandSquash { 0%,100%{ transform: var(--sq-base) scaleX(1) scaleY(1); } }
+      @keyframes tokSpawnBounce{ 0%,100%{ transform: var(--sp-base) scale(1) translateY(0); } }
+      @keyframes crownFloat { 0%,100%{ transform: translateY(0); } }
+      @keyframes trophyFloat { 0%,100%{ transform: translateY(0); } }
+
+      /* ⚡ PERF MODE: CSS transitions off */
+      *, *::before, *::after { transition: none !important; }
+
+      /* ⚡ PERF MODE: board glow/pulse animations off */
+      @keyframes starGlow { 0%,100%{ box-shadow: none; } }
+      .star-land-glow { animation: none !important; box-shadow: none !important; }
+      .star-svg { filter: none !important; }
+      .tok-shadow { display: none !important; }
+      @keyframes ringPop { from{opacity:0;} to{opacity:0;} }
+      @keyframes ringPop2 { 0%,100%{opacity:0;} }
+
+      /* ⚡ PERF MODE: box-shadow + drop-shadow off (GPU heavy) */
+      .pbox-bg { box-shadow: none !important; }
+      .ddot { box-shadow: none !important; }
+      #board-wrap { box-shadow: none !important; }
+    `;
+  } else {
+    btn.classList.remove('on');
+    btn.title = 'Performance Mode: OFF (tap to turn on)';
+    const s = document.getElementById('perf-style');
+    if(s) s.textContent = '';
+  }
+}
+
+function togglePerfMode(){
+  PERF_MODE = !PERF_MODE;
+  try{ localStorage.setItem('ludo_perf', PERF_MODE?'1':'0'); }catch(e){}
+  applyPerfMode();
+  showToast(PERF_MODE ? '⚡ Performance Mode ON' : '✨ Performance Mode OFF');
+}
+
 // ── Constants ──────────────────────────────────────────────────────────────────
 const PINK="#FF2D78", BLUE="#00AEEF", GREEN="#00C853", YELLOW="#FFD600";
 const DEF="#CFD8DC", BOARD_BG="#546E7A";
@@ -1121,7 +1197,7 @@ let _listeners = [];
 let _presenceRef = null;
 
 let PLAYERS = []; // {id, seat, color, label, active, human}
-let G = { turn:0, diceVal:null, rolled:false, waiting:false, over:false, sixes:0, tokens:[], placements:[] };
+let G = { turn:0, diceVal:null, rolled:false, waiting:false, over:false, sixes:0, tokens:[], placements:[], turnStartedAt:null };
 let G_PAUSED = false;
 let _rolling = false;
 let _animating = false; // true during doMove animation — blocks syncGameState token overwrite
@@ -1413,6 +1489,7 @@ window.hostStartGame = async function(){
     seatLayout: layout,
     lastAction: null,
     actionBy: null,
+    turnStartedAt: firebase.database.ServerValue.TIMESTAMP,
     timestamp: firebase.database.ServerValue.TIMESTAMP
   };
 
@@ -1473,7 +1550,8 @@ async function loadAndStartGame(){
     over: false,
     sixes: gData.sixes || 0,
     tokens: gData.tokens || [],
-    placements: gData.placements || []
+    placements: gData.placements || [],
+    turnStartedAt: gData.turnStartedAt || Date.now()
   };
 
   // ✅ FIX C: Force-clear ALL token element cache on every game load.
@@ -1502,6 +1580,7 @@ async function loadAndStartGame(){
   SFX.gameStart();
   // ✅ Only NOW allow syncGameState to process Firebase updates.
   _gameLoaded = true;
+  initAfkSystem(); // start 2-min AFK timer + bot vote system
 }
 
 // ── Sync game state from Firebase ─────────────────────────────────────────────
@@ -1514,6 +1593,11 @@ function syncGameState(data){
   // _animating flag is local to MY token moves and should not affect opponent sync
 
   setSyncStatus("ok");
+
+  // If an opponent acted, reset their AFK counter (they're not AFK!)
+  if(data.actionBy != null && data.actionBy !== MY_SEAT){
+    _clearAfkOnAct(data.actionBy);
+  }
 
   // On reconnect, rebuild seat layout from server state
   if(data.seatLayout){
@@ -1548,6 +1632,7 @@ function syncGameState(data){
   // Do NOT highlight any tokens — only the roller picks.
   if(action === "roll"){
     G.turn    = data.turn;
+    if(data.turnStartedAt) G.turnStartedAt = data.turnStartedAt;
     G.diceVal = dice;
     G.rolled  = true;
     G.sixes   = data.sixes || 0;
@@ -1574,6 +1659,7 @@ function syncGameState(data){
     const applyFinalState = () => {
       if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
       G.turn       = data.turn;
+      if(data.turnStartedAt) G.turnStartedAt = data.turnStartedAt;
       G.rolled     = false;
       G.waiting    = false;
       G.diceVal    = null;
@@ -1653,6 +1739,7 @@ function syncGameState(data){
   // ── CASE 3: action="skip" — noMove or 3sixes ──────────────────────────────
   if(action === "skip" || action === "noMove" || action === "skip3six"){
     G.turn       = data.turn;
+    if(data.turnStartedAt) G.turnStartedAt = data.turnStartedAt;
     G.rolled     = false;
     G.waiting    = false;
     G.diceVal    = null;
@@ -1673,6 +1760,7 @@ function syncGameState(data){
 
   // ── Fallback: apply full state safely ─────────────────────────────────────
   G.turn    = data.turn;
+  if(data.turnStartedAt) G.turnStartedAt = data.turnStartedAt;
   G.rolled  = false; // Never inherit rolled state from Firebase on fallback
   G.waiting = false; // Never inherit waiting state
   G.diceVal = null;
@@ -1700,6 +1788,7 @@ async function pushGameState(extra={}){
     placements: G.placements,
     seatLayout: SEAT_LAYOUT_ACTIVE, // Rule 11: persist for reconnect recovery
     actionBy: MY_SEAT,      // Real seat ID of who acted
+    turnStartedAt: G.turnStartedAt || firebase.database.ServerValue.TIMESTAMP,
     timestamp: firebase.database.ServerValue.TIMESTAMP,
     ...extra
   };
@@ -1870,6 +1959,7 @@ window.leaveToLobby = async function(){
 window.leaveRoom = async function(){
   clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
+  resetAfkSystem();
   if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
   clearSession(); // intentional leave — wipe session
   _listeners.forEach(fn=>fn());
@@ -2431,6 +2521,28 @@ function makePanel(pid,side,pos,isMe=false){
   shine.className="pbox-shine";
   bg.appendChild(shine);
 
+  // ── SVG border timer ring — drains over 2 min on active turn ──
+  const timerSvg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  timerSvg.setAttribute("class","pbox-timer-svg");
+  timerSvg.id=`ptimer-${pid}`;
+  // rect perimeter: 145×76, border-radius≈12 → perimeter ≈ 2*(145+76) - (2π*12 - 8*12) ≈ 418
+  const W=145,H=76,R=12;
+  const perim=Math.round(2*(W+H)-8*R+2*Math.PI*R); // ≈ 414
+  timerSvg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  timerSvg.style.cssText="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:10;opacity:0;transition:opacity 0.3s;";
+  const timerRect=document.createElementNS("http://www.w3.org/2000/svg","rect");
+  timerRect.setAttribute("x","1.5"); timerRect.setAttribute("y","1.5");
+  timerRect.setAttribute("width",String(W-3)); timerRect.setAttribute("height",String(H-3));
+  timerRect.setAttribute("rx",String(R)); timerRect.setAttribute("ry",String(R));
+  timerRect.setAttribute("fill","none");
+  timerRect.setAttribute("stroke-width","2.5");
+  timerRect.setAttribute("stroke-linecap","round");
+  timerRect.setAttribute("stroke-dasharray",String(perim));
+  timerRect.setAttribute("stroke-dashoffset","0");
+  timerRect.id=`ptimer-rect-${pid}`;
+  timerSvg.appendChild(timerRect);
+  bg.appendChild(timerSvg);
+
     const displayColor = getDisplayColorForSeat(pid); 
     bg.style.borderColor = `${displayColor}44`; // subtle default tint
 
@@ -2816,48 +2928,366 @@ function refreshUI(){
 }
 
 function updateTurnBanner(){
-  const banner=document.getElementById("turn-banner");
-  if(!banner) return;
-  if(G.over){banner.textContent="Game Over";banner.style.color="var(--muted)";return;}
-  const isMyTurn = G.turn === MY_SEAT;
-    const turnDisplayColor = getDisplayColorForSeat(G.turn);   const turnName = G.turn === MY_SEAT ? "You" : (PLAYERS[G.turn]?.label || "...");
-  if(isMyTurn){
-    banner.textContent = G.rolled ? "👆 Choose a token!" : "🎲 Your turn — Roll!";
-    banner.style.color = "var(--gold)";
-  } else {
-    banner.textContent = `${turnName}'s turn`;
-    banner.style.color = turnDisplayColor; // Rule 5: color matches their POV-mapped color
-  }
   resetTurnTimeout(); // restart AFK timer on every turn change
 }
 
-// ── Turn timeout ──────────────────────────────────────────────────────────────
-// If a player is AFK/disconnected and doesn't roll, host auto-skips after 45s.
-// Only the host runs this to avoid duplicate skips.
-let _turnTimeoutTimer = null;
-const TURN_TIMEOUT_MS = 45000;
+// ══════════════════════════════════════════════════════════════════════════════
+// AFK / BOT-VOTE SYSTEM
+// ══════════════════════════════════════════════════════════════════════════════
+// • Every player sees a 2-min countdown bar on THEIR OWN turn.
+//   If they don't roll/act within 2 min, the host auto-rolls + auto-moves for them.
+// • After 3 consecutive AFK turns for the same seat, ALL other players see a
+//   vote banner asking "Let Computer play for this player?"
+//   Votes needed: 4P→3, 3P→2, 2P→1.
+// • Once vote passes, that seat is marked as BOT in Firebase and the host drives
+//   all their turns automatically — no more vote prompts.
+// • If that player reconnects (online=true + acts), bot flag is cleared,
+//   banner disappears for everyone instantly.
+// ══════════════════════════════════════════════════════════════════════════════
 
+const TURN_TIMEOUT_MS = 120000; // 2 minutes
+
+// Per-seat AFK counter stored in Firebase: rooms/{code}/afk/{seat}
+// Structure: { count: number, bot: bool, votes: { [voterSeat]: bool } }
+let _afkRef = null;           // Firebase ref to rooms/{code}/afk
+let _afkData = {};            // Local mirror of afk data
+let _afkListener = null;      // cleanup fn
+let _turnTimerStart = null;   // Date.now() when current turn started
+let _turnTimerRAF = null;     // requestAnimationFrame id for timer bar
+let _turnTimeoutTimer = null; // setTimeout for host auto-action
+let _currentTimerSeat = null; // which seat this timer is for
+
+// ── Init AFK system after game loads ──────────────────────────────────────────
+function initAfkSystem(){
+  if(!ROOM_CODE) return;
+  _afkRef = db.ref(`rooms/${ROOM_CODE}/afk`);
+  // Listen for afk data changes
+  const cb = snap=>{
+    _afkData = snap.val() || {};
+    _updateBotVoteBanner();
+    // If this seat is now a bot AND it's their turn, host should auto-play
+    if(IS_HOST && !G.over){
+      const seat = G.turn;
+      if(_afkData[seat]?.bot && !G.rolled && !G.waiting){
+        _hostDoBotTurn(seat);
+      }
+    }
+  };
+  _afkRef.on('value', cb);
+  _afkListener = ()=>_afkRef.off('value', cb);
+  _listeners.push(_afkListener);
+
+  // Also watch each seat's online status to clear bot when they return
+  SEAT_LAYOUT_ACTIVE.forEach(seat=>{
+    if(seat === MY_SEAT) return; // own presence handled elsewhere
+    const ref = db.ref(`rooms/${ROOM_CODE}/players/${seat}/online`);
+    const ocb = snap=>{
+      if(snap.val() === true && _afkData[seat]?.bot){
+        // Player came back online — clear their bot flag
+        if(IS_HOST){
+          _afkRef.child(String(seat)).update({ bot: false, votes: null });
+          showToast(`🟢 ${PLAYERS[seat]?.label||'Player'} is back!`);
+        }
+      }
+    };
+    ref.on('value', ocb);
+    _listeners.push(()=>ref.off('value', ocb));
+  });
+}
+
+// ── Reset AFK system on leaveRoom / game over ─────────────────────────────────
+function resetAfkSystem(){
+  stopTurnTimerBar();
+  clearTimeout(_turnTimeoutTimer);
+  _turnTimeoutTimer = null;
+  _afkRef = null;
+  _afkData = {};
+  _currentTimerSeat = null;
+  document.getElementById('afk-vote-banner').style.display = 'none';
+}
+
+// ── Border timer constants ────────────────────────────────────────────────────
+const _TIMER_W=145,_TIMER_H=76,_TIMER_R=12;
+const _TIMER_PERIM=Math.round(2*(_TIMER_W+_TIMER_H)-8*_TIMER_R+2*Math.PI*_TIMER_R); // ≈414
+
+// startTurnTimerBar → now drives the SVG border ring on the active player's panel
+// Called by resetTurnTimeout(). ALL players see it because _turnTimerStart is set
+// from turnStartedAt received via Firebase sync.
+function startTurnTimerBar(durationMs, seat){
+  stopTurnTimerBar(); // clear any previous
+  if(!seat && seat!==0) seat = G.turn;
+  _currentTimerSeat = seat;
+
+  const svg  = document.getElementById(`ptimer-${seat}`);
+  const rect = document.getElementById(`ptimer-rect-${seat}`);
+  if(!svg || !rect) return;
+
+  // Color: use the display color of the active seat
+  const color = getDisplayColorForSeat ? getDisplayColorForSeat(seat) : '#FFD600';
+  rect.setAttribute('stroke', color);
+  svg.style.opacity = '1';
+
+  const start = _turnTimerStart || Date.now();
+  const tick = ()=>{
+    if(_currentTimerSeat !== seat){ _stopBorderTimer(seat); return; }
+    const elapsed = Date.now() - start;
+    const pct = Math.max(0, 1 - elapsed / durationMs);
+    const offset = _TIMER_PERIM * (1 - pct);
+    rect.setAttribute('stroke-dashoffset', String(offset));
+
+    // Pulse color: green → yellow → red
+    let strokeColor;
+    if(pct > 0.5)       strokeColor = color;           // full — player color
+    else if(pct > 0.25) strokeColor = '#FFD600';       // yellow warning
+    else                strokeColor = '#FF2D78';       // red urgent
+
+    // glow intensity increases as time runs out
+    const glowSize = Math.round(2 + (1-pct)*6);
+    rect.setAttribute('stroke', strokeColor);
+    rect.style.filter = `drop-shadow(0 0 ${glowSize}px ${strokeColor})`;
+
+    if(pct > 0) _turnTimerRAF = requestAnimationFrame(tick);
+    else _stopBorderTimer(seat);
+  };
+  _turnTimerRAF = requestAnimationFrame(tick);
+}
+
+function _stopBorderTimer(seat){
+  if(_turnTimerRAF){ cancelAnimationFrame(_turnTimerRAF); _turnTimerRAF=null; }
+  const svg  = document.getElementById(`ptimer-${seat}`);
+  const rect = document.getElementById(`ptimer-rect-${seat}`);
+  if(svg)  svg.style.opacity='0';
+  if(rect){ rect.setAttribute('stroke-dashoffset','0'); rect.style.filter=''; }
+}
+
+function stopTurnTimerBar(){
+  if(_turnTimerRAF){ cancelAnimationFrame(_turnTimerRAF); _turnTimerRAF=null; }
+  // Hide ALL seat timers
+  for(let s=0;s<4;s++) _stopBorderTimer(s);
+  // Also hide old top bar (now unused but keep for safety)
+  const wrap=document.getElementById('afk-timer-bar-wrap');
+  if(wrap) wrap.style.display='none';
+}
+
+// ── Main resetTurnTimeout — called every time turn changes ────────────────────
 function resetTurnTimeout(){
   clearTimeout(_turnTimeoutTimer);
   _turnTimeoutTimer = null;
-  if(!IS_HOST || !ROOM_CODE || G.over) return;
-  // Only start timer when it's NOT my turn (opponent might be AFK)
-  if(G.turn === MY_SEAT) return;
+  stopTurnTimerBar();
+  if(!ROOM_CODE || G.over) return;
+
+  _currentTimerSeat = G.turn;
+
+  // Set _turnTimerStart from G.turnStartedAt (synced via Firebase) so ALL players
+  // see the same timer progress. Fallback to now if not available.
+  _turnTimerStart = (G.turnStartedAt && G.turnStartedAt < Date.now()) ? G.turnStartedAt : Date.now();
+
+  // Show border timer on active player's panel — ALL players see this
+  startTurnTimerBar(TURN_TIMEOUT_MS, G.turn);
+
+  // If this seat is already a bot, host immediately plays for them
+  if(IS_HOST && _afkData[G.turn]?.bot && !G.rolled && !G.waiting){
+    _turnTimeoutTimer = setTimeout(()=>_hostDoBotTurn(G.turn), 800);
+    return;
+  }
+
+  // Set 2-min timeout — host performs the auto-play
+  if(!IS_HOST) return; // only host runs timers to avoid duplicate actions
+
   _turnTimeoutTimer = setTimeout(async()=>{
-    // Re-check: still same turn, not rolled, not waiting for pick, game not over
-    if(G.over || G.rolled || G.waiting || G.turn === MY_SEAT) return;
-    showToast(`⏱ ${PLAYERS[G.turn]?.label||"Player"} took too long — skipping turn`);
-    const skippedTurn = G.turn;
-    G.rolled=false; G.diceVal=null; G.waiting=false;
-    nextTurn(false);
-    await pushGameState({ action:"skip", dice:null, reason:"timeout", skippedSeat:skippedTurn });
+    // Re-check guards
+    if(G.over || G.rolled || G.waiting) return;
+    if(G.turn !== _currentTimerSeat) return;
+
+    const seat = G.turn;
+    stopTurnTimerBar();
+
+    // Increment AFK counter for this seat
+    const cur = _afkData[seat] || { count:0, bot:false };
+    const newCount = (cur.count || 0) + 1;
+    await _afkRef.child(String(seat)).update({ count: newCount });
+
+    // Check if this triggers a bot-vote (3 consecutive AFK turns)
+    // But if already bot, don't re-trigger vote, just play
+    if(!cur.bot && newCount >= 3){
+      // Show vote to all — they have 30s to vote, then auto-passes if needed
+      await _afkRef.child(String(seat)).update({ voteOpen: true, votes: null });
+      // Host waits 30s then checks if vote passed (auto-pass if not enough voters)
+      setTimeout(()=>_checkBotVoteResult(seat, true), 30000);
+    }
+
+    // Auto-play this turn regardless (roll + best move)
+    await _hostDoBotTurn(seat);
+
   }, TURN_TIMEOUT_MS);
+}
+
+// ── Host performs a full auto-turn for a seat ─────────────────────────────────
+async function _hostDoBotTurn(seat){
+  if(G.over || G.turn !== seat) return;
+  if(G.rolled && G.waiting){
+    // Already rolled, just need to pick a token
+    const mv = movable(seat, G.diceVal);
+    if(mv.length > 0){
+      const pick = _bestBotMove(mv, G.diceVal, seat);
+      await doMove(seat, pick.tid, G.diceVal);
+    } else {
+      nextTurn(false);
+      await pushGameState({ action:"skip", dice:G.diceVal, reason:"noMove" });
+    }
+    return;
+  }
+  if(G.rolled) return; // animation in progress
+
+  // Roll dice
+  const v = rng();
+  G.rolled = true;
+  G.diceVal = v;
+  SFX.diceRoll();
+  animDice(seat, v, async()=>{
+    if(G.over || G.turn !== seat) return;
+    // 3 sixes check
+    if(v === 6){
+      G.sixes = (G.sixes || 0) + 1;
+      if(G.sixes >= 3){
+        G.sixes = 0; G.rolled = false; G.diceVal = null; G.waiting = false;
+        SFX.threeSixesSkip();
+        renderTokens();
+        nextTurn(false);
+        await pushGameState({ action:"skip", dice:v, reason:"3sixes" });
+        return;
+      }
+    } else { G.sixes = 0; }
+    if(v === 6) SFX.rolledSix();
+
+    const mv = movable(seat, v);
+    if(mv.length === 0){
+      SFX.noMove();
+      renderTokens(); refreshUI();
+      nextTurn(false);
+      await pushGameState({ action:"skip", dice:v, reason:"noMove" });
+      return;
+    }
+    const pick = _bestBotMove(mv, v, seat);
+    await doMove(seat, pick.tid, v);
+  });
+}
+
+// ── Pick best token to move (simple heuristic) ────────────────────────────────
+function _bestBotMove(mv, v, seat){
+  // Priority: capture > move furthest ahead > open from home
+  let best = mv[0];
+  let bestScore = -Infinity;
+  for(const t of mv){
+    let score = 0;
+    const targetStep = t.step === 0 ? 1 : t.step + v;
+    // Prefer tokens already on board
+    if(t.step > 0) score += 10;
+    // Prefer further along
+    score += t.step;
+    // Check if landing captures an enemy
+    if(t.step > 0){
+      const destCell = getCell(seat, targetStep);
+      if(destCell){
+        const ck = `${destCell[0]}-${destCell[1]}`;
+        if(!SAFE.has(ck)){
+          const enemies = G.tokens.filter(o=>{
+            if(o.pid === seat || o.step === 0 || o.step >= STEP_DONE) return false;
+            const oc = getCell(o.pid, o.step);
+            return oc && `${oc[0]}-${oc[1]}` === ck;
+          });
+          if(enemies.length > 0) score += 50; // bonus for capture
+        }
+      }
+    }
+    // Prefer opening home token if we have a 6
+    if(v === 6 && t.step === 0) score += 5;
+    if(score > bestScore){ bestScore = score; best = t; }
+  }
+  return best;
+}
+
+// ── Vote banner logic ─────────────────────────────────────────────────────────
+function _updateBotVoteBanner(){
+  const banner = document.getElementById('afk-vote-banner');
+  // Find any seat with voteOpen=true (that is NOT MY_SEAT — you don't vote for yourself)
+  let foundSeat = null;
+  for(const seatKey of Object.keys(_afkData)){
+    const d = _afkData[seatKey];
+    if(d.voteOpen && Number(seatKey) !== MY_SEAT && !d.bot){
+      foundSeat = Number(seatKey); break;
+    }
+  }
+  if(foundSeat === null || G.over){
+    banner.style.display = 'none';
+    return;
+  }
+  const d = _afkData[foundSeat];
+  const playerName = PLAYERS[foundSeat]?.label || `P${foundSeat+1}`;
+  const activeSeats = SEAT_LAYOUT_ACTIVE.filter(s=>s !== foundSeat);
+  const needed = activeSeats.length >= 3 ? 3 : activeSeats.length >= 2 ? 2 : 1;
+  const votes = d.votes ? Object.values(d.votes).filter(Boolean).length : 0;
+  const myVoted = d.votes && d.votes[MY_SEAT];
+
+  document.getElementById('afk-vote-title').textContent = `🤖 ${playerName} is AFK`;
+  document.getElementById('afk-vote-sub').textContent = `${playerName} hasn't moved 3 turns in a row.\nLet computer take over for them?`;
+  document.getElementById('afk-vote-tally').textContent = `Votes: ${votes} / ${needed}`;
+  document.getElementById('afk-vote-btn').dataset.seat = foundSeat;
+  document.getElementById('afk-vote-btn').style.display = myVoted ? 'none' : 'inline-block';
+  document.getElementById('afk-vote-already').style.display = myVoted ? 'block' : 'none';
+  banner.style.display = 'block';
+}
+
+window.castBotVote = async function(){
+  const seat = Number(document.getElementById('afk-vote-btn').dataset.seat);
+  if(isNaN(seat) || !_afkRef) return;
+  await _afkRef.child(`${seat}/votes/${MY_SEAT}`).set(true);
+  // Check if threshold reached
+  setTimeout(()=>_checkBotVoteResult(seat, false), 500);
+};
+
+async function _checkBotVoteResult(seat, forcePass){
+  if(!_afkRef) return;
+  const snap = await _afkRef.child(String(seat)).once('value');
+  const d = snap.val() || {};
+  if(d.bot) return; // already converted
+  if(!d.voteOpen) return;
+
+  const activeSeats = SEAT_LAYOUT_ACTIVE.filter(s=>s !== seat);
+  const needed = activeSeats.length >= 3 ? 3 : activeSeats.length >= 2 ? 2 : 1;
+  const votes = d.votes ? Object.values(d.votes).filter(Boolean).length : 0;
+
+  if(forcePass || votes >= needed){
+    // Vote passed — convert to bot
+    await _afkRef.child(String(seat)).update({ bot: true, voteOpen: false, count: 0, votes: null });
+    showToast(`🤖 Computer will play for ${PLAYERS[seat]?.label||'P'+(seat+1)}`);
+    // If it's their turn right now, host plays immediately
+    if(IS_HOST && G.turn === seat && !G.rolled && !G.waiting){
+      setTimeout(()=>_hostDoBotTurn(seat), 500);
+    }
+  }
+}
+
+// ── Clear AFK count when a player successfully acts ──────────────────────────
+function _clearAfkOnAct(seat){
+  if(!_afkRef || !ROOM_CODE) return;
+  const d = _afkData[seat];
+  if(!d) return;
+  if(d.count > 0 || d.voteOpen){
+    _afkRef.child(String(seat)).update({ count: 0, voteOpen: false, votes: null });
+  }
+  // If they were a bot and are now acting manually, clear bot flag too
+  if(d.bot){
+    _afkRef.child(String(seat)).update({ bot: false, voteOpen: false, votes: null, count: 0 });
+    showToast(`🟢 ${PLAYERS[seat]?.label||'Player'} is back — taking control!`);
+  }
 }
 
 // ── Game flow ─────────────────────────────────────────────────────────────────
 function onHumanRoll(){
   if(G.rolled||G.over||G_PAUSED||_rolling||_animating) return;
   if(G.turn !== MY_SEAT) return;
+  _clearAfkOnAct(MY_SEAT); // player acted — reset their AFK counter
   doRoll(G.turn);
 }
 
@@ -2960,6 +3390,7 @@ async function onTokClick(pid,tid){
   if(!G.waiting || !G.rolled) return;   // Must have rolled and be waiting for pick
   if(G.over || G_PAUSED) return;
   if(G.diceVal == null) return;         // Safety: no dice value
+  _clearAfkOnAct(MY_SEAT); // player picked token — reset AFK counter
   const dv = G.diceVal;                 // Capture before any state change
   const mv = movable(MY_SEAT, dv);
   if(!mv.find(t=>t.tid===tid)) return;
@@ -2986,7 +3417,7 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
     const h=cp*0.65;
     let t0=null;
     let _soundFired=false; // fire tokenStep once at arc peak (~t=0.5) via rAF — no setTimeout jitter
-    if(layer)spawnTrailDot(startX,startY,color,layer);
+    if(layer && !PERF_MODE)spawnTrailDot(startX,startY,color,layer);
     function tick(now){
       if(!t0) t0=now;
       let t=(now-t0)/JUMP_MS;
@@ -3118,6 +3549,7 @@ async function sendHomeFast(tok){
     const m=el.style.transform.match(/translate\(([^,]+),([^)]+)\)/);
     const bx=m?m[1]:"0px",by=m?m[2]:"0px";
     const cfT=`translate(${bx},${by})`;
+    if(!PERF_MODE){
     for(let r=0;r<2;r++){
       const ring=document.createElement("div");
       const size=36+r*10;
@@ -3125,6 +3557,7 @@ async function sendHomeFast(tok){
       const mx=parseFloat(bx)-size/2,my=parseFloat(by)-_tipOff-size/2+_tipOff*0.5;
       ring.style.cssText=`position:absolute;transform:translate(${mx}px,${my}px) scale(0.3);--rx:${mx}px;--ry:${my}px;width:${size}px;height:${size}px;border-radius:50%;border:${3-r}px solid ${r===0?'white':displayColor};opacity:0;pointer-events:none;animation:ringPop ${0.35+r*0.12}s ${r*0.07}s ease-out forwards;`;
       layer.appendChild(ring);setTimeout(()=>ring.remove(),600);
+    }
     }
     el.style.transition="transform 0.14s cubic-bezier(0.36,0.07,0.19,0.97),opacity 0.14s";
     el.style.transform=`${cfT} rotate(${_tokenRotationDeg}deg) scale(1.7)`;
@@ -3172,6 +3605,7 @@ async function sendHomeFast(tok){
   tok.step=0;renderTokens();await rafDelay(10);
 
   const bp=baseCirclePx(hr,hc,tok.tid);
+  if(!PERF_MODE){
   const sparkColors=[displayColor,"white","#FFD700",displayColor];
   for(let i=0;i<4;i++){
     const sp=document.createElement("div");
@@ -3184,10 +3618,12 @@ async function sendHomeFast(tok){
   const ring=document.createElement("div");
   ring.style.cssText=`position:absolute;--rx:${bp.x-18}px;--ry:${bp.y-18}px;transform:translate(${bp.x-18}px,${bp.y-18}px) scale(0.2);width:36px;height:36px;border-radius:50%;border:3px solid ${displayColor};opacity:0.9;pointer-events:none;animation:ringPop .45s ease-out forwards;`;
   layer.appendChild(ring);setTimeout(()=>ring.remove(),500);
+  }
 }
 
 // flashStarCell: uses data-r/data-c attributes for reliable DOM lookup
 function flashStarCell(r,c){
+  if(PERF_MODE) return;
   const cell=document.querySelector(`[data-r="${r}"][data-c="${c}"]`);
   if(!cell)return;
   cell.classList.add('star-land-glow');
@@ -3344,6 +3780,7 @@ function nextTurn(same){
   G.rolled=false;_rolling=false;G.diceVal=null;G.waiting=false;
   if(!same){
     G.sixes=0; // reset six counter on turn change
+    G.turnStartedAt = Date.now(); // stamp when this turn began (for border timer sync)
     // Advance turn along the fixed seat layout order
     const layout = SEAT_LAYOUT_ACTIVE;
     const curIdx = layout.indexOf(G.turn);
@@ -3384,6 +3821,7 @@ function nextTurn(same){
 
 function endGame(){
   G.over=true;
+  resetAfkSystem(); // stop AFK timers and hide banner on game end
   const medals=["🥇","🥈","🥉","4️⃣"];
 
   // Rule 4 & 2: Win screen uses POV display colors — self shown as Blue
@@ -3420,6 +3858,7 @@ function endGame(){
   }
 
   // Win rings
+  if(!PERF_MODE){
   const cx=window.innerWidth/2,cy=window.innerHeight/2;
   [0,1,2,3].forEach(i=>{
     const ring=document.createElement("div");
@@ -3429,8 +3868,10 @@ function endGame(){
     winEl.appendChild(ring);
     setTimeout(()=>ring.remove(),2500);
   });
+  }
 
   // Confetti canvas
+  if(!PERF_MODE){
   const canvas=document.getElementById("win-confetti-canvas");
   if(canvas){
     canvas.width=window.innerWidth;canvas.height=window.innerHeight;
@@ -3469,6 +3910,7 @@ function endGame(){
     }
     window._confettiFrame=requestAnimationFrame(drawConfetti);
   }
+  } // end !PERF_MODE confetti block
 }
 
 function restartGame(){
@@ -3919,6 +4361,10 @@ if(_rcDisplay){
 
 // Bind mute button
 bindBtn("btn-mute", ()=>SFX.toggleMute());
+// Bind performance mode button
+bindBtn("btn-perf", ()=>togglePerfMode());
+// Apply saved perf mode state on load
+applyPerfMode();
 
 }); // end DOMContentLoaded
 
