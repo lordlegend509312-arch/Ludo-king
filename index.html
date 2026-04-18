@@ -14,7 +14,7 @@
   --text:#f0f0ff;--muted:rgba(240,240,255,.4);
 }
 *{box-sizing:border-box;margin:0;padding:0;user-select:none !important;-webkit-user-select:none !important;-webkit-touch-callout:none !important;}
-body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;font-family:'Inter',sans-serif;touch-action:manipulation;overflow:hidden;}
+body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 12px;font-family:'Inter',sans-serif;touch-action:manipulation;overflow:hidden;}
 
 /* ── LOBBY SCREEN ── */
 #lobby{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;}
@@ -104,18 +104,18 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 .player-slot-status{color:var(--muted);font-size:.75rem;font-family:'Nunito',sans-serif;}
 
 /* ── GAME ── */
-#game-wrap{flex-direction:column;align-items:stretch;gap:6px;display:none;}
+#game-wrap{flex-direction:column;align-items:stretch;gap:6px;display:none;margin-top:-40px;}
 
 .prow{display:flex;justify-content:space-between;align-items:flex-end;}
 .prow.bottom{align-items:flex-start;}
-.pcol{display:flex;flex-direction:column;gap:5px;}
+.pcol{display:flex;flex-direction:column;gap:8px;}
 .pcol.left{align-items:flex-start;}
 .pcol.right{align-items:flex-end;}
 
 .plabel{font-size:10px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;transition:color 0.3s;padding:0 4px;font-family:'Rajdhani',sans-serif;}
 
 .pbox{position:relative;display:flex;align-items:center;width:145px;height:76px;border-radius:12px;}
-.pbox-bg{position:absolute;inset:0;background:var(--surface);border-radius:12px;border:1.5px solid var(--border);box-shadow:0 4px 20px rgba(0,0,0,.6);transition:border-color 0.25s,box-shadow 0.25s;}
+.pbox-bg{position:absolute;inset:0;background:#1a1a1a;border-radius:12px;border:1.5px solid #333;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:border-color 0.25s,box-shadow 0.25s;}
 .pbox-shine{position:absolute;inset:1px;border-radius:11px;background:linear-gradient(150deg,rgba(255,255,255,.04) 0%,transparent 55%);pointer-events:none;}
 .pbox-tok{position:relative;z-index:3;width:46px;display:flex;justify-content:center;align-items:center;flex-shrink:0;}
 
@@ -128,6 +128,92 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
   box-shadow:inset 0 2px 4px rgba(255,255,255,.12),0 2px 8px rgba(0,0,0,.4);
   flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
+}
+
+/* Rank stamp overlay on player box */
+.pbox-rank{
+  position:absolute;inset:0;border-radius:12px;z-index:20;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  pointer-events:none;
+  overflow:hidden;
+}
+.pbox-rank-crown{font-size:1.55rem;line-height:1;display:block;}
+.pbox-rank-pos{
+  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.05rem;
+  line-height:1;letter-spacing:.5px;color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,.9);
+}
+.pbox-rank[data-rank="1"]{background:rgba(180,130,0,.82);}
+.pbox-rank[data-rank="2"]{background:rgba(80,100,120,.82);}
+.pbox-rank[data-rank="3"]{background:rgba(110,60,20,.82);}
+.pbox-rank[data-rank="4"]{background:rgba(40,20,50,.82);}
+
+/* ── TURN TIMER ARC ── */
+.turn-timer-svg{
+  position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);
+  pointer-events:none;z-index:5;border-radius:12px;overflow:visible;
+}
+.turn-timer-track{
+  fill:none;stroke:rgba(255,255,255,0.06);stroke-width:3;
+  stroke-linecap:round;
+}
+.turn-timer-bar{
+  fill:none;stroke-width:3;stroke-linecap:round;
+  stroke-dasharray:var(--tda,400);
+  stroke-dashoffset:var(--tdo,0);
+  transition:stroke 0.4s;
+  filter:drop-shadow(0 0 4px var(--timer-color,#fff));
+}
+@keyframes timerDrain{
+  from{stroke-dashoffset:0;}
+  to{stroke-dashoffset:var(--tda,400);}
+}
+.turn-timer-bar.draining{
+  animation:timerDrain var(--timer-dur,60s) linear forwards;
+}
+
+/* ── OFFLINE OVERLAY — covers entire pbox including dice ── */
+.pbox-offline-overlay{
+  position:absolute;inset:0;border-radius:12px;z-index:25;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:rgba(6,4,14,0.86);backdrop-filter:blur(3px);
+  cursor:pointer;pointer-events:auto;
+  transition:background 0.15s;
+}
+.pbox-offline-overlay:hover{ background:rgba(6,4,14,0.93); }
+.pbox-offline-overlay:active{ background:rgba(6,4,14,0.98); }
+.pbox-offline-overlay.show{ display:flex; }
+.pbox-offline-overlay.voted{ background:rgba(4,18,10,0.86); }
+.pbox-offline-label{
+  font-size:.58rem;font-weight:800;letter-spacing:1.2px;
+  color:rgba(255,255,255,.35);font-family:'Rajdhani',sans-serif;
+  text-transform:uppercase;line-height:1;
+}
+.pbox-makebot-text{
+  font-size:.84rem;font-weight:900;letter-spacing:1px;
+  color:#F5C518;font-family:'Rajdhani',sans-serif;
+  text-transform:uppercase;line-height:1;
+  text-shadow:0 0 8px rgba(245,197,24,.5);
+}
+.pbox-offline-overlay.voted .pbox-makebot-text{
+  color:#00C853;
+  text-shadow:0 0 8px rgba(0,200,83,.4);
+}
+.pbox-vote-count{
+  font-size:.5rem;font-weight:700;letter-spacing:.3px;
+  color:rgba(255,255,255,.32);font-family:'Nunito',sans-serif;
+  text-align:center;line-height:1.5;padding:0 4px;min-height:8px;
+}
+
+/* Bot indicator label */
+.bot-label{
+  display:inline-block;
+  font-size:.55rem;font-weight:800;
+  color:#F5C518;background:rgba(245,197,24,.15);
+  border:1px solid rgba(245,197,24,.35);
+  border-radius:5px;padding:1px 5px;
+  font-family:'Rajdhani',sans-serif;letter-spacing:.5px;
+  vertical-align:middle;margin-left:3px;
 }
 
 /* "YOU" badge */
@@ -151,7 +237,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 }
 /* tokens-layer rotates WITH board-wrap, tokens themselves counter-rotate */
 #board{
-  --cell:min(5.8vw,5.4vh,40px);
+  --cell:min(5.8vw,4.8dvh,40px);
   display:grid;
   grid-template-columns:repeat(15,var(--cell));
   grid-template-rows:repeat(15,var(--cell));
@@ -161,11 +247,11 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
   border-radius:10px;
   box-shadow:0 0 0 1px rgba(255,255,255,.05),0 8px 48px rgba(0,0,0,.8);
 }
-.lc{display:flex;align-items:center;justify-content:center;contain:layout style;}
+.lc{display:flex;align-items:center;justify-content:center;contain:layout style paint;}
 
 .star-svg{width:82%;height:82%;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,200,.8));}
 
-.dice-3d{width:38px;height:38px;position:relative;perspective:170px;cursor:pointer;}
+.dice-3d{width:44px;height:44px;min-width:44px;min-height:44px;position:relative;perspective:210px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;}
 .dice-3d.off{cursor:default;pointer-events:none;}
 .dice-3d.inactive{opacity:0;pointer-events:none;}
 .dice-cube{width:38px;height:38px;transform-style:preserve-3d;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden;}
@@ -176,9 +262,9 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 #tokens-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;}
 .tok{position:absolute;pointer-events:none;will-change:transform;transition:none;left:0;top:0;}
 .tok.movable{pointer-events:auto;cursor:pointer;}
-.tok.movable::after{content:"";position:absolute;inset:-10px;border-radius:50%;}
+.tok.movable::after{content:"";position:absolute;inset:-4px;border-radius:50%;}
 .tok.movable svg{animation:movablePulse 0.9s ease-in-out infinite alternate;}
-@keyframes movablePulse{from{opacity:0.85;transform:scale(0.95);}to{opacity:1;transform:scale(1.05);}}
+@keyframes movablePulse{from{opacity:0.85;transform:scale(0.97);}to{opacity:1;transform:scale(1.03);}}
 .tok-shadow{position:absolute;left:0;top:0;border-radius:50%;background:rgba(0,0,0,0.38);filter:blur(3px);pointer-events:none;will-change:transform;transition:transform 0.09s cubic-bezier(0.22,1,0.36,1),opacity 0.15s;}
 
 /* Ludo King spinning ring under movable tokens */
@@ -187,9 +273,20 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
   background:conic-gradient(rgba(0,0,0,0.72) 0deg 60deg,transparent 60deg 120deg,rgba(0,0,0,0.72) 120deg 180deg,transparent 180deg 240deg,rgba(0,0,0,0.72) 240deg 300deg,transparent 300deg 360deg);
   -webkit-mask:radial-gradient(farthest-side,transparent 55%,black 56%);
   mask:radial-gradient(farthest-side,transparent 55%,black 56%);
-  animation:tokRingSpin 0.9s linear infinite;
+  animation:tokRingSpin 0.65s linear infinite;
 }
 @keyframes tokRingSpin{from{transform:var(--tr-base) rotate(0deg);}to{transform:var(--tr-base) rotate(360deg);}}
+
+/* Block shield overlay on token */
+.tok-shield {
+  position:absolute;left:0;top:0;
+  pointer-events:none;
+  z-index:4;
+  opacity:0;
+  transition:opacity 0.3s;
+}
+.tok-shield.normal { opacity:1; }
+.tok-shield.super  { opacity:1; }
 
 /* Star cell landing glow */
 @keyframes starGlow{
@@ -200,7 +297,6 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 .star-land-glow{animation:starGlow 0.7s ease-out forwards;border-radius:4px;}
 
 @keyframes ringPop{from{opacity:0.9;transform:translate(var(--rx),var(--ry)) scale(0.2);}to{opacity:0;transform:translate(var(--rx),var(--ry)) scale(2.2);}}
-@keyframes ringPop2{0%{opacity:0;}15%{opacity:0.7;}100%{opacity:0;transform:translate(var(--rx),var(--ry)) scale(2.6);}}
 .tok-trail{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;will-change:transform,opacity;animation:trailFade var(--td,0.4s) ease-out forwards;}
 @keyframes trailFade{from{opacity:var(--ta,0.7);transform:var(--tx) scale(var(--ts,1));}to{opacity:0;transform:var(--tx) scale(0.2);}}
 .sparkle{position:absolute;left:0;top:0;pointer-events:none;border-radius:50%;animation:sparkleFly var(--sd,0.6s) ease-out forwards;}
@@ -212,29 +308,38 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 }
 @keyframes diceWobble{
   0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg));}
-  25%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,1,0,12deg);}
-  50%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,-1,0,10deg);}
-  75%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(-1,1,0,8deg);}
-  100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg));}
+  20%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,1,0,16deg) scale(1.06);}
+  45%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,-1,0,12deg) scale(1.03);}
+  70%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(-1,1,0,8deg) scale(1.01);}
+  100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1);}
 }
 
 @keyframes diceLand{
-  0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1.18);}
-  55%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(0.93);}
-  80%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1.05);}
-  100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1);}
+  0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1.22) translateY(-4px);}
+  40%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.12) scaleY(0.88) translateY(3px);}
+  65%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(0.95) scaleY(1.05) translateY(-2px);}
+  82%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.03) scaleY(0.98) translateY(0);}
+  100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1) translateY(0);}
 }
-.dice-cube.landing{animation:diceLand 0.35s cubic-bezier(0.36,0.07,0.19,0.97) forwards;}
+.dice-cube.landing{animation:diceLand 0.38s cubic-bezier(0.22,1,0.36,1) forwards;}
 
-#status-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px;}
-#btn-back,#btn-pause{
-  width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
-  background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;align-self:center;flex-shrink:0;
+/* Status row with back + pause */
+#status-row{position:fixed;bottom:60px;left:12px;z-index:9999;display:none;align-items:center;gap:8px;}
+#btn-pause{
+  position:fixed;top:10px;left:12px;z-index:9999;
+  width:32px;height:32px;
+  border-radius:8px;
+  border:1.5px solid var(--border2);
+  background:var(--surface2);
+  color:var(--muted);
+  font-size:13px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;
+  line-height:1;
 }
-#btn-back:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:white;}
 #btn-pause:hover{background:rgba(255,60,60,.15);border-color:rgba(255,60,60,.4);color:white;}
-#btn-back:active,#btn-pause:active{transform:scale(0.92);}
+#btn-pause:active{transform:scale(0.92);}
 
 /* Sync indicator */
 #sync-bar{
@@ -247,26 +352,33 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 #sync-dot.warn{background:#FFD600;box-shadow:0 0 6px #FFD600;}
 #sync-dot.err{background:#FF2D78;box-shadow:0 0 6px #FF2D78;}
 
-/* Turn indicator */
-
+#btn-back{
+  width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
+  background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
+}
+#btn-back:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:white;}
+#btn-back:active{transform:scale(0.92);}
 
 #btn-mute{
   width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
   background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;align-self:center;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
 }
-#btn-mute:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:white;}
-#btn-mute:active{transform:scale(0.92);}
-#btn-mute.muted{background:rgba(255,60,60,.15);border-color:rgba(255,60,60,.4);color:#FF2D78;}
+#btn-mute:hover{background:rgba(255,255,255,.28);transform:scale(1.08);}
+#btn-mute:active{transform:scale(0.94);}
+#btn-mute.muted{background:rgba(255,60,60,.25);border:1px solid rgba(255,60,60,.4);color:#FF2D78;}
 
 #btn-perf{
   width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
   background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;align-self:center;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
 }
-#btn-perf:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:white;}
+#btn-perf:hover{background:rgba(255,255,255,.08);}
 #btn-perf:active{transform:scale(0.92);}
-#btn-perf.on{background:rgba(0,200,83,.12);border-color:rgba(0,200,83,.45);color:#00C853;}
+#btn-perf.on{background:rgba(245,197,24,.18);border-color:rgba(245,197,24,.5);color:#F5C518;}
 
 #pause-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:150;align-items:center;justify-content:center;}
 #pause-overlay.show{display:flex;}
@@ -277,13 +389,37 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 .pause-btn{background:var(--gold);color:#000;}
 .pause-btn.secondary{background:var(--surface);border:1.5px solid var(--border2);color:var(--text);}
 
-#win{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:18px;overflow:hidden;}
+#win{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:16px;overflow:hidden;}
 #win.show{display:flex;}
-#win-trophy{font-size:3.5rem;animation:trophyBounce .6s cubic-bezier(.4,1.6,.6,1);}
-@keyframes trophyBounce{from{transform:scale(0) rotate(-15deg);}to{transform:scale(1) rotate(0deg);}}
-#win h1{color:var(--gold);font-size:1.8rem;font-weight:900;text-align:center;font-family:'Rajdhani',sans-serif;letter-spacing:2px;}
-#win-places{color:var(--text);font-size:1rem;text-align:center;font-family:'Rajdhani',sans-serif;line-height:2;white-space:pre;}
-#win button{padding:13px 40px;font-size:.95rem;border:none;border-radius:12px;cursor:pointer;background:var(--gold);color:#000;font-weight:800;box-shadow:0 6px 24px rgba(245,197,24,.3);letter-spacing:.5px;}
+#win-confetti-canvas{position:absolute;inset:0;pointer-events:none;z-index:0;}
+#win-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px;}
+#win-trophy{font-size:4rem;animation:trophyEntrance 0.7s cubic-bezier(.2,1.4,.4,1) forwards;opacity:0;}
+@keyframes trophyEntrance{
+  0%{opacity:0;transform:scale(0) rotate(-25deg) translateY(30px);}
+  60%{opacity:1;transform:scale(1.25) rotate(8deg) translateY(-8px);}
+  80%{transform:scale(0.92) rotate(-3deg);}
+  100%{opacity:1;transform:scale(1) rotate(0deg) translateY(0);}
+}
+@keyframes trophyFloat{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-10px) rotate(2deg);}}
+#win-trophy.float{animation:trophyFloat 2.2s ease-in-out infinite;}
+#win h1{color:var(--gold);font-size:1.9rem;font-weight:900;text-align:center;font-family:'Rajdhani',sans-serif;letter-spacing:2px;opacity:0;animation:slideUp 0.5s 0.4s cubic-bezier(.2,1.4,.4,1) forwards;}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+#win-crown-ring{font-size:1.1rem;letter-spacing:6px;opacity:0;animation:slideUp 0.5s 0.55s ease-out forwards;}
+#win-places{
+  color:var(--text);font-size:1rem;text-align:center;
+  font-family:'Rajdhani',sans-serif;line-height:2.1;white-space:pre;
+  opacity:0;animation:slideUp 0.5s 0.7s ease-out forwards;
+  background:rgba(255,255,255,.04);border-radius:14px;
+  padding:12px 28px;border:1px solid rgba(255,255,255,.1);
+}
+#win button{
+  padding:14px 44px;font-size:.95rem;border:none;border-radius:14px;
+  cursor:pointer;background:var(--gold);color:#000;font-weight:800;
+  box-shadow:0 6px 28px rgba(245,197,24,.4);letter-spacing:.5px;
+  opacity:0;animation:slideUp 0.5s 0.9s ease-out forwards;
+  transition:transform 0.12s,box-shadow 0.12s;
+}
+#win button:hover{transform:scale(1.05);box-shadow:0 8px 36px rgba(245,197,24,.6);}
 #win button:active{transform:scale(0.96);}
 
 /* Toast notification */
@@ -298,6 +434,49 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* POV is achieved via color remapping ONLY — board never rotates (Rule 1) */
+
+/* ── PER-PLAYER CHAT BUBBLE ── */
+.pcol{position:relative;} /* anchor for absolute bubble */
+.player-chat-bubble{
+  position:absolute;
+  left:50%;transform:translateX(-50%);
+  background:rgba(20,20,45,0.95);
+  border:1px solid var(--border2);
+  border-radius:8px;
+  padding:4px 10px;
+  font-size:.72rem;font-family:'Nunito',sans-serif;font-weight:600;
+  color:var(--text);
+  white-space:nowrap;max-width:140px;
+  overflow:hidden;text-overflow:ellipsis;
+  pointer-events:none;
+  z-index:350;
+  opacity:0;
+  transition:opacity 0.18s;
+}
+.player-chat-bubble.show{opacity:1;}
+/* Arrow — points toward the player box */
+.player-chat-bubble::after{
+  content:'';
+  position:absolute;
+  left:50%;transform:translateX(-50%);
+  border:6px solid transparent;
+}
+/* Top-row bubbles: arrow points DOWN (toward box below label) */
+.pcol.top-bubble .player-chat-bubble{
+  bottom:calc(100% + 6px); /* above the pcol */
+}
+.pcol.top-bubble .player-chat-bubble::after{
+  top:100%;
+  border-top-color:var(--border2);
+}
+/* Bot-row bubbles: arrow points UP (toward box above label) */
+.pcol.bot-bubble .player-chat-bubble{
+  top:calc(100% + 6px); /* below the pcol */
+}
+.pcol.bot-bubble .player-chat-bubble::after{
+  bottom:100%;
+  border-bottom-color:var(--border2);
+}
 
 /* ── CHAT ── */
 #chat-panel{
@@ -392,10 +571,17 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
   font-family:'Nunito',sans-serif;
 }
 #btn-chat-toggle{
-  position:relative;
-  width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
-  background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0;
+  position:fixed;top:10px;right:12px;z-index:9999;
+  width:32px;height:32px;
+  border-radius:8px;
+  border:1.5px solid var(--border2);
+  background:var(--surface2);
+  color:var(--muted);
+  font-size:13px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;
+  line-height:1;
 }
 #btn-chat-toggle:hover{background:rgba(245,197,24,.15);border-color:rgba(245,197,24,.4);color:white;}
 #btn-chat-toggle:active{transform:scale(0.92);}
@@ -508,7 +694,7 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
   70%{transform:var(--sq-base) scaleX(1.04) scaleY(0.97);}
   100%{transform:var(--sq-base) scaleX(1) scaleY(1);}
 }
-.tok-land{animation:tokLandSquash 0.22s cubic-bezier(0.22,1,0.36,1) forwards;}
+.tok-land{animation:tokLandSquash 0.14s cubic-bezier(0.22,1,0.36,1) forwards;}
 
 /* ── WIN SCREEN (confetti + trophy) ── */
 #win-confetti-canvas{position:absolute;inset:0;pointer-events:none;z-index:0;}
@@ -644,11 +830,32 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
     <div id="sync-bar"><div id="sync-dot" class="warn"></div><span id="sync-text">Syncing...</span></div>
     <button id="btn-mute" title="Mute">🔊</button>
     <button id="btn-perf" title="Performance Mode">⚡</button>
-    <button id="btn-chat-toggle" title="Chat">💬</button>
   </div>
 </div>
 
 <!-- ── PAUSE ── -->
+<div id="smart-dice-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);z-index:400;align-items:center;justify-content:center;flex-direction:column;gap:0;">
+  <div style="background:#13132a;border:1.5px solid #333366;border-radius:16px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;width:200px;box-shadow:0 16px 60px rgba(0,0,0,.7);">
+    <div style="color:#F5C518;font-size:.78rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:2px;">✦ DICE CONTROL ✦</div>
+    <div style="width:100%;background:#1a1a35;border-radius:10px;padding:7px 8px;border:1px solid #2a2a55;">
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+        <span style="font-size:11px;">🎲</span>
+        <span style="color:#F5C518;font-size:.62rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:1px;">SMART DICE</span>
+      </div>
+      <div id="sdp-color-grid" style="display:flex;gap:0;justify-content:center;width:100%;border:1.5px solid #2a2a55;border-radius:8px;overflow:hidden;"></div>
+      <div id="sdp-status" style="font-size:.55rem;font-family:'Rajdhani',sans-serif;letter-spacing:.5px;color:rgba(240,240,255,0.35);min-height:10px;text-align:center;margin-top:4px;"></div>
+    </div>
+    <div style="width:100%;background:#1a1a35;border-radius:10px;padding:7px 8px;border:1px solid #2a2a55;">
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+        <span style="font-size:11px;">🎯</span>
+        <span style="color:#00AEEF;font-size:.62rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:1px;">FORCE ROLL</span>
+      </div>
+      <div id="sdp-force-grid" style="display:flex;flex-direction:column;gap:4px;width:100%;"></div>
+    </div>
+    <button onclick="closeSmartDicePanel()" style="margin-top:0;padding:4px 20px;border-radius:8px;border:1.5px solid #333366;background:#1a1a35;color:#f0f0ff;font-size:.62rem;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;cursor:pointer;">CLOSE</button>
+  </div>
+</div>
+
 <div id="pause-overlay">
   <div id="pause-box">
     <div id="pause-title">Game Paused</div>
@@ -671,20 +878,6 @@ body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;al
 
 <!-- ── TOAST ── -->
 <div id="toast"></div>
-
-<!-- ── AFK BOT VOTE BANNER ── -->
-<div id="afk-vote-banner" style="display:none;position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:300;background:rgba(13,13,26,.96);border:1.5px solid #FF2D78;border-radius:16px;padding:12px 18px;min-width:260px;max-width:320px;text-align:center;box-shadow:0 8px 32px rgba(255,45,120,.25);backdrop-filter:blur(8px);">
-  <div id="afk-vote-title" style="color:#FF2D78;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:800;letter-spacing:.5px;margin-bottom:4px;">🤖 Player AFK</div>
-  <div id="afk-vote-sub" style="color:rgba(240,240,255,.65);font-family:'Nunito',sans-serif;font-size:.75rem;margin-bottom:10px;line-height:1.4;"></div>
-  <div id="afk-vote-tally" style="color:rgba(240,240,255,.45);font-family:'Nunito',sans-serif;font-size:.7rem;margin-bottom:8px;"></div>
-  <button id="afk-vote-btn" onclick="castBotVote()" style="background:linear-gradient(135deg,#FF2D78,#c4005a);border:none;border-radius:10px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:.9rem;font-weight:800;padding:8px 22px;cursor:pointer;letter-spacing:.5px;transition:all .15s;">✓ Let Computer Play</button>
-  <div id="afk-vote-already" style="display:none;color:var(--green);font-family:'Nunito',sans-serif;font-size:.75rem;margin-top:6px;">✓ You voted</div>
-</div>
-
-<!-- ── AFK TURN TIMER BAR ── -->
-<div id="afk-timer-bar-wrap" style="display:none;position:fixed;top:0;left:0;width:100%;height:3px;z-index:299;background:rgba(255,255,255,.1);">
-  <div id="afk-timer-bar" style="height:100%;width:100%;background:linear-gradient(90deg,#00C853,#FFD600,#FF2D78);transition:width linear;"></div>
-</div>
 
 <!-- ── CHAT PANEL ── -->
 <div id="chat-panel">
@@ -965,11 +1158,11 @@ const SFX=(() => {
     tn(ctx,{type:'sine',freq:1760,freqEnd:1320,start:t+0.055,dur:0.07,gain:0.28,attack:0.002,dest:out});
   });}
 
-  // SOUND_SYNC: tokenStep throttle = 100ms — slightly under JUMP_MS=130ms so every step sounds
+  // SOUND_SYNC: tokenStep throttle = 65ms (tighter than JUMP_MS=110ms — every step sounds)
   let _lastStepTime=0;
   function tokenStepThrottled(){
     const now=Date.now();
-    if(now-_lastStepTime<100)return;
+    if(now-_lastStepTime<65)return;
     _lastStepTime=now;tokenStep();
   }
 
@@ -1007,7 +1200,7 @@ const db = firebase.database();
 const auth = firebase.auth();
 
 // DEBUG: confirm script loaded
-console.log("✅ Script loaded OK — v27 (STEP_DONE fix, home triangle fix, spawn pos fix, win screen fix, _slotPxCache fix)");
+console.log("✅ Script loaded OK — v29");
 
 // Anonymous Auth — required for Firebase security rules
 let _authReady = false;
@@ -1099,12 +1292,14 @@ function applyPerfMode(){
       .star-svg { filter: none !important; }
       .tok-shadow { display: none !important; }
       @keyframes ringPop { from{opacity:0;} to{opacity:0;} }
-      @keyframes ringPop2 { 0%,100%{opacity:0;} }
 
       /* ⚡ PERF MODE: box-shadow + drop-shadow off (GPU heavy) */
       .pbox-bg { box-shadow: none !important; }
       .ddot { box-shadow: none !important; }
       #board-wrap { box-shadow: none !important; }
+      .tok-shield { display: none !important; }
+      .pbox-shine { display: none !important; }
+      .face-shine { display: none !important; }
     `;
   } else {
     btn.classList.remove('on');
@@ -1166,13 +1361,10 @@ function applyBoardRotation(){
   const bw = document.getElementById("board-wrap");
   if(bw) bw.style.transform = `rotate(${deg}deg)`;
   _tokenRotationDeg = -deg;
-  // Invalidate pixel cache after rotation
   _cacheValid = false;
-  Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
   // Re-render tokens after CSS transition completes (0.6s)
   setTimeout(()=>{
     _cacheValid = false;
-    Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
     renderTokens();
   }, 650);
 }
@@ -1197,7 +1389,7 @@ let _listeners = [];
 let _presenceRef = null;
 
 let PLAYERS = []; // {id, seat, color, label, active, human}
-let G = { turn:0, diceVal:null, rolled:false, waiting:false, over:false, sixes:0, tokens:[], placements:[], turnStartedAt:null };
+let G = { turn:0, diceVal:null, rolled:false, waiting:false, over:false, sixes:0, tokens:[], placements:[] };
 let G_PAUSED = false;
 let _rolling = false;
 let _animating = false; // true during doMove animation — blocks syncGameState token overwrite
@@ -1489,7 +1681,6 @@ window.hostStartGame = async function(){
     seatLayout: layout,
     lastAction: null,
     actionBy: null,
-    turnStartedAt: firebase.database.ServerValue.TIMESTAMP,
     timestamp: firebase.database.ServerValue.TIMESTAMP
   };
 
@@ -1550,8 +1741,7 @@ async function loadAndStartGame(){
     over: false,
     sixes: gData.sixes || 0,
     tokens: gData.tokens || [],
-    placements: gData.placements || [],
-    turnStartedAt: gData.turnStartedAt || Date.now()
+    placements: gData.placements || []
   };
 
   // ✅ FIX C: Force-clear ALL token element cache on every game load.
@@ -1559,7 +1749,6 @@ async function loadAndStartGame(){
   // because _tokEls DOM elements retain the old POV color from the previous session.
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   _cacheValid=false;
-  Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
 
   // v22: Set MY_SLOT = index of MY_SEAT in the active layout
   MY_SLOT = SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT);
@@ -1567,6 +1756,11 @@ async function loadAndStartGame(){
 
   buildBoard();
   buildPlayers();
+  _rbReset();
+  smartDice.targetPids.clear();
+  // Reset AFK/bot state on every game load
+  Object.keys(_timerExpireCount).forEach(k=>delete _timerExpireCount[k]);
+  _botVotes = {};
   PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
   applyBoardRotation(); // CSS rotate board based on MY_SEAT so self is always bottom-left
   setSyncStatus("ok");
@@ -1580,7 +1774,6 @@ async function loadAndStartGame(){
   SFX.gameStart();
   // ✅ Only NOW allow syncGameState to process Firebase updates.
   _gameLoaded = true;
-  initAfkSystem(); // start 2-min AFK timer + bot vote system
 }
 
 // ── Sync game state from Firebase ─────────────────────────────────────────────
@@ -1593,11 +1786,6 @@ function syncGameState(data){
   // _animating flag is local to MY token moves and should not affect opponent sync
 
   setSyncStatus("ok");
-
-  // If an opponent acted, reset their AFK counter (they're not AFK!)
-  if(data.actionBy != null && data.actionBy !== MY_SEAT){
-    _clearAfkOnAct(data.actionBy);
-  }
 
   // On reconnect, rebuild seat layout from server state
   if(data.seatLayout){
@@ -1614,7 +1802,7 @@ function syncGameState(data){
 
   G.over       = data.over || false;
   G.sixes      = data.sixes   || 0;
-  G.placements = data.placements || [];
+  _applyPlacements(data.placements);
 
   if(G.over && !document.getElementById("win").classList.contains("show")){
     if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
@@ -1631,8 +1819,12 @@ function syncGameState(data){
   // CRITICAL: Do NOT set G.waiting=true here — that is only for the local player.
   // Do NOT highlight any tokens — only the roller picks.
   if(action === "roll"){
+    // Player acted — reset their AFK counter and hide voting overlay
+    if(rolledBy !== null && rolledBy !== undefined){
+      _timerExpireCount[rolledBy] = 0;
+      _updateOfflineBadge(rolledBy, false);
+    }
     G.turn    = data.turn;
-    if(data.turnStartedAt) G.turnStartedAt = data.turnStartedAt;
     G.diceVal = dice;
     G.rolled  = true;
     G.sixes   = data.sixes || 0;
@@ -1643,12 +1835,10 @@ function syncGameState(data){
     if(dice != null && rolledBy != null){
       SFX.diceRoll();
       animDice(rolledBy, dice, ()=>{
-        refreshUI();   // ← updates dice inactive/active classes for ALL players
-        renderTokens();
-        updateTurnBanner();
+        syncUI();   // ← updates dice inactive/active classes for ALL players
       });
     } else {
-      refreshUI(); renderTokens(); updateTurnBanner();
+      syncUI();
     }
     return;
   }
@@ -1656,21 +1846,25 @@ function syncGameState(data){
   // ── CASE 2: action="move" — ATOMIC ────────────────────────────────────────
   // Full move: animate dice, then animate token movement step-by-step, then apply final state.
   if(action === "move"){
+    // Player acted — reset their AFK counter and hide voting overlay
+    if(rolledBy !== null && rolledBy !== undefined){
+      _timerExpireCount[rolledBy] = 0;
+      _updateOfflineBadge(rolledBy, false);
+    }
     const applyFinalState = () => {
       if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
       G.turn       = data.turn;
-      if(data.turnStartedAt) G.turnStartedAt = data.turnStartedAt;
       G.rolled     = false;
       G.waiting    = false;
       G.diceVal    = null;
       G.sixes      = data.sixes      || 0;
-      G.placements = data.placements || [];
+      _applyPlacements(data.placements);
       G.over       = data.over       || false;
       _animating   = false;
       if(G.over && !document.getElementById("win").classList.contains("show")){
         endGame(); return;
       }
-      refreshUI(); renderTokens(); updateTurnBanner();
+      syncUI();
     };
 
     // Animate opponent's move with step-by-step token animation
@@ -1739,35 +1933,33 @@ function syncGameState(data){
   // ── CASE 3: action="skip" — noMove or 3sixes ──────────────────────────────
   if(action === "skip" || action === "noMove" || action === "skip3six"){
     G.turn       = data.turn;
-    if(data.turnStartedAt) G.turnStartedAt = data.turnStartedAt;
     G.rolled     = false;
     G.waiting    = false;
     G.diceVal    = null;
     G.sixes      = data.sixes      || 0;
-    G.placements = data.placements || [];
+    _applyPlacements(data.placements);
     if(dice != null && rolledBy != null){
       SFX.diceRoll();
       animDice(rolledBy, dice, ()=>{
         if(data.reason === "3sixes") SFX.threeSixesSkip();
         else if(data.reason === "noMove") SFX.noMove();
-        refreshUI(); renderTokens(); updateTurnBanner();
+        syncUI();
       });
     } else {
-      refreshUI(); renderTokens(); updateTurnBanner();
+      syncUI();
     }
     return;
   }
 
   // ── Fallback: apply full state safely ─────────────────────────────────────
   G.turn    = data.turn;
-  if(data.turnStartedAt) G.turnStartedAt = data.turnStartedAt;
   G.rolled  = false; // Never inherit rolled state from Firebase on fallback
   G.waiting = false; // Never inherit waiting state
   G.diceVal = null;
   G.sixes   = data.sixes || 0;
-  G.placements = data.placements || [];
+  _applyPlacements(data.placements);
   if(data.tokens && !_animating) G.tokens = JSON.parse(JSON.stringify(data.tokens));
-  refreshUI(); renderTokens(); updateTurnBanner();
+  syncUI(); // updateTurnBanner restarts timer
 }
 
 // ── Push game state to Firebase ───────────────────────────────────────────────
@@ -1788,7 +1980,6 @@ async function pushGameState(extra={}){
     placements: G.placements,
     seatLayout: SEAT_LAYOUT_ACTIVE, // Rule 11: persist for reconnect recovery
     actionBy: MY_SEAT,      // Real seat ID of who acted
-    turnStartedAt: G.turnStartedAt || firebase.database.ServerValue.TIMESTAMP,
     timestamp: firebase.database.ServerValue.TIMESTAMP,
     ...extra
   };
@@ -1920,6 +2111,7 @@ function listenHostOnline(){
 window.leaveToLobby = async function(){
   clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
+  stopTurnTimer();
   if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
   // ✅ DO NOT clearSession() — keep it so rejoin card shows
   _listeners.forEach(fn=>fn());
@@ -1959,7 +2151,7 @@ window.leaveToLobby = async function(){
 window.leaveRoom = async function(){
   clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
-  resetAfkSystem();
+  stopTurnTimer();
   if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
   clearSession(); // intentional leave — wipe session
   _listeners.forEach(fn=>fn());
@@ -1990,6 +2182,148 @@ window.leaveRoom = async function(){
 window.backToLobby = window.leaveToLobby;
 
 // ══════════════════════════════════════════════════════════════════════════════
+// ONLINE PRESENCE + BOT VOTE SYSTEM
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Track how many times each seat's timer expired consecutively
+const _timerExpireCount = {}; // seat → number (resets when they act)
+const EXPIRE_COUNT_FOR_VOTE = 2; // 2 consecutive timeouts = show voting overlay
+
+// Called after loadAndStartGame() — listen to all player online flags + botVotes
+function listenPlayerPresence(){
+  if(!ROOM_CODE) return;
+  SEAT_LAYOUT_ACTIVE.forEach(seat=>{
+    if(!PLAYERS[seat]?.active) return;
+    _timerExpireCount[seat] = 0;
+    // Still listen to online flag for reconnect detection (deactivate bot)
+    const ref = db.ref(`rooms/${ROOM_CODE}/players/${seat}/online`);
+    const cb = snap=>{
+      const online = snap.val() === true;
+      if(online && PLAYERS[seat]?.isBot){
+        _deactivateBot(seat);
+      }
+      // If player acts again (comes online), reset their expire count
+      if(online){
+        _timerExpireCount[seat] = 0;
+        _updateOfflineBadge(seat, false);
+      }
+    };
+    ref.on('value', cb);
+    _listeners.push(()=>ref.off('value', cb));
+  });
+  // Listen to botVotes from Firebase
+  listenBotVotes();
+}
+
+function _updateOfflineBadge(seat, isOffline){
+  const badge = document.getElementById(`offbadge-${seat}`);
+  if(!badge) return;
+  if(seat === MY_SEAT){ badge.classList.remove('show'); return; }
+  if(PLAYERS[seat]?.isBot){ badge.classList.remove('show'); return; }
+  if(!isOffline){ badge.classList.remove('show'); return; }
+
+  badge.classList.add('show');
+  const myVote = (_botVotes[seat]||{})[MY_SEAT];
+  badge.classList.toggle('voted', !!myVote);
+
+  // Build vote count text e.g. "Voted by Blue, Yellow"
+  const txt = document.getElementById(`offtxt-${seat}`);
+  if(txt){
+    const votes = _botVotes[seat] || {};
+    const voterSeats = Object.keys(votes).map(Number);
+    const colorNames = {[BLUE]:"Blue",[PINK]:"Pink",[YELLOW]:"Yellow",[GREEN]:"Green"};
+    if(voterSeats.length === 0){
+      txt.textContent = myVote ? 'You voted' : 'Tap to vote';
+    } else {
+      const names = voterSeats.map(s=>{
+        if(s === MY_SEAT) return 'You';
+        return colorNames[SEAT_COLOR[s]] || `P${s+1}`;
+      });
+      txt.textContent = 'Voted by: ' + names.join(', ');
+    }
+  }
+}
+
+// ── BOT VOTES ─────────────────────────────────────────────────────────────────
+let _botVotes = {}; // { seat: { voterSeat: true } }
+
+function listenBotVotes(){
+  if(!ROOM_CODE) return;
+  const ref = db.ref(`rooms/${ROOM_CODE}/botVotes`);
+  const cb = snap=>{
+    _botVotes = snap.val() || {};
+    // Check if any seat has majority votes to become bot
+    SEAT_LAYOUT_ACTIVE.forEach(seat=>{
+      if(!PLAYERS[seat]?.active) return;
+      if(PLAYERS[seat]?.isBot) return; // already bot
+      const votes = Object.keys(_botVotes[seat]||{}).length;
+      const activePlayers = SEAT_LAYOUT_ACTIVE.filter(s=>PLAYERS[s]?.active&&s!==seat);
+      const needed = Math.ceil(activePlayers.length / 2); // majority of others
+      if(votes >= needed && votes > 0){
+        _activateBot(seat);
+      }
+      // Update badge vote state — show overlay only if they already hit 2 timeouts
+      _updateOfflineBadge(seat, (_timerExpireCount[seat]||0) >= EXPIRE_COUNT_FOR_VOTE);
+    });
+  };
+  ref.on('value', cb);
+  _listeners.push(()=>ref.off('value', cb));
+}
+
+window.voteForBot = async function(seat){
+  if(MY_SEAT === null || !ROOM_CODE) return;
+  if(seat === MY_SEAT) return;
+  if(PLAYERS[seat]?.isBot) return;
+  if((_botVotes[seat]||{})[MY_SEAT]) return; // already voted
+  // Optimistic UI update
+  const badge = document.getElementById(`offbadge-${seat}`);
+  if(badge) badge.classList.add('voted');
+  navigator.vibrate && navigator.vibrate(18);
+  try{
+    await db.ref(`rooms/${ROOM_CODE}/botVotes/${seat}/${MY_SEAT}`).set(true);
+  } catch(e){
+    showToast('Vote failed');
+    if(badge) badge.classList.remove('voted');
+  }
+};
+
+function _activateBot(seat){
+  if(!PLAYERS[seat]) return;
+  PLAYERS[seat].isBot = true;
+  // Update label to show [BOT]
+  const lbl = document.getElementById(`lbl-${seat}`);
+  if(lbl && !lbl.querySelector('.bot-label')){
+    const badge = document.createElement('span');
+    badge.className = 'bot-label';
+    badge.textContent = 'BOT';
+    lbl.appendChild(badge);
+  }
+  // Hide offline badge since bot is now active
+  const offBadge = document.getElementById(`offbadge-${seat}`);
+  if(offBadge){ offBadge.classList.remove('show'); offBadge.classList.remove('voted'); }
+  showToast(`🤖 ${PLAYERS[seat].label} is now a bot`);
+  // If it's their turn right now and we're the host, trigger bot immediately
+  if(IS_HOST && G.turn === seat && !G.rolled && !G.over){
+    clearTimeout(_turnTimeoutTimer);
+    setTimeout(()=>_doBotTurn(seat), 400);
+  }
+}
+
+// When player comes back online, remove bot status
+function _deactivateBot(seat){
+  if(!PLAYERS[seat]?.isBot) return;
+  PLAYERS[seat].isBot = false;
+  // Remove bot label
+  const lbl = document.getElementById(`lbl-${seat}`);
+  if(lbl){ const bl = lbl.querySelector('.bot-label'); if(bl) bl.remove(); }
+  // Clear their votes from Firebase
+  if(IS_HOST && ROOM_CODE){
+    db.ref(`rooms/${ROOM_CODE}/botVotes/${seat}`).remove().catch(()=>{});
+  }
+  showToast(`✅ ${PLAYERS[seat].label} reconnected — bot removed`);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // GAME ENGINE (ported from offline version with online sync)
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -2008,8 +2342,6 @@ const homeZones=[
   {r0:9,c0:0, col:BLUE,   seat:3},  // bottom-left
 ];
 
-// inHome returns the PHYSICAL color of a home zone (used for game logic only)
-const inHome=(r,c)=>{for(const h of homeZones)if(r>=h.r0&&r<h.r0+6&&c>=h.c0&&c<h.c0+6)return h.col;return null;};
 // inHomeSeat returns the global seat index of a home zone (used for POV display)
 const inHomeSeat=(r,c)=>{for(const h of homeZones)if(r>=h.r0&&r<h.r0+6&&c>=h.c0&&c<h.c0+6)return h.seat;return null;};
 const inCenter=(r,c)=>r>=6&&r<=8&&c>=6&&c<=8;
@@ -2060,11 +2392,11 @@ function renderSeatVisuals(seat){
   const color = getDisplayColorForSeat(seat);   const isActive = G.turn === seat && !G.over;
 
   // ── PANEL: Token icon — only if color changed ─────────────────────────────
-  const tokW = document.getElementById(`ptok-${seat}`);
+  const tokW = _domCache.ptok[seat] || document.getElementById(`ptok-${seat}`);
   if(tokW && tokW.dataset.rc !== color){ tokW.innerHTML = tokSVG(color, 36); tokW.dataset.rc = color; }
 
   // ── PANEL: Border + glow ──────────────────────────────────────────────────
-  const bg = document.getElementById(`pbg-${seat}`);
+  const bg = _domCache.pbg[seat] || document.getElementById(`pbg-${seat}`);
   if(bg){
     bg.style.borderColor = isActive ? color : `${color}44`;
     bg.style.boxShadow = isActive
@@ -2073,15 +2405,15 @@ function renderSeatVisuals(seat){
   }
 
   // ── PANEL: Label color ────────────────────────────────────────────────────
-  const lbl = document.getElementById(`lbl-${seat}`);
+  const lbl = _domCache.lbl[seat] || document.getElementById(`lbl-${seat}`);
   if(lbl) lbl.style.color = isActive ? color : "white";
 
   // ── PANEL: Pbox outline ───────────────────────────────────────────────────
-  const box = document.getElementById(`pbox-${seat}`);
+  const box = _domCache.box[seat] || document.getElementById(`pbox-${seat}`);
   if(box) box.style.outline = isActive ? `2px solid ${color}` : "none";
 
   // ── DICE: Glow ────────────────────────────────────────────────────────────
-  const diceWrap = document.getElementById(`pdw-${seat}`);
+  const diceWrap = _domCache.pdw[seat] || document.getElementById(`pdw-${seat}`);
   if(diceWrap){
     diceWrap.style.borderColor = isActive ? color : "#1a1a28";
     diceWrap.style.boxShadow = isActive
@@ -2089,6 +2421,7 @@ function renderSeatVisuals(seat){
       : `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
   }
 }
+
 
 function lighten(hex,a=15){let c=hex.replace("#","");const r=Math.min(255,parseInt(c.slice(0,2),16)+a);const g=Math.min(255,parseInt(c.slice(2,4),16)+a);const b=Math.min(255,parseInt(c.slice(4,6),16)+a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
 function darken(hex,a=18){let c=hex.replace("#","");const r=Math.max(0,parseInt(c.slice(0,2),16)-a);const g=Math.max(0,parseInt(c.slice(2,4),16)-a);const b=Math.max(0,parseInt(c.slice(4,6),16)-a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
@@ -2157,32 +2490,17 @@ const CENTER_OFFSET_SEAT = [
 const SAFE=new Set([...GREY_STARS,...COLOR_STARS]);
 ENTRY_BY_SEAT.forEach(idx=>{ const [r,c]=MAIN_PATH[idx]; SAFE.add(`${r}-${c}`); });
 
+const STRETCH_CELL_SET=new Set(
+  STRETCH_BY_SEAT.flatMap(arr=>arr.map(([r,c])=>`${r}-${c}`))
+);
+
 
 // ── PURE SEAT-BASED API (used by ALL game logic) ──────────────────────────────
-
-// getEntrySeat: returns MAIN_PATH index for seat's spawn cell — pure seat lookup
-function getEntrySeat(seat){
-  return ENTRY_BY_SEAT[seat] ?? 0;
-}
 
 // getHomeCornerBySeat: returns [r,c] top-left of seat's home zone — pure seat lookup
 // Used by GAME LOGIC only (getCell, movement, capture)
 function getHomeCornerBySeat(seat){
   return HOME_CORNER_BY_SEAT[seat] ?? [9,0];
-}
-
-// getRenderHome: visual home corner for RENDERING a pid's token FROM THIS CLIENT's POV.
-// Uses visual slot (how far CW pid is from MY_SEAT) to pick the correct home zone corner.
-// slot 0 = self (bottom-left), slot 1 = top-left, slot 2 = top-right, slot 3 = bottom-right
-function getRenderHome(pid){
-  // Tokens are counter-rotated so they stay at absolute pixel positions.
-  // Must return the VISUAL corner (post board-rotation) so the token lands
-  // on the correct home zone visually.
-  // After board rotates CW by SEAT_ROTATION[MY_SEAT], physical seat pid
-  // appears at visual corner: ((pid - MY_SEAT + 3) % 4 + 4) % 4
-  if(MY_SEAT === null) return HOME_CORNER_BY_SEAT[pid] ?? [9,0];
-  const visualCorner = ((pid - MY_SEAT + 3) % 4 + 4) % 4;
-  return HOME_CORNER_BY_SEAT[visualCorner] ?? [9,0];
 }
 
 // getRenderCell: THE render-layer path lookup.
@@ -2230,22 +2548,38 @@ function movable(pid,dv){
     if(t.step>=STEP_DONE) return false;
     if(t.step>=STEP_STRETCH_START){
       const targetStep=t.step+dv;
-      if(targetStep>STEP_DONE) return false; // overshoot past finish = not allowed
-      return true;  // targetStep === STEP_DONE (57) = finish = allowed
+      if(targetStep>STEP_DONE) return false;
+      return true;
     }
     const targetStep=t.step+dv;
     if(targetStep>STEP_DONE) return false;
+
+    // ── Block rules ──
+    //  - Safe squares: koi bhi block nahi lagta (na landing, na crossing)
+    //  - Jis player ke tokens hain us cell pe, woh khud hamesha land + jump kar sakta hai
+    //  - Normal block (same color ke 2 tokens ek cell pe):
+    //      Opponent land nahi kar sakta, lekin jump (cross) kar sakta hai
+    //  - Super block (same color ke 3+ tokens ek cell pe):
+    //      Opponent na land kar sakta, na jump (cross) kar sakta — completely blocked
     for(let s=t.step+1;s<=targetStep&&s<=STEP_MAIN_END;s++){
       const rc=getCell(pid,s);
       if(!rc) continue;
       const ck=`${rc[0]}-${rc[1]}`;
       if(SAFE.has(ck)) continue;
-      const enemies=G.tokens.filter(o=>{
-        if(o.pid===pid||o.step===0||o.step>=STEP_DONE) return false;
+      const isStretchCell=STRETCH_CELL_SET.has(ck);
+      if(isStretchCell) continue;
+      const isDestination=(s===targetStep);
+      const oppColorCounts={};
+      G.tokens.forEach(o=>{
+        if(o.pid===pid||o.step===0||o.step>=STEP_DONE) return;
         const oc=getCell(o.pid,o.step);
-        return oc&&`${oc[0]}-${oc[1]}`===ck;
+        if(!oc||`${oc[0]}-${oc[1]}`!==ck) return;
+        const col=PLAYERS[o.pid].color;
+        oppColorCounts[col]=(oppColorCounts[col]||0)+1;
       });
-      if(enemies.length>=2) return false;
+      const maxOppStack=Math.max(0,...Object.values(oppColorCounts));
+      if(maxOppStack>=3) return false; // super block — fully blocked
+      if(maxOppStack>=2&&isDestination) return false; // normal block — can't land
     }
     return true;
   });
@@ -2394,9 +2728,13 @@ function buildBoard(){
         }
       }
       el.appendChild(d);
+      // Register in O(1) cell map for fast lookup (flashStarCell etc.)
+      _boardCellMap[k] = d;
     }
   }
 }
+
+const _boardCellMap = {}; // "r-c" → DOM element
 
 // ── Build player panels ────────────────────────────────────────────────────────
 // Rule 6: 4 fixed panel positions. Self always at bottom-left.
@@ -2463,12 +2801,24 @@ function buildPlayers(){
   if(s0 >= 0 && PLAYERS[s0]?.active) top.appendChild(makePanel(s0,"left","top"));
   else top.appendChild(makePlaceholder("left"));
 
-  const pauseBtn=document.createElement("button");
-  pauseBtn.id="btn-pause";
-  pauseBtn.title="Pause";
-  pauseBtn.innerHTML="&#10074;&#10074;";
-  pauseBtn.addEventListener("click",()=>window.togglePause());
-  top.appendChild(pauseBtn);
+  if(!document.getElementById("btn-pause")){
+    const pauseBtn=document.createElement("button");
+    pauseBtn.id="btn-pause";
+    pauseBtn.title="Pause";
+    pauseBtn.innerHTML="&#10074;&#10074;";
+    pauseBtn.addEventListener("click",()=>window.togglePause());
+    document.body.appendChild(pauseBtn);
+  }
+
+  if(!document.getElementById("btn-chat-toggle")){
+    const chatBtn=document.createElement("button");
+    chatBtn.id="btn-chat-toggle";
+    chatBtn.title="Chat";
+    chatBtn.innerHTML="💬";
+    chatBtn.addEventListener("click",()=>window.toggleChat());
+    document.body.appendChild(chatBtn);
+    addChatBadgeToButton();
+  }
 
   if(s1 >= 0 && PLAYERS[s1]?.active) top.appendChild(makePanel(s1,"right","top"));
   else top.appendChild(makePlaceholder("right"));
@@ -2480,6 +2830,20 @@ function buildPlayers(){
 
   if(s3 >= 0 && PLAYERS[s3]?.active) bot.appendChild(makePanel(s3,"right","bot"));
   else bot.appendChild(makePlaceholder("right"));
+
+  // Populate DOM cache after all panels are in the DOM
+  PLAYERS.forEach(p=>{
+    if(!p.active) return;
+    const pid=p.id;
+    _domCache.pbg[pid]  = document.getElementById(`pbg-${pid}`);
+    _domCache.lbl[pid]  = document.getElementById(`lbl-${pid}`);
+    _domCache.box[pid]  = document.getElementById(`pbox-${pid}`);
+    _domCache.ptok[pid] = document.getElementById(`ptok-${pid}`);
+    _domCache.d3d[pid]  = document.getElementById(`d3d-${pid}`);
+    _domCache.dcube[pid]= document.getElementById(`dcube-${pid}`);
+    _domCache.pdw[pid]  = document.getElementById(`pdw-${pid}`);
+    _domCache.tbar[pid] = document.getElementById(`tbar-${pid}`);
+  });
 }
 
 function makePlaceholder(side){
@@ -2495,6 +2859,14 @@ function makePanel(pid,side,pos,isMe=false){
   const col=document.createElement("div");
   col.className=`pcol ${side}`;
   col.dataset.pid=pid; // Rule 11: for reconnect recolor
+  // Mark row position so bubble arrow points correct direction
+  col.classList.add(pos==="top" ? "top-bubble" : "bot-bubble");
+
+  // ── CHAT BUBBLE (shows above/below pcol when player sends a message) ──
+  const bubble=document.createElement("div");
+  bubble.className="player-chat-bubble";
+  bubble.id=`chatbubble-${pid}`;
+  col.appendChild(bubble);
 
   const lbl=document.createElement("span");
   lbl.className="plabel";
@@ -2521,28 +2893,6 @@ function makePanel(pid,side,pos,isMe=false){
   shine.className="pbox-shine";
   bg.appendChild(shine);
 
-  // ── SVG border timer ring — drains over 2 min on active turn ──
-  const timerSvg=document.createElementNS("http://www.w3.org/2000/svg","svg");
-  timerSvg.setAttribute("class","pbox-timer-svg");
-  timerSvg.id=`ptimer-${pid}`;
-  // rect perimeter: 145×76, border-radius≈12 → perimeter ≈ 2*(145+76) - (2π*12 - 8*12) ≈ 418
-  const W=145,H=76,R=12;
-  const perim=Math.round(2*(W+H)-8*R+2*Math.PI*R); // ≈ 414
-  timerSvg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-  timerSvg.style.cssText="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:10;opacity:0;transition:opacity 0.3s;";
-  const timerRect=document.createElementNS("http://www.w3.org/2000/svg","rect");
-  timerRect.setAttribute("x","1.5"); timerRect.setAttribute("y","1.5");
-  timerRect.setAttribute("width",String(W-3)); timerRect.setAttribute("height",String(H-3));
-  timerRect.setAttribute("rx",String(R)); timerRect.setAttribute("ry",String(R));
-  timerRect.setAttribute("fill","none");
-  timerRect.setAttribute("stroke-width","2.5");
-  timerRect.setAttribute("stroke-linecap","round");
-  timerRect.setAttribute("stroke-dasharray",String(perim));
-  timerRect.setAttribute("stroke-dashoffset","0");
-  timerRect.id=`ptimer-rect-${pid}`;
-  timerSvg.appendChild(timerRect);
-  bg.appendChild(timerSvg);
-
     const displayColor = getDisplayColorForSeat(pid); 
     bg.style.borderColor = `${displayColor}44`; // subtle default tint
 
@@ -2559,6 +2909,35 @@ function makePanel(pid,side,pos,isMe=false){
   const d3d=makeDice(pid);
   diceW.appendChild(d3d);
 
+  // ── TIMER ARC SVG ─────────────────────────────────────────────────────────
+  // Rounded-rect border that drains over 60s as the active turn light
+  const timerSvg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+  timerSvg.setAttribute("class","turn-timer-svg");
+  timerSvg.setAttribute("id",`tsvg-${pid}`);
+  timerSvg.setAttribute("viewBox","0 0 153 84");
+  timerSvg.setAttribute("preserveAspectRatio","none");
+  // Perimeter of 145x76 rounded-rect: use a rect path stroke
+  const PERIM = 2*(145+76) - 2*(12*2) + 2*Math.PI*12; // ≈ 419
+  const P = Math.round(PERIM);
+  timerSvg.innerHTML=`
+    <rect class="turn-timer-track" x="2" y="2" width="149" height="80" rx="11" ry="11"/>
+    <rect class="turn-timer-bar" id="tbar-${pid}" x="2" y="2" width="149" height="80" rx="11" ry="11"
+      style="--tda:${P};--tdo:0;--timer-color:${displayColor};"/>`;
+  box.appendChild(timerSvg);
+  // ✅ BUG2 FIX: cache tbar immediately — buildPlayers() end-cache runs after startTurnTimer could fire
+  _domCache.tbar[pid] = timerSvg.querySelector(`#tbar-${pid}`);
+
+  // ── OFFLINE BADGE ──────────────────────────────────────────────────────────
+  const offBadge = document.createElement("div");
+  offBadge.className = "pbox-offline-overlay";
+  offBadge.id = `offbadge-${pid}`;
+  offBadge.innerHTML = `
+    <div class="pbox-offline-label">Offline</div>
+    <div class="pbox-makebot-text">Make Bot</div>
+    <div class="pbox-vote-count" id="offtxt-${pid}"></div>`;
+  offBadge.addEventListener("click", ()=>window.voteForBot(pid));
+  box.appendChild(offBadge);
+
   box.appendChild(bg);
   box.appendChild(tokW);
   box.appendChild(diceW);
@@ -2568,23 +2947,189 @@ function makePanel(pid,side,pos,isMe=false){
   return col;
 }
 
+// ── Rank stamp on player box ─────────────────────────────────────────────────
+const RANK_CROWNS=["👑","🥈","🥉",""];
+const RANK_POS=["1st","2nd","3rd","Loser"];
+function stampRank(pid){
+  const box=document.getElementById(`pbox-${pid}`);
+  if(!box)return;
+  const old=box.querySelector(".pbox-rank");
+  if(old)old.remove();
+  const rank=G.placements.indexOf(pid); // 0-based
+  if(rank<0)return;
+  const el=document.createElement("div");
+  el.className="pbox-rank";
+  el.dataset.rank=String(rank+1);
+  el.innerHTML=`<span class="pbox-rank-crown">${RANK_CROWNS[rank]||""}</span><span class="pbox-rank-pos" style="${rank===3?'font-size:1.3rem;':''}">${RANK_POS[rank]||""}</span>`;
+  box.appendChild(el);
+}
+
+// Apply new placements array and stamp any newly-ranked players
+function _applyPlacements(newPlacements){
+  const prev = G.placements || [];
+  G.placements = newPlacements || [];
+  G.placements.forEach((pid, i) => {
+    if(!prev.includes(pid)) stampRank(pid);
+  });
+}
+
 // ── Dice 3D ───────────────────────────────────────────────────────────────────
 const DOTS={1:["cc"],2:["tl","br"],3:["tl","cc","br"],4:["tl","tr","bl","br"],5:["tl","tr","cc","bl","br"],6:["tl","tr","ml","mr","bl","br"]};
 const DOT_POS={tl:{top:"13%",left:"13%"},tr:{top:"13%",right:"13%"},ml:{top:"50%",left:"13%",transform:"translateY(-50%)"},mr:{top:"50%",right:"13%",transform:"translateY(-50%)"},bl:{bottom:"13%",left:"13%"},br:{bottom:"13%",right:"13%"},cc:{top:"50%",left:"50%",transform:"translate(-50%,-50%)"}};
 const FACE_DEFS=[{n:1,bg:"linear-gradient(145deg,#fff,#f5ebd8)",tf:"rotateY(0deg)"},{n:6,bg:"linear-gradient(145deg,#e8dfc8,#d5c9a8)",tf:"rotateY(180deg)"},{n:2,bg:"linear-gradient(145deg,#ede4cc,#ddd0ac)",tf:"rotateY(90deg)"},{n:5,bg:"linear-gradient(145deg,#ede4cc,#ddd0ac)",tf:"rotateY(-90deg)"},{n:3,bg:"linear-gradient(145deg,#fff,#f8f0de)",tf:"rotateX(90deg)"},{n:4,bg:"linear-gradient(145deg,#d8d0b4,#c8bc98)",tf:"rotateX(-90deg)"}];
 const LAND={1:{rx:0,ry:0},2:{rx:0,ry:-90},3:{rx:-90,ry:0},4:{rx:90,ry:0},5:{rx:0,ry:90},6:{rx:0,ry:180}};
 const dAcc={rx:{},ry:{},busy:{},last:{}};
+// DOM element cache — populated after buildPlayers(), avoids getElementById every frame
+const _domCache={banner:null,pbg:{},lbl:{},box:{},ptok:{},d3d:{},dcube:{},pdw:{},tbar:{}};
 
 function rng(){if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(1);while(true){crypto.getRandomValues(a);if(a[0]<252)return(a[0]%6)+1;}}return Math.floor(Math.random()*6)+1;}
+
+// ── Rubber Band Dice System ────────────────────────────────────────────────────
+// Completely hidden — no visual indicators ever. Assists struggling human players.
+const _rb = { consecutiveAssisted:{}, totalAssists:{}, lastCutRoll:{} };
+function _rbReset(){[0,1,2,3].forEach(pid=>{_rb.consecutiveAssisted[pid]=0;_rb.totalAssists[pid]=0;_rb.lastCutRoll[pid]=0;});}
+_rbReset();
+function _rbNotifyCut(victimPid){if(PLAYERS[victimPid]&&PLAYERS[victimPid].human)_rb.lastCutRoll[victimPid]=2;}
+function _rbAssess(pid){
+  if(!PLAYERS[pid]||!PLAYERS[pid].human) return null;
+  const myToks=toksOf(pid);
+  const activePids=PLAYERS.filter(p=>p.active).map(p=>p.id);
+  const homeCount=(p)=>toksOf(p).filter(t=>t.step===0).length;
+  const boardCount=(p)=>toksOf(p).filter(t=>t.step>0&&t.step<STEP_STRETCH_START).length;
+  const stretchCount=(p)=>toksOf(p).filter(t=>t.step>=STEP_STRETCH_START&&t.step<STEP_DONE).length;
+  const doneCount=(p)=>toksOf(p).filter(t=>t.step>=STEP_DONE).length;
+  const myHome=homeCount(pid),myBoard=boardCount(pid),myStretch=stretchCount(pid),myDone=doneCount(pid);
+  if((_rb.totalAssists[pid]||0)>=8) return null;
+  if(myDone>=2) return null;
+  const opponents=activePids.filter(p=>p!==pid);
+  const maxOppDone=opponents.length>0?Math.max(...opponents.map(doneCount)):0;
+  const myOnBoard=myBoard+myStretch;
+  const isRoughlyEqual=maxOppDone===myDone&&myHome<=2&&myOnBoard>=1;
+  if(maxOppDone>=3&&myDone===0){if((_rb.consecutiveAssisted[pid]||0)>=2) return null;return{sixChanceNum:1,sixChanceDen:4,maxConsec:2};}
+  if((_rb.lastCutRoll[pid]||0)>0) return{sixChanceNum:2,sixChanceDen:8,maxConsec:99};
+  if(myHome===4){
+    if((_rb.consecutiveAssisted[pid]||0)>=4) return null;
+    const oppsWithTwoInStretch=opponents.filter(p=>stretchCount(p)>=2).length;
+    if(opponents.length>=2&&oppsWithTwoInStretch>=opponents.length) return{sixChanceNum:4,sixChanceDen:9,maxConsec:4};
+    return{sixChanceNum:2,sixChanceDen:9,maxConsec:4};
+  }
+  if(myHome===3&&(myBoard===1||myStretch===1)){
+    const boardTok=myToks.find(t=>t.step>0&&t.step<STEP_STRETCH_START);
+    const stretchTok=myToks.find(t=>t.step>=STEP_STRETCH_START&&t.step<STEP_DONE);
+    const activeTok=boardTok||stretchTok;
+    if(activeTok&&activeTok.step<10){if((_rb.consecutiveAssisted[pid]||0)>=3) return null;return{sixChanceNum:2,sixChanceDen:8,maxConsec:3};}
+  }
+  if(isRoughlyEqual) return null;
+  return null;
+}
+function _rbBiasedRoll(sixChanceNum,sixChanceDen){
+  const threshold=Math.round((sixChanceNum/sixChanceDen)*252);
+  if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(1);crypto.getRandomValues(a);if(a[0]<threshold) return 6;while(true){crypto.getRandomValues(a);if(a[0]<250) return(a[0]%5)+1;}}
+  if(Math.random()<sixChanceNum/sixChanceDen) return 6;
+  return Math.floor(Math.random()*5)+1;
+}
+function rubberbandRng(pid){
+  const config=_rbAssess(pid);
+  if(!config){_rb.consecutiveAssisted[pid]=0;return null;}
+  if((_rb.lastCutRoll[pid]||0)>0) _rb.lastCutRoll[pid]--;
+  const val=_rbBiasedRoll(config.sixChanceNum,config.sixChanceDen);
+  _rb.consecutiveAssisted[pid]=(_rb.consecutiveAssisted[pid]||0)+1;
+  _rb.totalAssists[pid]=(_rb.totalAssists[pid]||0)+1;
+  return val;
+}
+
+// ── Smart Dice System ─────────────────────────────────────────────────────────
+const smartDice={targetPids:new Set()};
+const forceDice={};
+const _secretTaps={counts:[0,0,0,0],timers:[null,null,null,null]};
+function _onSecretTap(pid){
+  clearTimeout(_secretTaps.timers[pid]);
+  _secretTaps.counts[pid]++;
+  if(_secretTaps.counts[pid]>=10){_secretTaps.counts[pid]=0;openSmartDicePanel();return;}
+  _secretTaps.timers[pid]=setTimeout(()=>{_secretTaps.counts[pid]=0;},2500);
+}
+function openSmartDicePanel(){document.getElementById('smart-dice-panel').style.display='flex';_renderSmartDicePanel();}
+function closeSmartDicePanel(){document.getElementById('smart-dice-panel').style.display='none';}
+function _renderSmartDicePanel(){
+  const grid=document.getElementById('sdp-color-grid');
+  grid.innerHTML='';
+  const activePlayers=PLAYERS.filter(p=>p.active);
+  activePlayers.forEach((p,idx)=>{
+    const isSelected=smartDice.targetPids.has(p.id);
+    const btn=document.createElement('div');
+    const isLast=idx===activePlayers.length-1;
+    btn.style.cssText=`flex:1;background:${isSelected?p.color+'22':'transparent'};border-right:${isLast?'none':'1.5px solid #2a2a55'};padding:7px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:background 0.15s;`;
+    btn.innerHTML=`<div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;">${tokSVG(p.color,24)}</div>`;
+    btn.onclick=()=>{if(smartDice.targetPids.has(p.id)) smartDice.targetPids.delete(p.id);else smartDice.targetPids.add(p.id);_renderSmartDicePanel();refreshUI();};
+    grid.appendChild(btn);
+  });
+  const status=document.getElementById('sdp-status');
+  if(status){
+    if(smartDice.targetPids.size>0){const names=[...smartDice.targetPids].map(id=>PLAYERS[id].label.toUpperCase()).join(', ');const col=smartDice.targetPids.size===1?PLAYERS[[...smartDice.targetPids][0]].color:'#F5C518';status.style.color=col;status.textContent=`✦ SMART DICE ACTIVE: ${names} ✦`;}
+    else{status.style.color='rgba(240,240,255,0.35)';status.textContent='No players selected — Smart Dice is off';}
+  }
+  const forceGrid=document.getElementById('sdp-force-grid');
+  if(!forceGrid) return;
+  forceGrid.innerHTML='';
+  PLAYERS.forEach(p=>{
+    if(!p.active) return;
+    const current=forceDice[p.id]||null;
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:5px;';
+    const lbl=document.createElement('div');
+    lbl.style.cssText='width:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+    lbl.innerHTML=`<div style="width:22px;height:22px;">${tokSVG(p.color,22)}</div>`;
+    row.appendChild(lbl);
+    const nums=document.createElement('div');
+    nums.style.cssText='display:flex;gap:3px;flex:1;justify-content:space-between;';
+    for(let n=1;n<=6;n++){
+      const nb=document.createElement('div');
+      const isActive=current===n;
+      nb.style.cssText=`width:19px;height:19px;border-radius:4px;border:1.5px solid ${isActive?p.color:'#2a2a55'};background:${isActive?p.color+'33':'#13132a'};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.55rem;font-weight:800;color:${isActive?p.color:'rgba(240,240,255,.5)'};font-family:'Rajdhani',sans-serif;transition:all 0.15s;flex-shrink:0;`;
+      nb.textContent=n;
+      nb.onclick=()=>{forceDice[p.id]=(forceDice[p.id]===n)?null:n;_renderSmartDicePanel();};
+      nums.appendChild(nb);
+    }
+    row.appendChild(nums);
+    if(current!==null){const clr=document.createElement('div');clr.style.cssText='font-size:.6rem;color:rgba(255,80,80,.7);cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;padding:2px 4px;border-radius:4px;border:1px solid rgba(255,80,80,.3);';clr.textContent='✕';clr.title='Clear';clr.onclick=()=>{forceDice[p.id]=null;_renderSmartDicePanel();};row.appendChild(clr);}
+    forceGrid.appendChild(row);
+  });
+}
+
+// ── Smart RNG ─────────────────────────────────────────────────────────────────
+function smartRng(pid){
+  if(forceDice[pid]!=null){const forced=forceDice[pid];forceDice[pid]=null;if(document.getElementById('smart-dice-panel').style.display!=='none') _renderSmartDicePanel();return forced;}
+  const blockSix=(G.sixes||0)>=2;
+  if(!smartDice.targetPids.has(pid)){const rbVal=rubberbandRng(pid);let val=(rbVal!==null)?rbVal:rng();if(blockSix){let a=0;while(val===6&&a<20){val=rng();a++;}}return val;}
+  const enemyCkSet=new Set();
+  G.tokens.forEach(o=>{if(o.pid===pid||o.step===0||o.step>=STEP_DONE) return;if(!PLAYERS[o.pid].active) return;const rc=getCell(o.pid,o.step);if(rc) enemyCkSet.add(`${rc[0]}-${rc[1]}`);});
+  for(let v=1;v<=6;v++){if(blockSix&&v===6) continue;const mv=movable(pid,v);if(mv.some(t=>(t.step===0?1:t.step+v)>=STEP_DONE)) return v;}
+  for(let v=1;v<=6;v++){if(blockSix&&v===6) continue;const mv=movable(pid,v);for(const tok of mv){const toStep=tok.step===0?1:tok.step+v;if(toStep>STEP_MAIN_END) continue;const rc=getCell(pid,toStep);if(!rc) continue;const ck=`${rc[0]}-${rc[1]}`;if(!SAFE.has(ck)&&enemyCkSet.has(ck)) return v;}}
+  let bestVal=null,bestToStep=-1;
+  for(let v=1;v<=6;v++){if(blockSix&&v===6) continue;const mv=movable(pid,v);if(!mv.length) continue;for(const tok of mv){const toStep=tok.step===0?1:tok.step+v;if(toStep>bestToStep){bestToStep=toStep;bestVal=v;}}}
+  if(bestVal!==null) return bestVal;
+  let fb=rng();if(blockSix){let a=0;while(fb===6&&a<20){fb=rng();a++;}}return fb;
+}
 function eio(t){return t<.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1;}
 function lerp(a,b,t){return a+(b-a)*t;}
 function arcY(t){if(t<.82){const p=t/.82;return-52*4*p*(1-p);}const p=(t-.82)/.18;return 4*Math.sin((1-Math.pow(1-p,3))*Math.PI);}
-function sqX(t){if(t<.82)return 1;const p=(t-.82)/.18;return p<.4?lerp(1,1.14,p/.4):lerp(1.14,1,(1-Math.pow(1-(p-.4)/.6,3)));}
-function sqY(t){if(t<.82)return 1;const p=(t-.82)/.18;return p<.4?lerp(1,.82,p/.4):lerp(.82,1,(1-Math.pow(1-(p-.4)/.6,3)));}
+function sqX(t){
+  if(t<0.72)return 1;
+  const p=(t-0.72)/0.28;
+  if(p<0.4){return lerp(1,1.14,p/0.4);}
+  return lerp(1.14,1,(p-0.4)/0.6);
+}
+function sqY(t){
+  if(t<0.72)return 1;
+  const p=(t-0.72)/0.28;
+  if(p<0.4){return lerp(1,0.82,p/0.4);}
+  return lerp(0.82,1,(p-0.4)/0.6);
+}
 
-// SOUND_SYNCED: dice anim = 480ms, sound hits timed to match exactly
+// LUDO KING STYLE: dice uchhal ke player ki taraf aata hai, rotate karta hai, wapas settle
 function animDice(pid,finalVal,cb){
-  const cube=document.getElementById(`dcube-${pid}`);
+  const cube=_domCache.dcube[pid]||document.getElementById(`dcube-${pid}`);
+  const wrap=_domCache.d3d[pid]||document.getElementById(`d3d-${pid}`);
   if(!cube){dAcc.busy[pid]=false;if(cb)cb();return;}
   if(dAcc.busy[pid]){setTimeout(()=>animDice(pid,finalVal,cb),50);return;}
   dAcc.busy[pid]=true;
@@ -2599,22 +3144,47 @@ function animDice(pid,finalVal,cb){
   if(Math.abs(curRy)>5000)dAcc.ry[pid]=normRy;
   const dX=((tg.rx-normRx)%360+360)%360,dY=((tg.ry-normRy)%360+360)%360;
   const eRx=curRx+360+dX,eRy=curRy+360+dY;
+
+  const JUMP_SCALE = 1.52;  // Ludo King style — upar jaake significantly bada dikhta hai
+  const JUMP_Y     = -22;   // upar kitna jaaye (negative = up)
+  const PEAK_T     = 0.40;  // peak kab aaye — earlier = snappier jump
+
   let t0=null;
-  // Ease: fast spin first 65%, then slow settle last 35% — matches sound rumble decay
+
   function diceEase(t){
-    if(t<0.65){const p=t/0.65;return eio(p)*0.88;}
-    const p=(t-0.65)/0.35;return 0.88+0.12*(1-Math.pow(1-p,3));
+    if(t<0.60){const p=t/0.60;return eio(p)*0.85;}
+    const p=(t-0.60)/0.40;
+    return 0.85+0.15*(1-Math.pow(1-p,4));
+  }
+  function wrapScale(t){
+    if(t<=PEAK_T){const p=t/PEAK_T;return lerp(1,JUMP_SCALE,1-Math.pow(1-p,2.2));}
+    const p=(t-PEAK_T)/(1-PEAK_T);
+    if(p<0.55){return lerp(JUMP_SCALE,0.92,1-Math.pow(1-(p/0.55),2.5));}
+    const q=(p-0.55)/0.45;return lerp(0.92,1,1-Math.pow(1-q,3));
+  }
+  function wrapY(t){
+    if(t<=PEAK_T){const p=t/PEAK_T;return lerp(0,JUMP_Y,1-Math.pow(1-p,2.2));}
+    const p=(t-PEAK_T)/(1-PEAK_T);
+    if(p<0.55){return lerp(JUMP_Y,5,1-Math.pow(1-(p/0.55),2.5));}
+    const q=(p-0.55)/0.45;return lerp(5,0,1-Math.pow(1-q,3));
   }
   function tick(now){
     if(!t0)t0=now;
     const t=Math.min((now-t0)/DICE_DUR_MS,1);
     const ease=diceEase(t);
-    const rx=lerp(normRx,eRx,ease),ry=lerp(normRy,eRy,ease);
-    const sx=sqX(t),sy=sqY(t);
-    cube.style.transform=`translateY(${arcY(t)*1.3}px) rotateX(${rx}deg) rotateY(${ry}deg) scaleX(${sx}) scaleY(${sy})`;
-    if(t<1){requestAnimationFrame(tick);}
-    else{
-      cube.style.transform=`rotateX(${eRx}deg) rotateY(${eRy}deg) scaleX(1) scaleY(1)`;
+    const rx=lerp(normRx,eRx,ease);
+    const ry=lerp(normRy,eRy,ease);
+    const sc=wrapScale(t);
+    const wy=wrapY(t);
+    const csx=sqX(t);
+    const csy=sqY(t);
+    if(wrap)wrap.style.transform=`translateY(${wy}px) scale(${sc})`;
+    cube.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg) scaleX(${csx}) scaleY(${csy})`;
+    if(t<1){
+      requestAnimationFrame(tick);
+    } else {
+      if(wrap)wrap.style.transform='';
+      cube.style.transform=`rotateX(${eRx}deg) rotateY(${eRy}deg)`;
       dAcc.rx[pid]=eRx;dAcc.ry[pid]=eRy;dAcc.last[pid]=finalVal;
       dAcc.busy[pid]=false;
       clearTimeout(_busyGuard);
@@ -2656,11 +3226,14 @@ function makeDice(pid){
   return wrap;
 }
 
+const _svgCache = new Map();
 function tokSVG(color,size=28){
+  const cacheKey = `${color}|${size}`;
+  if(_svgCache.has(cacheKey)) return _svgCache.get(cacheKey);
   const dk=(hex)=>{const n=parseInt(hex.slice(1),16);const r=Math.max(0,(n>>16)-50);const g=Math.max(0,((n>>8)&0xff)-50);const b=Math.max(0,(n&0xff)-50);return`#${((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1)}`;};
   const sh=dk(color);
   const id=`t${color.replace("#","")}`;
-  return `<svg width="${size}" height="${Math.round(size*1.3)}" viewBox="0 0 100 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+  const svg = `<svg width="${size}" height="${Math.round(size*1.3)}" viewBox="0 0 100 130" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <radialGradient id="${id}p" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="white" stop-opacity=".6"/><stop offset="35%" stop-color="${color}"/><stop offset="100%" stop-color="${sh}"/></radialGradient>
       <radialGradient id="${id}i" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="white" stop-opacity=".9"/><stop offset="50%" stop-color="white" stop-opacity=".5"/><stop offset="100%" stop-color="${color}" stop-opacity=".3"/></radialGradient>
@@ -2674,6 +3247,8 @@ function tokSVG(color,size=28){
       <ellipse cx="42" cy="31" rx="6" ry="4" fill="white" opacity=".4" transform="rotate(-20,42,31)"/>
     </g>
   </svg>`;
+  _svgCache.set(cacheKey, svg);
+  return svg;
 }
 
 // Perspective-aware token color: each player sees themselves as BLUE,
@@ -2681,7 +3256,8 @@ function tokSVG(color,size=28){
 
 // ── Token element cache ───────────────────────────────────────────────────────
 const _tokEls={};
-const _slotPxCache={}; // cache for slot pixel positions (invalidated on resize/rotation)
+// Shield SVG cache — keyed by "blockType|sW" — avoid rebuild when type+size unchanged
+const _shieldSvgCache = new Map();
 function _ensureTokEl(tok,color){
   const key=`${tok.pid}-${tok.tid}`;
   const layer=document.getElementById("tokens-layer");
@@ -2697,10 +3273,13 @@ function _ensureTokEl(tok,color){
     const ring=document.createElement("div");
     ring.className="tok-ring";
     ring.style.display="none";
+    const shield=document.createElement("div");
+    shield.className="tok-shield";
     layer.appendChild(shadow);
+    layer.appendChild(shield);
     layer.appendChild(ring);
     layer.appendChild(wrap);
-    _tokEls[key]={wrap,shadow,ring,movHandler:null};
+    _tokEls[key]={wrap,shadow,ring,shield,movHandler:null};
   }
   return _tokEls[key];
 }
@@ -2709,6 +3288,7 @@ function _removeTokEl(key){
     _tokEls[key].wrap.remove();
     _tokEls[key].shadow.remove();
     if(_tokEls[key].ring)_tokEls[key].ring.remove();
+    if(_tokEls[key].shield)_tokEls[key].shield.remove();
     delete _tokEls[key];
   }
 }
@@ -2717,6 +3297,7 @@ function _removeTokEl(key){
 const _dotPool=[];
 const MAX_DOTS=20;
 function spawnTrailDot(x,y,color,layer){
+  if(PERF_MODE)return;
   let dot=_dotPool.pop();
   if(!dot){dot=document.createElement("div");dot.style.cssText="position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;";}
   const sz=6+Math.random()*3;
@@ -2725,13 +3306,16 @@ function spawnTrailDot(x,y,color,layer){
   dot.style.opacity="0.82";dot.style.transition="none";
   dot.style.transform=`translate(${x-sz/2}px,${y-sz/2}px)`;
   layer.appendChild(dot);
-  const cleanup=()=>{
-    dot.removeEventListener('transitionend',cleanup);
-    dot.remove();dot.style.transition="none";
-    if(_dotPool.length<MAX_DOTS)_dotPool.push(dot);
-  };
-  dot.addEventListener('transitionend',cleanup,{once:true});
-  setTimeout(()=>{dot.style.transition="opacity 0.32s ease-out";dot.style.opacity="0";},20);
+  // rAF-based fade — immediate start, no 30ms dead-wait
+  const fadeStart = performance.now();
+  const fadeDur = 320;
+  function fadeTick(now) {
+    const progress = Math.min((now - fadeStart) / fadeDur, 1);
+    dot.style.opacity = String((1 - progress) * 0.82);
+    if (progress < 1) { requestAnimationFrame(fadeTick); }
+    else { dot.remove(); dot.style.opacity = "0.82"; if(_dotPool.length < MAX_DOTS) _dotPool.push(dot); }
+  }
+  requestAnimationFrame(fadeTick);
 }
 
 // ── Render tokens ─────────────────────────────────────────────────────────────
@@ -2744,25 +3328,21 @@ function _refreshCache(){
   if(!_cpx)_cpx=Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);
 }
 function cellPx(){return _cpx||Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);}
-// boardOffset: board and tokens-layer are co-located inside board-wrap (both at top:0,left:0)
-// After tokens-layer got width:100%/height:100%, their rects are identical — offset is always (0,0)
-// PAD is already added in rcToXY separately
-function boardOffset(){ return{x:0,y:0}; }
 const GAP=1,PAD=5; // matches #board padding:5px in CSS
 
 // rcToXY: converts board grid (r,c) → pixel position on tokens-layer.
 function rcToXY(r,c){
-  const cp=cellPx(),off=boardOffset();
-  return{x:off.x+PAD+c*(cp+GAP)+cp/2, y:off.y+PAD+r*(cp+GAP)+cp/2};
+  const cp=cellPx();
+  return{x:PAD+c*(cp+GAP)+cp/2, y:PAD+r*(cp+GAP)+cp/2};
 }
 
 // baseCirclePx: pure-math home circle position — always correct regardless of board rotation.
 // getBoundingClientRect was removed: it returns VISUAL (post-rotation) coords which are wrong
 // when tokens-layer is inside a rotated board-wrap — pure math uses the unrotated grid space.
 function baseCirclePx(homeR,homeC,slotIdx){
-  const cp=cellPx(),off=boardOffset();
-  const zoneX=off.x+PAD+homeC*(cp+GAP);
-  const zoneY=off.y+PAD+homeR*(cp+GAP);
+  const cp=cellPx();
+  const zoneX=PAD+homeC*(cp+GAP);
+  const zoneY=PAD+homeR*(cp+GAP);
   const zoneW=6*cp+5*GAP;
   const wbW=zoneW*0.74;
   const wbX=zoneX+(zoneW-wbW)/2;
@@ -2772,9 +3352,15 @@ function baseCirclePx(homeR,homeC,slotIdx){
   return{x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2};
 }
 
+let _renderScheduled = false;
 function renderTokens(){
   // Never render before MY_SEAT is assigned — tokens would get wrong POV colors/positions
   if(MY_SEAT === null) return;
+  if(_renderScheduled) return;
+  _renderScheduled = true;
+  requestAnimationFrame(()=>{ _renderScheduled=false; _doRenderTokens(); });
+}
+function _doRenderTokens(){
   _refreshCache();
   const cp=cellPx();
   const movSet=new Set();
@@ -2853,33 +3439,49 @@ function renderTokens(){
     }
 
     alive.add(key);
-    const rW=BASE_W*scale,rH=rW*(130/100);
-    // Ludo King style: token tip at cell centre, body extends upward
-    // SVG tip is at y=122/130 of total height
+    const rW=BASE_W; // Always use BASE_W for SVG — use CSS scale for stacking (no flicker)
+    const visualScale=scale;
+    const rH=rW*(130/100);
     const tipOffset=rH*(122/130);
     const tx=px-rW/2,ty=py-tipOffset;
     const els=_ensureTokEl(tok,color);
     const {wrap,shadow}=els;
+    // Fix: Always use BASE_W for SVG — only rebuild if BASE_W or color changed
     const curW=parseFloat(wrap.dataset.rw||"0");
     const curColor=wrap.dataset.rc||"";
     if(Math.abs(curW-rW)>0.5||curColor!==color){wrap.innerHTML=tokSVG(color,rW);wrap.dataset.rw=rW;wrap.dataset.rc=color;}
     // Counter-rotate tokens so they always face up regardless of board rotation.
     const _tr = _tokenRotationDeg;
+    const scaleTransform = visualScale !== 1 ? ` scale(${visualScale})` : '';
     wrap.style.transformOrigin = `${rW/2}px ${tipOffset}px`;
     if(!wrap.dataset.animating){
-      wrap.style.transform=`translate(${tx}px,${ty}px) rotate(${_tr}deg)`;
+      wrap.style.transform=`translate(${tx}px,${ty}px) rotate(${_tr}deg)${scaleTransform}`;
     }
     const shadowW=rW*0.60,shadowH=rW*0.16,sx=px-shadowW/2,sy=py-shadowH/2+1;
     shadow.style.transform=`translate(${sx}px,${sy}px)`;
     shadow.style.width=`${shadowW}px`; shadow.style.height=`${shadowH}px`;
-    shadow.style.filter='blur(3px)';
     const showShadow=tok.step>0&&tok.step<STEP_DONE&&stackCount===1;
+    shadow.style.filter=showShadow?'blur(3px)':'blur(2px)';
     shadow.style.opacity=showShadow?"1":"0";
     const wasMovable=wrap.classList.contains("movable");
     if(isMovable!==wasMovable){
       wrap.classList.toggle("movable",isMovable);
-      if(els.movHandler){wrap.removeEventListener("click",els.movHandler);els.movHandler=null;}
-      if(isMovable){els.movHandler=()=>onTokClick(tok.pid,tok.tid);wrap.addEventListener("click",els.movHandler);}
+      if(els.movHandler){
+        wrap.removeEventListener("touchend",els.movHandler);
+        wrap.removeEventListener("click",els.movHandler);
+        els.movHandler=null;
+      }
+      if(isMovable){
+        let _touchHandled=false;
+        els.movHandler=(e)=>{
+          if(e.type==='touchend'){ _touchHandled=true; }
+          else if(e.type==='click'&&_touchHandled){ _touchHandled=false; return; }
+          e.stopPropagation();
+          onTokClick(tok.pid,tok.tid);
+        };
+        wrap.addEventListener("touchend",els.movHandler,{passive:true});
+        wrap.addEventListener("click",els.movHandler);
+      }
     }
     // tok-ring show/hide for movable tokens
     if(els.ring){
@@ -2887,14 +3489,101 @@ function renderTokens(){
       if(showRing){
         const ringSz=rW*0.62;
         const rx=px-ringSz/2,ry=py-ringSz/2;
-        els.ring.style.cssText=`position:absolute;left:0;top:0;width:${ringSz}px;height:${ringSz}px;border-radius:50%;pointer-events:none;--tr-base:translate(${rx}px,${ry}px);background:conic-gradient(rgba(0,0,0,0.85) 0deg 60deg,transparent 60deg 120deg,rgba(0,0,0,0.85) 120deg 180deg,transparent 180deg 240deg,rgba(0,0,0,0.85) 240deg 300deg,transparent 300deg 360deg);-webkit-mask:radial-gradient(farthest-side,transparent 55%,black 56%);mask:radial-gradient(farthest-side,transparent 55%,black 56%);animation:tokRingSpin 0.9s linear infinite;display:block;`;
+        els.ring.style.cssText=`position:absolute;left:0;top:0;width:${ringSz}px;height:${ringSz}px;border-radius:50%;pointer-events:none;--tr-base:translate(${rx}px,${ry}px);background:conic-gradient(rgba(0,0,0,0.85) 0deg 60deg,transparent 60deg 120deg,rgba(0,0,0,0.85) 120deg 180deg,transparent 180deg 240deg,rgba(0,0,0,0.85) 240deg 300deg,transparent 300deg 360deg);-webkit-mask:radial-gradient(farthest-side,transparent 55%,black 56%);mask:radial-gradient(farthest-side,transparent 55%,black 56%);animation:tokRingSpin 0.65s linear infinite;display:block;`;
       } else {
         els.ring.style.display="none";
+      }
+    }
+
+    // Block shield — show on first token of a same-color stack >= 2 (non-safe cell only)
+    if(els.shield){
+      let blockType=null;
+      if(tok.step>=1&&tok.step<=STEP_MAIN_END){
+        const rc2=getRenderCell(tok.pid,tok.step);
+        if(rc2){
+          const ck2=`${rc2[0]}-${rc2[1]}`;
+          if(!SAFE.has(ck2)){
+            const grp2=groups[ck2]||[];
+            const sameColor=grp2.filter(o=>PLAYERS[o.pid].color===color);
+            if(sameColor.length>=3) blockType='super';
+            else if(sameColor.length===2) blockType='normal';
+          }
+        }
+      }
+      // Only show on the FIRST token of the stack to avoid duplicates
+      const rc3=getRenderCell(tok.pid,tok.step);
+      const grp3=rc3?groups[`${rc3[0]}-${rc3[1]}`]||[tok]:[tok];
+      const isFirst=grp3.indexOf(tok)===0;
+      const stackN=blockType==='super'?(()=>{const rc4=getRenderCell(tok.pid,tok.step);return rc4?(groups[`${rc4[0]}-${rc4[1]}`]||[]).length:3;})():2;
+      const tokVisScale=stackN<=2?0.78:0.65;
+      const tipOffset2=rW*(130/100)*(122/130);
+      const tokCenterY=py-(tipOffset2*tokVisScale*0.65);
+      const sW=rW*tokVisScale*1.05;
+      const sH=sW*(34/28);
+      const shieldX=px-sW/2;
+      const shieldY=tokCenterY-sH*0.5;
+      if(blockType&&isFirst){
+        const isSuper=blockType==='super';
+        const shieldOpacity=isSuper?'1':'0.88';
+        const gid=`dsg-${tok.pid}-${tok.tid}`;
+        const newCss=`position:absolute;left:0;top:0;width:${sW}px;height:${sH}px;pointer-events:none;transform:translate(${shieldX}px,${shieldY}px);filter:drop-shadow(${isSuper?'0 0 5px rgba(255,200,0,0.95)':'0 0 3px rgba(120,180,255,0.8)'});opacity:${shieldOpacity};z-index:4;`;
+        if(els.shield._lastCss!==newCss){els.shield.style.cssText=newCss;els.shield._lastCss=newCss;}
+        const shieldSvgKey=`${blockType}|${Math.round(sW)}`;
+        if(els.shield._lastType!==blockType||els.shield._lastSvgKey!==shieldSvgKey){
+          els.shield._lastType=blockType;
+          els.shield._lastSvgKey=shieldSvgKey;
+          let shieldSvg=_shieldSvgCache.get(shieldSvgKey);
+          if(!shieldSvg){
+            shieldSvg=`<svg viewBox="0 0 28 34" xmlns="http://www.w3.org/2000/svg" width="${sW}" height="${sH}">
+          <defs>
+            ${isSuper
+              ?`<linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff280"/><stop offset="100%" stop-color="#ff8800"/></linearGradient>`
+              :`<linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e0f4ff" stop-opacity="0.95"/><stop offset="100%" stop-color="#4499ee" stop-opacity="0.85"/></linearGradient>`
+            }
+            ${isSuper
+              ?`<linearGradient id="${gid}b" x1="1" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,200,0.2)"/><stop offset="100%" stop-color="rgba(0,0,0,0)"/></linearGradient>`
+              :`<linearGradient id="${gid}b" x1="1" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(160,220,255,0.25)"/><stop offset="100%" stop-color="rgba(0,50,120,0)"/></linearGradient>`
+            }
+          </defs>
+          <path d="M14 2 L26 8 L26 20 Q26 28 14 32 Q2 28 2 20 L2 8 Z"
+            fill="url(#${gid})"
+            stroke="${isSuper?'rgba(255,240,100,0.95)':'rgba(180,230,255,0.8)'}"
+            stroke-width="${isSuper?'1.4':'1'}"
+          />
+          <path d="M14 2 L26 8 L14 16 L2 8 Z" fill="url(#${gid}b)"/>
+          <line x1="14" y1="2"  x2="2"  y2="14" stroke="rgba(255,255,255,0.28)" stroke-width="0.6"/>
+          <line x1="14" y1="2"  x2="26" y2="14" stroke="rgba(255,255,255,0.14)" stroke-width="0.6"/>
+          <line x1="2"  y1="14" x2="14" y2="32" stroke="rgba(255,255,255,0.18)" stroke-width="0.6"/>
+          <line x1="26" y1="14" x2="14" y2="32" stroke="rgba(0,0,0,0.1)"        stroke-width="0.6"/>
+          ${isSuper
+            ?`<circle cx="14" cy="18" r="5" fill="rgba(255,255,180,0.75)" stroke="white" stroke-width="1"/>
+               <path d="M14 13 L16 17 L14 23 L12 17 Z" fill="white" opacity="0.92"/>`
+            :`<circle cx="14" cy="16" r="4" fill="rgba(200,240,255,0.55)" stroke="rgba(255,255,255,0.75)" stroke-width="0.9"/>
+               <circle cx="14" cy="16" r="1.4" fill="white" opacity="0.85"/>`
+          }
+        </svg>`;
+            _shieldSvgCache.set(shieldSvgKey,shieldSvg);
+          }
+          els.shield.innerHTML=shieldSvg;
+        }
+        els.shield.classList.remove('normal','super');
+        els.shield.classList.add('tok-shield',blockType);
+      } else {
+        if(els.shield._lastType){
+          els.shield._lastType=null;
+          els.shield._lastSvgKey=null;
+          els.shield._lastCss=null;
+          els.shield.style.cssText='position:absolute;left:0;top:0;opacity:0;pointer-events:none;';
+          els.shield.innerHTML='';
+        }
       }
     }
   });
   for(const key of Object.keys(_tokEls)){if(!alive.has(key))_removeTokEl(key);}
 }
+
+// syncUI: consolidated render call — replaces the repeated refreshUI+renderTokens+updateTurnBanner triple
+function syncUI(){ refreshUI(); renderTokens(); updateTurnBanner(); }
 
 function refreshUI(){
     PLAYERS.forEach(p=>{
@@ -2902,7 +3591,7 @@ function refreshUI(){
     renderSeatVisuals(p.id);
 
     // Dice active/inactive state (separate from color)
-    const d3d = document.getElementById(`d3d-${p.id}`);
+    const d3d = _domCache.d3d[p.id] || document.getElementById(`d3d-${p.id}`);
     if(d3d){
       const active = G.turn === p.id && !G.over;
       const isMyTurn = G.turn === MY_SEAT && p.id === MY_SEAT;
@@ -2915,7 +3604,7 @@ function refreshUI(){
         d3d.classList.add("inactive");
         d3d.classList.remove("off");
       }
-      const cube = document.getElementById(`dcube-${p.id}`);
+      const cube = _domCache.dcube[p.id] || document.getElementById(`dcube-${p.id}`);
       if(cube && dAcc.last[p.id] == null && !dAcc.busy[p.id]){
         // Set initial resting face (6) only once — when never rolled before
         const tg = LAND[6];
@@ -2928,366 +3617,180 @@ function refreshUI(){
 }
 
 function updateTurnBanner(){
-  resetTurnTimeout(); // restart AFK timer on every turn change
+  resetTurnTimeout();
+  startTurnTimer(G.turn); // visual arc timer on current player's box
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// AFK / BOT-VOTE SYSTEM
-// ══════════════════════════════════════════════════════════════════════════════
-// • Every player sees a 2-min countdown bar on THEIR OWN turn.
-//   If they don't roll/act within 2 min, the host auto-rolls + auto-moves for them.
-// • After 3 consecutive AFK turns for the same seat, ALL other players see a
-//   vote banner asking "Let Computer play for this player?"
-//   Votes needed: 4P→3, 3P→2, 2P→1.
-// • Once vote passes, that seat is marked as BOT in Firebase and the host drives
-//   all their turns automatically — no more vote prompts.
-// • If that player reconnects (online=true + acts), bot flag is cleared,
-//   banner disappears for everyone instantly.
-// ══════════════════════════════════════════════════════════════════════════════
+// ── TURN TIMER ARC ────────────────────────────────────────────────────────────
+const TURN_TIMER_SEC = 60;
+let _timerInterval = null;
+let _timerSeat = -1;
+let _timerStart = 0;
 
-const TURN_TIMEOUT_MS = 120000; // 2 minutes
+function startTurnTimer(seat){
+  stopTurnTimer();
+  if(G.over || !_gameLoaded || !PLAYERS[seat]?.active) return;
+  _timerSeat = seat;
+  _timerStart = Date.now();
+  const color = getDisplayColorForSeat(seat);
+  const bar = _domCache.tbar[seat] || document.getElementById(`tbar-${seat}`);
+  if(bar){
+    const PERIM = 2*(149+80) - 2*(11*2) + 2*Math.PI*11;
+    const P = Math.round(PERIM);
+    bar.style.setProperty('--tda', P);
+    bar.style.setProperty('--timer-color', color);
+    bar.style.stroke = color;
+    bar.style.filter = `drop-shadow(0 0 4px ${color})`;
+    bar.classList.remove('draining');
+    void bar.getBoundingClientRect();
+    bar.style.setProperty('--timer-dur', `${TURN_TIMER_SEC}s`);
+    bar.classList.add('draining');
+  }
 
-// Per-seat AFK counter stored in Firebase: rooms/{code}/afk/{seat}
-// Structure: { count: number, bot: bool, votes: { [voterSeat]: bool } }
-let _afkRef = null;           // Firebase ref to rooms/{code}/afk
-let _afkData = {};            // Local mirror of afk data
-let _afkListener = null;      // cleanup fn
-let _turnTimerStart = null;   // Date.now() when current turn started
-let _turnTimerRAF = null;     // requestAnimationFrame id for timer bar
-let _turnTimeoutTimer = null; // setTimeout for host auto-action
-let _currentTimerSeat = null; // which seat this timer is for
-
-// ── Init AFK system after game loads ──────────────────────────────────────────
-function initAfkSystem(){
-  if(!ROOM_CODE) return;
-  _afkRef = db.ref(`rooms/${ROOM_CODE}/afk`);
-  // Listen for afk data changes
-  const cb = snap=>{
-    _afkData = snap.val() || {};
-    _updateBotVoteBanner();
-    // If this seat is now a bot AND it's their turn, host should auto-play
-    if(IS_HOST && !G.over){
-      const seat = G.turn;
-      if(_afkData[seat]?.bot && !G.rolled && !G.waiting){
-        _hostDoBotTurn(seat);
+  const _capturedSeat = seat; // closure capture
+  _timerInterval = setInterval(()=>{
+    const elapsed = (Date.now() - _timerStart) / 1000;
+    const remaining = TURN_TIMER_SEC - elapsed;
+    const bar2 = _domCache.tbar[_capturedSeat] || document.getElementById(`tbar-${_capturedSeat}`);
+    if(bar2){
+      if(remaining < 10){
+        bar2.style.stroke = '#FF2D78';
+        bar2.style.setProperty('--timer-color','#FF2D78');
+        bar2.style.filter = 'drop-shadow(0 0 7px #FF2D78)';
+      } else if(remaining < 25){
+        bar2.style.stroke = '#FFD600';
+        bar2.style.setProperty('--timer-color','#FFD600');
+        bar2.style.filter = 'drop-shadow(0 0 5px #FFD600)';
       }
     }
-  };
-  _afkRef.on('value', cb);
-  _afkListener = ()=>_afkRef.off('value', cb);
-  _listeners.push(_afkListener);
+    if(remaining <= 0){
+      stopTurnTimer();
+      _onTurnTimerExpired(_capturedSeat);
+    }
+  }, 500);
+}
 
-  // Also watch each seat's online status to clear bot when they return
-  SEAT_LAYOUT_ACTIVE.forEach(seat=>{
-    if(seat === MY_SEAT) return; // own presence handled elsewhere
-    const ref = db.ref(`rooms/${ROOM_CODE}/players/${seat}/online`);
-    const ocb = snap=>{
-      if(snap.val() === true && _afkData[seat]?.bot){
-        // Player came back online — clear their bot flag
-        if(IS_HOST){
-          _afkRef.child(String(seat)).update({ bot: false, votes: null });
-          showToast(`🟢 ${PLAYERS[seat]?.label||'Player'} is back!`);
-        }
+function stopTurnTimer(){
+  if(_timerInterval){ clearInterval(_timerInterval); _timerInterval = null; }
+  // ✅ BUG6 FIX: guard against stale PLAYERS on leave/game-over
+  if(!Array.isArray(PLAYERS) || !PLAYERS.length) return;
+  try {
+    PLAYERS.forEach(p=>{
+      if(!p || !p.active) return;
+      const bar = _domCache.tbar[p.id] || document.getElementById(`tbar-${p.id}`);
+      if(bar){
+        bar.classList.remove('draining');
+        bar.style.strokeDashoffset = '0';
+        bar.style.stroke = getDisplayColorForSeat(p.id);
+        bar.style.filter = '';
       }
-    };
-    ref.on('value', ocb);
-    _listeners.push(()=>ref.off('value', ocb));
-  });
+    });
+  } catch(e) {}
 }
 
-// ── Reset AFK system on leaveRoom / game over ─────────────────────────────────
-function resetAfkSystem(){
-  stopTurnTimerBar();
-  clearTimeout(_turnTimeoutTimer);
-  _turnTimeoutTimer = null;
-  _afkRef = null;
-  _afkData = {};
-  _currentTimerSeat = null;
-  document.getElementById('afk-vote-banner').style.display = 'none';
+// Called when the 60s turn timer expires — auto-roll + auto-move for that seat
+async function _onTurnTimerExpired(seat){
+  if(G.over || G.turn !== seat) return;
+
+  // Increment consecutive expire counter for this seat
+  if(seat !== MY_SEAT && !PLAYERS[seat]?.isBot){
+    _timerExpireCount[seat] = (_timerExpireCount[seat] || 0) + 1;
+    if(_timerExpireCount[seat] >= EXPIRE_COUNT_FOR_VOTE){
+      // Show voting overlay after 2 consecutive timeouts
+      _updateOfflineBadge(seat, true);
+    }
+  }
+
+  // If it's MY turn and I haven't rolled yet — auto-roll for me
+  if(seat === MY_SEAT && !G.rolled){
+    doRoll(seat);
+    return;
+  }
+  // For MY seat after rolling (waiting state) — auto-pick
+  if(seat === MY_SEAT && G.waiting && G.rolled && G.diceVal != null){
+    const mv = movable(seat, G.diceVal);
+    if(mv.length > 0){
+      G.waiting = false;
+      G.rolled = false;
+      await doMove(seat, mv[0].tid, G.diceVal);
+    }
+    return;
+  }
+  // For bot-flagged opponent seats: host handles the move
+  if(IS_HOST && PLAYERS[seat]?.isBot){
+    _doBotTurn(seat);
+    return;
+  }
+  // For non-bot opponent: host auto-rolls & moves on their behalf (AFK handling)
+  if(IS_HOST && seat !== MY_SEAT){
+    _doBotTurn(seat); // reuse bot logic for AFK auto-play
+  }
 }
 
-// ── Border timer constants ────────────────────────────────────────────────────
-const _TIMER_W=145,_TIMER_H=76,_TIMER_R=12;
-const _TIMER_PERIM=Math.round(2*(_TIMER_W+_TIMER_H)-8*_TIMER_R+2*Math.PI*_TIMER_R); // ≈414
-
-// startTurnTimerBar → now drives the SVG border ring on the active player's panel
-// Called by resetTurnTimeout(). ALL players see it because _turnTimerStart is set
-// from turnStartedAt received via Firebase sync.
-function startTurnTimerBar(durationMs, seat){
-  stopTurnTimerBar(); // clear any previous
-  if(!seat && seat!==0) seat = G.turn;
-  _currentTimerSeat = seat;
-
-  const svg  = document.getElementById(`ptimer-${seat}`);
-  const rect = document.getElementById(`ptimer-rect-${seat}`);
-  if(!svg || !rect) return;
-
-  // Color: use the display color of the active seat
-  const color = getDisplayColorForSeat ? getDisplayColorForSeat(seat) : '#FFD600';
-  rect.setAttribute('stroke', color);
-  svg.style.opacity = '1';
-
-  const start = _turnTimerStart || Date.now();
-  const tick = ()=>{
-    if(_currentTimerSeat !== seat){ _stopBorderTimer(seat); return; }
-    const elapsed = Date.now() - start;
-    const pct = Math.max(0, 1 - elapsed / durationMs);
-    const offset = _TIMER_PERIM * (1 - pct);
-    rect.setAttribute('stroke-dashoffset', String(offset));
-
-    // Pulse color: green → yellow → red
-    let strokeColor;
-    if(pct > 0.5)       strokeColor = color;           // full — player color
-    else if(pct > 0.25) strokeColor = '#FFD600';       // yellow warning
-    else                strokeColor = '#FF2D78';       // red urgent
-
-    // glow intensity increases as time runs out
-    const glowSize = Math.round(2 + (1-pct)*6);
-    rect.setAttribute('stroke', strokeColor);
-    rect.style.filter = `drop-shadow(0 0 ${glowSize}px ${strokeColor})`;
-
-    if(pct > 0) _turnTimerRAF = requestAnimationFrame(tick);
-    else _stopBorderTimer(seat);
-  };
-  _turnTimerRAF = requestAnimationFrame(tick);
+// ── BOT TURN LOGIC (host only) ────────────────────────────────────────────────
+async function _doBotTurn(seat){
+  if(G.over || G.turn !== seat) return;
+  if(G.rolled || G.waiting) return;
+  // ✅ BUG4 FIX: guard _rolling to prevent double-fire race condition
+  if(_rolling) return;
+  _rolling = true;
+  const _botRollGuard = setTimeout(()=>{ _rolling = false; }, 2000);
+  // Roll for bot
+  const v = smartRng(seat);
+  G.rolled = true; G.diceVal = v;
+  SFX.diceRoll();
+  await new Promise(r => animDice(seat, v, r));
+  clearTimeout(_botRollGuard); _rolling = false;
+  // Now decide move
+  if(v === 6){ G.sixes = (G.sixes||0)+1;
+    if(G.sixes >= 3){ G.sixes=0; G.rolled=false; G.diceVal=null; nextTurn(false);
+      await pushGameState({action:"skip",dice:v,reason:"3sixes"}); return; }
+  } else { G.sixes = 0; }
+  const mv = movable(seat, v);
+  if(mv.length === 0){
+    SFX.noMove();
+    nextTurn(false);
+    await pushGameState({action:"skip",dice:v,reason:"noMove"});
+    return;
+  }
+  // Pick best token (smart: capture > furthest)
+  let best = mv[0];
+  for(const tok of mv){
+    const toStep = tok.step === 0 ? 1 : tok.step + v;
+    if(toStep >= 58){ best = tok; break; }
+    if(best.step < tok.step) best = tok;
+  }
+  G.rolled = false; G.waiting = false;
+  await doMove(seat, best.tid, v);
 }
 
-function _stopBorderTimer(seat){
-  if(_turnTimerRAF){ cancelAnimationFrame(_turnTimerRAF); _turnTimerRAF=null; }
-  const svg  = document.getElementById(`ptimer-${seat}`);
-  const rect = document.getElementById(`ptimer-rect-${seat}`);
-  if(svg)  svg.style.opacity='0';
-  if(rect){ rect.setAttribute('stroke-dashoffset','0'); rect.style.filter=''; }
-}
+// ── TURN TIMEOUT (host's 45s skip — kept separate from visual timer) ──────────
+// ── Turn timeout ──────────────────────────────────────────────────────────────
+// If a player is AFK/disconnected and doesn't roll, host auto-skips after 45s.
+// Only the host runs this to avoid duplicate skips.
+let _turnTimeoutTimer = null;
+const TURN_TIMEOUT_MS = 45000;
 
-function stopTurnTimerBar(){
-  if(_turnTimerRAF){ cancelAnimationFrame(_turnTimerRAF); _turnTimerRAF=null; }
-  // Hide ALL seat timers
-  for(let s=0;s<4;s++) _stopBorderTimer(s);
-  // Also hide old top bar (now unused but keep for safety)
-  const wrap=document.getElementById('afk-timer-bar-wrap');
-  if(wrap) wrap.style.display='none';
-}
-
-// ── Main resetTurnTimeout — called every time turn changes ────────────────────
 function resetTurnTimeout(){
   clearTimeout(_turnTimeoutTimer);
   _turnTimeoutTimer = null;
-  stopTurnTimerBar();
-  if(!ROOM_CODE || G.over) return;
-
-  _currentTimerSeat = G.turn;
-
-  // Set _turnTimerStart from G.turnStartedAt (synced via Firebase) so ALL players
-  // see the same timer progress. Fallback to now if not available.
-  _turnTimerStart = (G.turnStartedAt && G.turnStartedAt < Date.now()) ? G.turnStartedAt : Date.now();
-
-  // Show border timer on active player's panel — ALL players see this
-  startTurnTimerBar(TURN_TIMEOUT_MS, G.turn);
-
-  // If this seat is already a bot, host immediately plays for them
-  if(IS_HOST && _afkData[G.turn]?.bot && !G.rolled && !G.waiting){
-    _turnTimeoutTimer = setTimeout(()=>_hostDoBotTurn(G.turn), 800);
-    return;
-  }
-
-  // Set 2-min timeout — host performs the auto-play
-  if(!IS_HOST) return; // only host runs timers to avoid duplicate actions
-
+  if(!IS_HOST || !ROOM_CODE || G.over) return;
+  // ✅ BUG5 FIX: bot turns handled ONLY by _onTurnTimerExpired — no 800ms duplicate here
+  // Only start skip timer when it's NOT my turn (opponent might be AFK)
+  if(G.turn === MY_SEAT) return;
   _turnTimeoutTimer = setTimeout(async()=>{
-    // Re-check guards
-    if(G.over || G.rolled || G.waiting) return;
-    if(G.turn !== _currentTimerSeat) return;
-
-    const seat = G.turn;
-    stopTurnTimerBar();
-
-    // Increment AFK counter for this seat
-    const cur = _afkData[seat] || { count:0, bot:false };
-    const newCount = (cur.count || 0) + 1;
-    await _afkRef.child(String(seat)).update({ count: newCount });
-
-    // Check if this triggers a bot-vote (3 consecutive AFK turns)
-    // But if already bot, don't re-trigger vote, just play
-    if(!cur.bot && newCount >= 3){
-      // Show vote to all — they have 30s to vote, then auto-passes if needed
-      await _afkRef.child(String(seat)).update({ voteOpen: true, votes: null });
-      // Host waits 30s then checks if vote passed (auto-pass if not enough voters)
-      setTimeout(()=>_checkBotVoteResult(seat, true), 30000);
-    }
-
-    // Auto-play this turn regardless (roll + best move)
-    await _hostDoBotTurn(seat);
-
+    if(G.over || G.rolled || G.waiting || G.turn === MY_SEAT) return;
+    const skippedTurn = G.turn;
+    G.rolled=false; G.diceVal=null; G.waiting=false;
+    nextTurn(false);
+    await pushGameState({ action:"skip", dice:null, reason:"timeout", skippedSeat:skippedTurn });
   }, TURN_TIMEOUT_MS);
-}
-
-// ── Host performs a full auto-turn for a seat ─────────────────────────────────
-async function _hostDoBotTurn(seat){
-  if(G.over || G.turn !== seat) return;
-  if(G.rolled && G.waiting){
-    // Already rolled, just need to pick a token
-    const mv = movable(seat, G.diceVal);
-    if(mv.length > 0){
-      const pick = _bestBotMove(mv, G.diceVal, seat);
-      await doMove(seat, pick.tid, G.diceVal);
-    } else {
-      nextTurn(false);
-      await pushGameState({ action:"skip", dice:G.diceVal, reason:"noMove" });
-    }
-    return;
-  }
-  if(G.rolled) return; // animation in progress
-
-  // Roll dice
-  const v = rng();
-  G.rolled = true;
-  G.diceVal = v;
-  SFX.diceRoll();
-  animDice(seat, v, async()=>{
-    if(G.over || G.turn !== seat) return;
-    // 3 sixes check
-    if(v === 6){
-      G.sixes = (G.sixes || 0) + 1;
-      if(G.sixes >= 3){
-        G.sixes = 0; G.rolled = false; G.diceVal = null; G.waiting = false;
-        SFX.threeSixesSkip();
-        renderTokens();
-        nextTurn(false);
-        await pushGameState({ action:"skip", dice:v, reason:"3sixes" });
-        return;
-      }
-    } else { G.sixes = 0; }
-    if(v === 6) SFX.rolledSix();
-
-    const mv = movable(seat, v);
-    if(mv.length === 0){
-      SFX.noMove();
-      renderTokens(); refreshUI();
-      nextTurn(false);
-      await pushGameState({ action:"skip", dice:v, reason:"noMove" });
-      return;
-    }
-    const pick = _bestBotMove(mv, v, seat);
-    await doMove(seat, pick.tid, v);
-  });
-}
-
-// ── Pick best token to move (simple heuristic) ────────────────────────────────
-function _bestBotMove(mv, v, seat){
-  // Priority: capture > move furthest ahead > open from home
-  let best = mv[0];
-  let bestScore = -Infinity;
-  for(const t of mv){
-    let score = 0;
-    const targetStep = t.step === 0 ? 1 : t.step + v;
-    // Prefer tokens already on board
-    if(t.step > 0) score += 10;
-    // Prefer further along
-    score += t.step;
-    // Check if landing captures an enemy
-    if(t.step > 0){
-      const destCell = getCell(seat, targetStep);
-      if(destCell){
-        const ck = `${destCell[0]}-${destCell[1]}`;
-        if(!SAFE.has(ck)){
-          const enemies = G.tokens.filter(o=>{
-            if(o.pid === seat || o.step === 0 || o.step >= STEP_DONE) return false;
-            const oc = getCell(o.pid, o.step);
-            return oc && `${oc[0]}-${oc[1]}` === ck;
-          });
-          if(enemies.length > 0) score += 50; // bonus for capture
-        }
-      }
-    }
-    // Prefer opening home token if we have a 6
-    if(v === 6 && t.step === 0) score += 5;
-    if(score > bestScore){ bestScore = score; best = t; }
-  }
-  return best;
-}
-
-// ── Vote banner logic ─────────────────────────────────────────────────────────
-function _updateBotVoteBanner(){
-  const banner = document.getElementById('afk-vote-banner');
-  // Find any seat with voteOpen=true (that is NOT MY_SEAT — you don't vote for yourself)
-  let foundSeat = null;
-  for(const seatKey of Object.keys(_afkData)){
-    const d = _afkData[seatKey];
-    if(d.voteOpen && Number(seatKey) !== MY_SEAT && !d.bot){
-      foundSeat = Number(seatKey); break;
-    }
-  }
-  if(foundSeat === null || G.over){
-    banner.style.display = 'none';
-    return;
-  }
-  const d = _afkData[foundSeat];
-  const playerName = PLAYERS[foundSeat]?.label || `P${foundSeat+1}`;
-  const activeSeats = SEAT_LAYOUT_ACTIVE.filter(s=>s !== foundSeat);
-  const needed = activeSeats.length >= 3 ? 3 : activeSeats.length >= 2 ? 2 : 1;
-  const votes = d.votes ? Object.values(d.votes).filter(Boolean).length : 0;
-  const myVoted = d.votes && d.votes[MY_SEAT];
-
-  document.getElementById('afk-vote-title').textContent = `🤖 ${playerName} is AFK`;
-  document.getElementById('afk-vote-sub').textContent = `${playerName} hasn't moved 3 turns in a row.\nLet computer take over for them?`;
-  document.getElementById('afk-vote-tally').textContent = `Votes: ${votes} / ${needed}`;
-  document.getElementById('afk-vote-btn').dataset.seat = foundSeat;
-  document.getElementById('afk-vote-btn').style.display = myVoted ? 'none' : 'inline-block';
-  document.getElementById('afk-vote-already').style.display = myVoted ? 'block' : 'none';
-  banner.style.display = 'block';
-}
-
-window.castBotVote = async function(){
-  const seat = Number(document.getElementById('afk-vote-btn').dataset.seat);
-  if(isNaN(seat) || !_afkRef) return;
-  await _afkRef.child(`${seat}/votes/${MY_SEAT}`).set(true);
-  // Check if threshold reached
-  setTimeout(()=>_checkBotVoteResult(seat, false), 500);
-};
-
-async function _checkBotVoteResult(seat, forcePass){
-  if(!_afkRef) return;
-  const snap = await _afkRef.child(String(seat)).once('value');
-  const d = snap.val() || {};
-  if(d.bot) return; // already converted
-  if(!d.voteOpen) return;
-
-  const activeSeats = SEAT_LAYOUT_ACTIVE.filter(s=>s !== seat);
-  const needed = activeSeats.length >= 3 ? 3 : activeSeats.length >= 2 ? 2 : 1;
-  const votes = d.votes ? Object.values(d.votes).filter(Boolean).length : 0;
-
-  if(forcePass || votes >= needed){
-    // Vote passed — convert to bot
-    await _afkRef.child(String(seat)).update({ bot: true, voteOpen: false, count: 0, votes: null });
-    showToast(`🤖 Computer will play for ${PLAYERS[seat]?.label||'P'+(seat+1)}`);
-    // If it's their turn right now, host plays immediately
-    if(IS_HOST && G.turn === seat && !G.rolled && !G.waiting){
-      setTimeout(()=>_hostDoBotTurn(seat), 500);
-    }
-  }
-}
-
-// ── Clear AFK count when a player successfully acts ──────────────────────────
-function _clearAfkOnAct(seat){
-  if(!_afkRef || !ROOM_CODE) return;
-  const d = _afkData[seat];
-  if(!d) return;
-  if(d.count > 0 || d.voteOpen){
-    _afkRef.child(String(seat)).update({ count: 0, voteOpen: false, votes: null });
-  }
-  // If they were a bot and are now acting manually, clear bot flag too
-  if(d.bot){
-    _afkRef.child(String(seat)).update({ bot: false, voteOpen: false, votes: null, count: 0 });
-    showToast(`🟢 ${PLAYERS[seat]?.label||'Player'} is back — taking control!`);
-  }
 }
 
 // ── Game flow ─────────────────────────────────────────────────────────────────
 function onHumanRoll(){
   if(G.rolled||G.over||G_PAUSED||_rolling||_animating) return;
   if(G.turn !== MY_SEAT) return;
-  _clearAfkOnAct(MY_SEAT); // player acted — reset their AFK counter
   doRoll(G.turn);
 }
 
@@ -3297,7 +3800,7 @@ function doRoll(pid){
   const rollSafety=setTimeout(()=>{_rolling=false;},1500);
   const d3d=document.getElementById(`d3d-${pid}`);
   if(d3d) d3d.classList.add("off");
-  const v=rng();
+  const v=smartRng(pid);
   G.rolled=true;
   G.diceVal=v;
   SFX.diceRoll();
@@ -3359,7 +3862,7 @@ function afterRoll(pid,v){
 
   if(mv.length===0){
     SFX.noMove();
-    renderTokens();refreshUI();
+    syncUI();
     // ✅ ATOMIC: ONE push, action="skip", reason="noMove"
     setTimeout(async()=>{
       nextTurn(false); // ✅ FIX: nextTurn pehle so G.turn updated before push
@@ -3379,8 +3882,7 @@ function afterRoll(pid,v){
   G.waiting=true;
   const selectable=mv.map(t=>t.tid);
   pushGameState({ action:"roll", dice:v, selectable });
-  renderTokens();
-  updateTurnBanner();
+  syncUI();
 }
 
 async function onTokClick(pid,tid){
@@ -3390,7 +3892,6 @@ async function onTokClick(pid,tid){
   if(!G.waiting || !G.rolled) return;   // Must have rolled and be waiting for pick
   if(G.over || G_PAUSED) return;
   if(G.diceVal == null) return;         // Safety: no dice value
-  _clearAfkOnAct(MY_SEAT); // player picked token — reset AFK counter
   const dv = G.diceVal;                 // Capture before any state change
   const mv = movable(MY_SEAT, dv);
   if(!mv.find(t=>t.tid===tid)) return;
@@ -3407,8 +3908,8 @@ function rafDelay(ms){
   });
 }
 
-const JUMP_MS=130;
-const DICE_DUR_MS=480;
+const JUMP_MS=110; // ms per step — snappier movement
+const DICE_DUR_MS=420;
 
 function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
   return new Promise(resolve=>{
@@ -3416,13 +3917,14 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
     const shadowW=rW*0.60,shadowH=rW*0.16;
     const h=cp*0.65;
     let t0=null;
-    let _soundFired=false; // fire tokenStep once at arc peak (~t=0.5) via rAF — no setTimeout jitter
+    let _soundFired=false;
     if(layer && !PERF_MODE)spawnTrailDot(startX,startY,color,layer);
     function tick(now){
       if(!t0) t0=now;
       let t=(now-t0)/JUMP_MS;
       if(t>1) t=1;
-      const et=t<0.5?2*t*t:-1+(4-2*t)*t;
+      // ease-out: fast start, soft landing — more natural feel
+      const et=1-Math.pow(1-t,2.8);
       const x=startX+(endX-startX)*et,y=startY+(endY-startY)*et;
       const jump=-4*h*t*(1-t);
       const peakRatio=1-Math.abs(2*t-1);
@@ -3434,13 +3936,14 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
         const shadowScale=1-0.35*peakRatio;
         const shadowOpacity=(1-peakRatio*0.4).toFixed(2);
         shadowEl.style.transform=`translate(${x-shadowW/2}px,${y-shadowH/2+1}px) scaleX(${shadowScale})`;
+        shadowEl.style.filter='blur(3px)';
         shadowEl.style.opacity=shadowOpacity;
       }
-      // Fire step sound at arc peak (t≥0.45) via rAF — no setTimeout jitter
-      if(!_soundFired && t>=0.45){_soundFired=true;SFX.tokenStep();}
       if(t<1) requestAnimationFrame(tick);
       else { resolve(); }
     }
+    // Fire step sound at jump peak (~55% through) for tight audio-visual sync
+    setTimeout(()=>SFX.tokenStep(), Math.round(JUMP_MS * 0.55));
     requestAnimationFrame(tick);
   });
 }
@@ -3546,21 +4049,24 @@ async function sendHomeFast(tok){
   const layer=document.getElementById("tokens-layer");
 
   if(el){
-    const m=el.style.transform.match(/translate\(([^,]+),([^)]+)\)/);
-    const bx=m?m[1]:"0px",by=m?m[2]:"0px";
-    const cfT=`translate(${bx},${by})`;
+    // Kill effect — ring burst at capture position
+    // getBoundingClientRect gives exact actual pixel position regardless of transform
+    const elRect=el.getBoundingClientRect();
+    const layerRect=layer.getBoundingClientRect();
+    const captureX=elRect.left-layerRect.left+elRect.width/2;
+    const captureY=elRect.top-layerRect.top+elRect.height/2;
+    const cfT=`translate(${captureX-elRect.width/2}px,${captureY-elRect.height/2}px)`;
     if(!PERF_MODE){
     for(let r=0;r<2;r++){
       const ring=document.createElement("div");
       const size=36+r*10;
-      const _tipOff=(28*(130/100))*(40/130);
-      const mx=parseFloat(bx)-size/2,my=parseFloat(by)-_tipOff-size/2+_tipOff*0.5;
+      const mx=captureX-size/2, my=captureY-size/2;
       ring.style.cssText=`position:absolute;transform:translate(${mx}px,${my}px) scale(0.3);--rx:${mx}px;--ry:${my}px;width:${size}px;height:${size}px;border-radius:50%;border:${3-r}px solid ${r===0?'white':displayColor};opacity:0;pointer-events:none;animation:ringPop ${0.35+r*0.12}s ${r*0.07}s ease-out forwards;`;
       layer.appendChild(ring);setTimeout(()=>ring.remove(),600);
     }
     }
     el.style.transition="transform 0.14s cubic-bezier(0.36,0.07,0.19,0.97),opacity 0.14s";
-    el.style.transform=`${cfT} rotate(${_tokenRotationDeg}deg) scale(1.7)`;
+    el.style.transform=`${cfT} scale(1.7)`;
     el.style.opacity="0";
     await rafDelay(150);
     el.style.transition="none";el.style.opacity="1";
@@ -3621,10 +4127,10 @@ async function sendHomeFast(tok){
   }
 }
 
-// flashStarCell: uses data-r/data-c attributes for reliable DOM lookup
+// flashStarCell: O(1) lookup via _boardCellMap (populated in buildBoard)
 function flashStarCell(r,c){
   if(PERF_MODE) return;
-  const cell=document.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+  const cell=_boardCellMap[`${r}-${c}`];
   if(!cell)return;
   cell.classList.add('star-land-glow');
   setTimeout(()=>cell.classList.remove('star-land-glow'),750);
@@ -3664,6 +4170,7 @@ async function doMove(pid,tid,v){
         if(capturedPids.has(enemy.pid)) continue;
         const samePlayerOnCell=enemiesOnCell.filter(e=>e.pid===enemy.pid);
         if(samePlayerOnCell.length>=2) continue; // block of 2 = safe, skip
+        _rbNotifyCut(enemy.pid);
         await sendHomeFast(enemy);
         capturedPids.add(enemy.pid);
         captured=true;
@@ -3714,12 +4221,14 @@ async function doMove(pid,tid,v){
     SFX.tokenDone();
     renderTokens();await rafDelay(100);
     if(toksOf(pid).every(t=>t.step>=STEP_DONE)){
-      if(!G.placements.includes(pid)) G.placements.push(pid);
+      if(!G.placements.includes(pid)){ G.placements.push(pid); stampRank(pid); }
       renderTokens();
       const remaining=PLAYERS.filter(p=>p.active&&!G.placements.includes(p.id));
       if(remaining.length<=1){
-        if(remaining.length===1&&!G.placements.includes(remaining[0].id))
+        if(remaining.length===1&&!G.placements.includes(remaining[0].id)){
           G.placements.push(remaining[0].id);
+          stampRank(remaining[0].id);
+        }
         G.over=true;
         _animating=false;
         await pushGameState({lastAction:"win"});
@@ -3729,7 +4238,16 @@ async function doMove(pid,tid,v){
     }
   }
 
-  // Check capture only on landing cell (not previous cell)
+  // 1. PREVIOUS CELL CHECK (jahan se token aayi — agar apni 1 token bachi + enemy hai => capture)
+  const prevStep = tok.step === 0 ? 0 : tok.step - v;
+  if(prevStep>=1&&prevStep<=STEP_MAIN_END){
+    const prevCell=getCell(pid,prevStep);
+    if(prevCell&&!SAFE.has(`${prevCell[0]}-${prevCell[1]}`)){
+      await checkAndPit(`${prevCell[0]}-${prevCell[1]}`,pid,tok.tid);
+    }
+  }
+
+  // 2. CURRENT CELL CHECK (jahan token aayi)
   if(tok.step>=1&&tok.step<=STEP_MAIN_END){
     const cell=getCell(pid,tok.step);
     if(cell){
@@ -3780,7 +4298,6 @@ function nextTurn(same){
   G.rolled=false;_rolling=false;G.diceVal=null;G.waiting=false;
   if(!same){
     G.sixes=0; // reset six counter on turn change
-    G.turnStartedAt = Date.now(); // stamp when this turn began (for border timer sync)
     // Advance turn along the fixed seat layout order
     const layout = SEAT_LAYOUT_ACTIVE;
     const curIdx = layout.indexOf(G.turn);
@@ -3802,26 +4319,12 @@ function nextTurn(same){
   if(same){
     const pid=G.turn;
     if(dAcc.busy[pid]) dAcc.busy[pid]=false;
-    // Rule 4: Use master pipeline — not inline ad-hoc color logic
-    PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
-    PLAYERS.forEach(p=>{
-      const d3d=document.getElementById(`d3d-${p.id}`);
-      if(d3d){
-        const active=G.turn===p.id&&!G.over;
-        const isMyTurn=G.turn===MY_SEAT&&p.id===MY_SEAT;
-        if(active){d3d.classList.remove("inactive");d3d.classList.toggle("off",!isMyTurn||G.rolled||G.over);}
-        else{d3d.classList.add("inactive");d3d.classList.remove("off");}
-      }
-    });
   }
-  refreshUI();
-  renderTokens();
-  updateTurnBanner(); // also calls resetTurnTimeout()
+  syncUI(); // refreshUI handles renderSeatVisuals + dice state; updateTurnBanner restarts timer
 }
 
 function endGame(){
   G.over=true;
-  resetAfkSystem(); // stop AFK timers and hide banner on game end
   const medals=["🥇","🥈","🥉","4️⃣"];
 
   // Rule 4 & 2: Win screen uses POV display colors — self shown as Blue
@@ -3941,7 +4444,6 @@ let _resizeTimer;
 window.addEventListener("resize",()=>{
   clearTimeout(_resizeTimer);
   _cacheValid=false;
-  Object.keys(_slotPxCache).forEach(k=>delete _slotPxCache[k]);
   _resizeTimer=setTimeout(()=>{
     // Re-apply board rotation so _tokenRotationDeg stays in sync after resize
     if(MY_SEAT !== null) applyBoardRotation();
@@ -4071,13 +4573,28 @@ function appendChatMessage(msg, isHistory){
     _attachSwipeReply(swipeWrap, replyIcon, msg, name, color, isMine);
   }
   scrollChatBottom();
-  if(!isHistory && !isMine && !_chatOpen){
+
+  // ── PLAYER BOX CHAT BUBBLE ──
+  // Sirf opponents ke messages — apna bubble apne aap ko nahi dikhta
+  if(!isHistory && !isMine && msg.type !== "system"){
+    const senderPid = msg.seat ?? null;
+    if(senderPid !== null){
+      const bubble = document.getElementById(`chatbubble-${senderPid}`);
+      if(bubble){
+        bubble.textContent = msg.text;
+        bubble.classList.add("show");
+        if(bubble._hideTimer) clearTimeout(bubble._hideTimer);
+        bubble._hideTimer = setTimeout(()=>{ bubble.classList.remove("show"); }, 4000);
+      }
+    }
+  }
+
+  // ✅ FIX #5: msg.type !== "system" check pehle — system msgs unread count mein nahi jayenge
+  if(!isHistory && !isMine && !_chatOpen && msg.type !== "system"){
     _unreadCount++;
     updateChatBadge();
-    if(msg.type !== "system"){
-      SFX.chatPing();
-      showToast(`${escapeHtml(msg.name||"Someone")}: ${escapeHtml(msg.text)}`, 3000);
-    }
+    SFX.chatPing();
+    showToast(`${escapeHtml(msg.name||"Someone")}: ${escapeHtml(msg.text)}`, 3000);
   }
 }
 
@@ -4260,6 +4777,7 @@ function addChatBadgeToButton(){
 async function _doLoadAndStartGame(){
   await loadAndStartGame();
   listenChat();
+  listenPlayerPresence(); // ← online/offline tracking + bot vote system
   addChatBadgeToButton();
   // ✅ FIX: Replay any Firebase update that arrived while loadAndStartGame() was running.
   // Without this, host's first move gets dropped if it arrives before _gameLoaded=true,
@@ -4302,7 +4820,7 @@ bindBtn("btn-cancel-join",  ()=>closeModals());
 
 // Game controls — leaveToLobby keeps session for rejoin card
 bindBtn("btn-back",         ()=>window.leaveToLobby());
-bindBtn("btn-chat-toggle",  ()=>window.toggleChat());
+// btn-chat-toggle listener is added dynamically in buildPlayers() (like btn-pause)
 
 // Pause
 bindBtn("btn-resume",       ()=>window.togglePause());
