@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v27</title>
+<title>Ludo King — Online Multiplayer v30</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -234,8 +234,11 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   transform-origin:center center;
   flex-shrink:0;
   overflow:visible;
+  /* filter:drop-shadow is applied in SCREEN space — stays visually downward
+     even when board-wrap rotates 90/180/270deg for different players POV */
+  filter:drop-shadow(0 8px 28px rgba(0,0,0,0.85)) drop-shadow(0 0 1px rgba(255,255,255,0.06));
 }
-/* tokens-layer rotates WITH board-wrap, tokens themselves counter-rotate */
+/* tokens-layer must be same size as #board and sit at exact same origin */
 #board{
   --cell:min(5.8vw,4.8dvh,40px);
   display:grid;
@@ -245,7 +248,9 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   background:#3a4a55;
   padding:5px;
   border-radius:10px;
-  box-shadow:0 0 0 1px rgba(255,255,255,.05),0 8px 48px rgba(0,0,0,.8);
+  /* shadow removed — handled by #board-wrap filter above */
+  position:relative;
+  z-index:1;
 }
 .lc{display:flex;align-items:center;justify-content:center;contain:layout style paint;}
 
@@ -323,23 +328,10 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 }
 .dice-cube.landing{animation:diceLand 0.38s cubic-bezier(0.22,1,0.36,1) forwards;}
 
-/* Status row with back + pause */
+/* Status row with back + home */
 #status-row{position:fixed;bottom:60px;left:12px;z-index:9999;display:none;align-items:center;gap:8px;}
-#btn-pause{
-  position:fixed;top:10px;left:12px;z-index:9999;
-  width:32px;height:32px;
-  border-radius:8px;
-  border:1.5px solid var(--border2);
-  background:var(--surface2);
-  color:var(--muted);
-  font-size:13px;
-  cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all 0.15s;
-  line-height:1;
-}
-#btn-pause:hover{background:rgba(255,60,60,.15);border-color:rgba(255,60,60,.4);color:white;}
-#btn-pause:active{transform:scale(0.92);}
+/* btn-pause removed — replaced by #btn-back (home) moved to top-left fixed position */
+#btn-pause{ display:none !important; }
 
 /* Sync indicator */
 #sync-bar{
@@ -353,9 +345,10 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 #sync-dot.err{background:#FF2D78;box-shadow:0 0 6px #FF2D78;}
 
 #btn-back{
-  width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
+  position:fixed;top:10px;left:12px;z-index:9999;
+  width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border2);
   background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
+  display:none;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;
 }
 #btn-back:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:white;}
 #btn-back:active{transform:scale(0.92);}
@@ -442,11 +435,11 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   left:50%;transform:translateX(-50%);
   background:rgba(20,20,45,0.95);
   border:1px solid var(--border2);
-  border-radius:8px;
-  padding:4px 10px;
-  font-size:.72rem;font-family:'Nunito',sans-serif;font-weight:600;
+  border-radius:10px;
+  padding:5px 12px;
+  font-size:.82rem;font-family:'Nunito',sans-serif;font-weight:700;
   color:var(--text);
-  white-space:nowrap;max-width:140px;
+  white-space:nowrap;max-width:160px;
   overflow:hidden;text-overflow:ellipsis;
   pointer-events:none;
   z-index:350;
@@ -461,17 +454,17 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   left:50%;transform:translateX(-50%);
   border:6px solid transparent;
 }
-/* Top-row bubbles: arrow points DOWN (toward box below label) */
+/* Top-row bubbles: arrow points DOWN, bubble sits just above the pbox */
 .pcol.top-bubble .player-chat-bubble{
-  bottom:calc(100% + 6px); /* above the pcol */
+  bottom:calc(100% + 2px);
 }
 .pcol.top-bubble .player-chat-bubble::after{
   top:100%;
   border-top-color:var(--border2);
 }
-/* Bot-row bubbles: arrow points UP (toward box above label) */
+/* Bot-row bubbles: arrow points UP, bubble sits just below the label */
 .pcol.bot-bubble .player-chat-bubble{
-  top:calc(100% + 6px); /* below the pcol */
+  top:calc(100% + 2px);
 }
 .pcol.bot-bubble .player-chat-bubble::after{
   bottom:100%;
@@ -486,7 +479,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   border:1.5px solid var(--border2);
   border-radius:16px 16px 0 0;
   display:flex;flex-direction:column;
-  z-index:300;
+  z-index:10000;
   transform:translateY(100%);
   transition:transform 0.28s cubic-bezier(0.34,1.26,0.64,1);
   box-shadow:0 -8px 40px rgba(0,0,0,.6);
@@ -1200,7 +1193,7 @@ const db = firebase.database();
 const auth = firebase.auth();
 
 // DEBUG: confirm script loaded
-console.log("✅ Script loaded OK — v29");
+console.log("✅ Script loaded OK — v30");
 
 // Anonymous Auth — required for Firebase security rules
 let _authReady = false;
@@ -1296,7 +1289,7 @@ function applyPerfMode(){
       /* ⚡ PERF MODE: box-shadow + drop-shadow off (GPU heavy) */
       .pbox-bg { box-shadow: none !important; }
       .ddot { box-shadow: none !important; }
-      #board-wrap { box-shadow: none !important; }
+      #board-wrap { filter: none !important; }
       .tok-shield { display: none !important; }
       .pbox-shine { display: none !important; }
       .face-shine { display: none !important; }
@@ -2131,6 +2124,8 @@ window.leaveToLobby = async function(){
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   document.getElementById("game-wrap").style.display = "none";
   document.getElementById("status-row").style.display = "none";
+  const _homeBtnL = document.getElementById("btn-back");
+  if(_homeBtnL) _homeBtnL.style.display = "none";
   document.getElementById("win").classList.remove("show");
   document.getElementById("pause-overlay").classList.remove("show");
   _chatOpen = false; _unreadCount = 0; _chatListening = false; _lastChatKey = null;
@@ -2168,6 +2163,8 @@ window.leaveRoom = async function(){
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   document.getElementById("game-wrap").style.display = "none";
   document.getElementById("status-row").style.display = "none";
+  const _homeBtnR = document.getElementById("btn-back");
+  if(_homeBtnR) _homeBtnR.style.display = "none";
   document.getElementById("win").classList.remove("show");
   document.getElementById("pause-overlay").classList.remove("show");
   _chatOpen = false; _unreadCount = 0; _chatListening = false; _lastChatKey = null;
@@ -2395,30 +2392,26 @@ function renderSeatVisuals(seat){
   const tokW = _domCache.ptok[seat] || document.getElementById(`ptok-${seat}`);
   if(tokW && tokW.dataset.rc !== color){ tokW.innerHTML = tokSVG(color, 36); tokW.dataset.rc = color; }
 
-  // ── PANEL: Border + glow ──────────────────────────────────────────────────
+  // ── PANEL: Border — subtle tint always, no extra glow (timer arc is the only active light) ──
   const bg = _domCache.pbg[seat] || document.getElementById(`pbg-${seat}`);
   if(bg){
-    bg.style.borderColor = isActive ? color : `${color}44`;
-    bg.style.boxShadow = isActive
-      ? `0 0 0 2px ${color}, 0 4px 20px ${color}55`
-      : "0 4px 20px rgba(0,0,0,.6)";
+    bg.style.borderColor = `${color}44`;
+    bg.style.boxShadow = "0 4px 20px rgba(0,0,0,.6)";
   }
 
   // ── PANEL: Label color ────────────────────────────────────────────────────
   const lbl = _domCache.lbl[seat] || document.getElementById(`lbl-${seat}`);
   if(lbl) lbl.style.color = isActive ? color : "white";
 
-  // ── PANEL: Pbox outline ───────────────────────────────────────────────────
+  // ── PANEL: Pbox outline — removed (timer arc is the only indicator) ──────
   const box = _domCache.box[seat] || document.getElementById(`pbox-${seat}`);
-  if(box) box.style.outline = isActive ? `2px solid ${color}` : "none";
+  if(box) box.style.outline = "none";
 
-  // ── DICE: Glow ────────────────────────────────────────────────────────────
+  // ── DICE: no active glow (timer arc is the only active indicator) ─────────
   const diceWrap = _domCache.pdw[seat] || document.getElementById(`pdw-${seat}`);
   if(diceWrap){
-    diceWrap.style.borderColor = isActive ? color : "#1a1a28";
-    diceWrap.style.boxShadow = isActive
-      ? `inset 0 2px 4px rgba(255,255,255,.12), 0 0 0 2px ${color}88, 0 2px 8px rgba(0,0,0,.4)`
-      : `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
+    diceWrap.style.borderColor = "#1a1a28";
+    diceWrap.style.boxShadow = `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
   }
 }
 
@@ -2801,15 +2794,6 @@ function buildPlayers(){
   if(s0 >= 0 && PLAYERS[s0]?.active) top.appendChild(makePanel(s0,"left","top"));
   else top.appendChild(makePlaceholder("left"));
 
-  if(!document.getElementById("btn-pause")){
-    const pauseBtn=document.createElement("button");
-    pauseBtn.id="btn-pause";
-    pauseBtn.title="Pause";
-    pauseBtn.innerHTML="&#10074;&#10074;";
-    pauseBtn.addEventListener("click",()=>window.togglePause());
-    document.body.appendChild(pauseBtn);
-  }
-
   if(!document.getElementById("btn-chat-toggle")){
     const chatBtn=document.createElement("button");
     chatBtn.id="btn-chat-toggle";
@@ -2819,6 +2803,10 @@ function buildPlayers(){
     document.body.appendChild(chatBtn);
     addChatBadgeToButton();
   }
+
+  // Show home button (btn-back) fixed at top-left — replaces pause
+  const homeBtn = document.getElementById("btn-back");
+  if(homeBtn) homeBtn.style.display = "flex";
 
   if(s1 >= 0 && PLAYERS[s1]?.active) top.appendChild(makePanel(s1,"right","top"));
   else top.appendChild(makePlaceholder("right"));
@@ -3457,10 +3445,17 @@ function _doRenderTokens(){
     if(!wrap.dataset.animating){
       wrap.style.transform=`translate(${tx}px,${ty}px) rotate(${_tr}deg)${scaleTransform}`;
     }
-    const shadowW=rW*0.60,shadowH=rW*0.16,sx=px-shadowW/2,sy=py-shadowH/2+1;
+    const shadowW=rW*0.60,shadowH=rW*0.16;
+    const showShadow=tok.step>0&&tok.step<STEP_DONE&&stackCount===1;
+    // Shadow offset: always 2px visually downward on screen regardless of board rotation.
+    // _tokenRotationDeg = -boardDeg (counter-rotation). Board rotates by boardDeg CW.
+    // "Screen down" in board-local space = rotate (0,1) by -boardDeg = (sin(boardDeg), cos(boardDeg))
+    const _boardRad = -_tokenRotationDeg * Math.PI / 180; // board rotation in radians
+    const sdx = Math.sin(_boardRad) * 2;  // 2px down in screen space → board-local x
+    const sdy = Math.cos(_boardRad) * 2;  // 2px down in screen space → board-local y
+    const sx=px-shadowW/2+sdx, sy=py-shadowH/2+sdy;
     shadow.style.transform=`translate(${sx}px,${sy}px)`;
     shadow.style.width=`${shadowW}px`; shadow.style.height=`${shadowH}px`;
-    const showShadow=tok.step>0&&tok.step<STEP_DONE&&stackCount===1;
     shadow.style.filter=showShadow?'blur(3px)':'blur(2px)';
     shadow.style.opacity=showShadow?"1":"0";
     const wasMovable=wrap.classList.contains("movable");
@@ -3913,17 +3908,19 @@ const DICE_DUR_MS=420;
 
 function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
   return new Promise(resolve=>{
-    const rH=rW*(130/100),tipOffset=rH*(122/130); // tip at cell centre (Ludo King style)
+    const rH=rW*(130/100),tipOffset=rH*(122/130);
     const shadowW=rW*0.60,shadowH=rW*0.16;
     const h=cp*0.65;
+    // Precompute rotation-aware shadow offset (2px visually downward on screen)
+    const _boardRad=-_tokenRotationDeg*Math.PI/180;
+    const _sdx=Math.sin(_boardRad)*2;
+    const _sdy=Math.cos(_boardRad)*2;
     let t0=null;
-    let _soundFired=false;
     if(layer && !PERF_MODE)spawnTrailDot(startX,startY,color,layer);
     function tick(now){
       if(!t0) t0=now;
       let t=(now-t0)/JUMP_MS;
       if(t>1) t=1;
-      // ease-out: fast start, soft landing — more natural feel
       const et=1-Math.pow(1-t,2.8);
       const x=startX+(endX-startX)*et,y=startY+(endY-startY)*et;
       const jump=-4*h*t*(1-t);
@@ -3935,14 +3932,13 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
       if(shadowEl){
         const shadowScale=1-0.35*peakRatio;
         const shadowOpacity=(1-peakRatio*0.4).toFixed(2);
-        shadowEl.style.transform=`translate(${x-shadowW/2}px,${y-shadowH/2+1}px) scaleX(${shadowScale})`;
+        shadowEl.style.transform=`translate(${x-shadowW/2+_sdx}px,${y-shadowH/2+_sdy}px) scaleX(${shadowScale})`;
         shadowEl.style.filter='blur(3px)';
         shadowEl.style.opacity=shadowOpacity;
       }
       if(t<1) requestAnimationFrame(tick);
       else { resolve(); }
     }
-    // Fire step sound at jump peak (~55% through) for tight audio-visual sync
     setTimeout(()=>SFX.tokenStep(), Math.round(JUMP_MS * 0.55));
     requestAnimationFrame(tick);
   });
@@ -4098,7 +4094,9 @@ async function sendHomeFast(tok){
       if(els.shadow){
         const sw=BASE_W*0.60,sh=BASE_W*0.16;
         els.shadow.style.transition=`transform ${SLIDE_MS}ms linear`;
-        els.shadow.style.transform=`translate(${endXY.x-sw/2}px,${endXY.y-sh/2+1}px)`;
+        const _br2=-_tokenRotationDeg*Math.PI/180;
+        const _sdx2=Math.sin(_br2)*2, _sdy2=Math.cos(_br2)*2;
+        els.shadow.style.transform=`translate(${endXY.x-sw/2+_sdx2}px,${endXY.y-sh/2+_sdy2}px)`;
       }
       setTimeout(()=>{
         if(els.wrap) els.wrap.style.transition="";
@@ -4594,7 +4592,7 @@ function appendChatMessage(msg, isHistory){
     _unreadCount++;
     updateChatBadge();
     SFX.chatPing();
-    showToast(`${escapeHtml(msg.name||"Someone")}: ${escapeHtml(msg.text)}`, 3000);
+    // showToast removed — message shown only in player box chat bubble above
   }
 }
 
