@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v30</title>
+<title>Ludo King — Online Multiplayer v33</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -115,7 +115,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 .plabel{font-size:10px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;transition:color 0.3s;padding:0 4px;font-family:'Rajdhani',sans-serif;}
 
 .pbox{position:relative;display:flex;align-items:center;width:145px;height:76px;border-radius:12px;}
-.pbox-bg{position:absolute;inset:0;background:#1a1a1a;border-radius:12px;border:1.5px solid #333;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:border-color 0.25s,box-shadow 0.25s;}
+.pbox-bg{position:absolute;inset:0;background:#1a1a1a;border-radius:12px;border:1.5px solid #333;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:border-color 0.3s,box-shadow 0.3s;}
 .pbox-shine{position:absolute;inset:1px;border-radius:11px;background:linear-gradient(150deg,rgba(255,255,255,.04) 0%,transparent 55%);pointer-events:none;}
 .pbox-tok{position:relative;z-index:3;width:46px;display:flex;justify-content:center;align-items:center;flex-shrink:0;}
 
@@ -572,7 +572,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   color:var(--muted);
   font-size:13px;
   cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
+  display:none;align-items:center;justify-content:center;
   transition:all 0.15s;
   line-height:1;
 }
@@ -1358,6 +1358,7 @@ function applyBoardRotation(){
   // Re-render tokens after CSS transition completes (0.6s)
   setTimeout(()=>{
     _cacheValid = false;
+    void document.getElementById("board")?.getBoundingClientRect();
     renderTokens();
   }, 650);
 }
@@ -1758,8 +1759,14 @@ async function loadAndStartGame(){
   applyBoardRotation(); // CSS rotate board based on MY_SEAT so self is always bottom-left
   setSyncStatus("ok");
   refreshUI();
-  renderTokens();
   updateTurnBanner();
+  // TOKEN FIX: force browser to compute --cell CSS var before rendering tokens
+  // Without this reflow, _cpx=0 and all tokens render at (0,0) — invisible on screen
+  void document.getElementById("board").getBoundingClientRect();
+  _cacheValid = false;
+  renderTokens();
+  // Safety net: re-render after 200ms for slow devices / late CSS compute
+  setTimeout(function(){ _cacheValid=false; renderTokens(); }, 200);
   const _myColorNames={[BLUE]:"Blue",[PINK]:"Pink",[YELLOW]:"Yellow",[GREEN]:"Green"};
   showToast("Game started! You are "+(_myColorNames[SEAT_COLOR[MY_SEAT]]||""));
 
@@ -2132,7 +2139,8 @@ window.leaveToLobby = async function(){
   _replyTarget = null;
   const chatPanel = document.getElementById("chat-panel");
   if(chatPanel) chatPanel.classList.remove("open");
-  // Show rejoin card (session still exists)
+  const _chatToggleL = document.getElementById("btn-chat-toggle");
+  if(_chatToggleL) _chatToggleL.style.display = "none";
   const s = loadSession();
   const rc = document.getElementById("rejoin-card");
   const rsub = document.getElementById("rejoin-sub");
@@ -2171,6 +2179,8 @@ window.leaveRoom = async function(){
   _replyTarget = null;
   const chatPanel = document.getElementById("chat-panel");
   if(chatPanel) chatPanel.classList.remove("open");
+  const _chatToggleR = document.getElementById("btn-chat-toggle");
+  if(_chatToggleR) _chatToggleR.style.display = "none";
   const rc=document.getElementById("rejoin-card"); if(rc) rc.style.display="none";
   document.getElementById("lobby").style.display = "flex";
   closeModals();
@@ -2392,26 +2402,36 @@ function renderSeatVisuals(seat){
   const tokW = _domCache.ptok[seat] || document.getElementById(`ptok-${seat}`);
   if(tokW && tokW.dataset.rc !== color){ tokW.innerHTML = tokSVG(color, 36); tokW.dataset.rc = color; }
 
-  // ── PANEL: Border — subtle tint always, no extra glow (timer arc is the only active light) ──
+  // ── PANEL: Border + glow — bright on active player, dim on others ──────────
   const bg = _domCache.pbg[seat] || document.getElementById(`pbg-${seat}`);
   if(bg){
-    bg.style.borderColor = `${color}44`;
-    bg.style.boxShadow = "0 4px 20px rgba(0,0,0,.6)";
+    if(isActive){
+      bg.style.borderColor = color;
+      bg.style.boxShadow = `0 0 0 1.5px ${color}, 0 4px 20px rgba(0,0,0,.6), 0 0 12px ${color}55`;
+    } else {
+      bg.style.borderColor = `${color}33`;
+      bg.style.boxShadow = "0 4px 20px rgba(0,0,0,.6)";
+    }
   }
 
   // ── PANEL: Label color ────────────────────────────────────────────────────
   const lbl = _domCache.lbl[seat] || document.getElementById(`lbl-${seat}`);
-  if(lbl) lbl.style.color = isActive ? color : "white";
+  if(lbl) lbl.style.color = isActive ? color : "rgba(240,240,255,0.45)";
 
   // ── PANEL: Pbox outline — removed (timer arc is the only indicator) ──────
   const box = _domCache.box[seat] || document.getElementById(`pbox-${seat}`);
   if(box) box.style.outline = "none";
 
-  // ── DICE: no active glow (timer arc is the only active indicator) ─────────
+  // ── DICE: highlight on active player ──────────────────────────────────────
   const diceWrap = _domCache.pdw[seat] || document.getElementById(`pdw-${seat}`);
   if(diceWrap){
-    diceWrap.style.borderColor = "#1a1a28";
-    diceWrap.style.boxShadow = `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
+    if(isActive){
+      diceWrap.style.borderColor = `${color}88`;
+      diceWrap.style.boxShadow = `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4), 0 0 8px ${color}44`;
+    } else {
+      diceWrap.style.borderColor = "#1a1a28";
+      diceWrap.style.boxShadow = `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
+    }
   }
 }
 
@@ -2803,6 +2823,9 @@ function buildPlayers(){
     document.body.appendChild(chatBtn);
     addChatBadgeToButton();
   }
+  // Always show chat button when game starts
+  const chatToggleBtn = document.getElementById("btn-chat-toggle");
+  if(chatToggleBtn) chatToggleBtn.style.display = "flex";
 
   // Show home button (btn-back) fixed at top-left — replaces pause
   const homeBtn = document.getElementById("btn-back");
@@ -3310,10 +3333,15 @@ function spawnTrailDot(x,y,color,layer){
 let _cpx=0,_cacheValid=false;
 function _refreshCache(){
   if(_cacheValid) return;
-  _cacheValid=true;
   const b=document.getElementById("board");
-  if(b){const s=parseFloat(getComputedStyle(b).getPropertyValue("--cell"));if(s>0)_cpx=s;}
-  if(!_cpx)_cpx=Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);
+  if(b){
+    const s=parseFloat(getComputedStyle(b).getPropertyValue("--cell"));
+    if(s>0){_cpx=s;_cacheValid=true;return;}
+  }
+  // --cell not yet computed — use fallback pixel size but keep _cacheValid=false
+  // so the NEXT call will retry reading the real CSS var value
+  _cpx=Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);
+  // intentionally NOT setting _cacheValid=true here
 }
 function cellPx(){return _cpx||Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);}
 const GAP=1,PAD=5; // matches #board padding:5px in CSS
@@ -3447,10 +3475,9 @@ function _doRenderTokens(){
     }
     const shadowW=rW*0.60,shadowH=rW*0.16;
     const showShadow=tok.step>0&&tok.step<STEP_DONE&&stackCount===1;
-    // Shadow offset: always 2px visually downward on screen regardless of board rotation.
-    // _tokenRotationDeg = -boardDeg (counter-rotation). Board rotates by boardDeg CW.
-    // "Screen down" in board-local space = rotate (0,1) by -boardDeg = (sin(boardDeg), cos(boardDeg))
-    const _boardRad = -_tokenRotationDeg * Math.PI / 180; // board rotation in radians
+    // Shadow offset: always visually downward on screen regardless of board rotation.
+    // _tokenRotationDeg = -boardDeg. To get board's actual rotation in radians: negate it.
+    const _boardRad = _tokenRotationDeg * Math.PI / 180; // board rotation (= -_tokenRotationDeg * PI/180 would be wrong double-neg)
     const sdx = Math.sin(_boardRad) * 2;  // 2px down in screen space → board-local x
     const sdy = Math.cos(_boardRad) * 2;  // 2px down in screen space → board-local y
     const sx=px-shadowW/2+sdx, sy=py-shadowH/2+sdy;
@@ -3912,7 +3939,7 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
     const shadowW=rW*0.60,shadowH=rW*0.16;
     const h=cp*0.65;
     // Precompute rotation-aware shadow offset (2px visually downward on screen)
-    const _boardRad=-_tokenRotationDeg*Math.PI/180;
+    const _boardRad=_tokenRotationDeg*Math.PI/180;
     const _sdx=Math.sin(_boardRad)*2;
     const _sdy=Math.cos(_boardRad)*2;
     let t0=null;
@@ -4094,7 +4121,7 @@ async function sendHomeFast(tok){
       if(els.shadow){
         const sw=BASE_W*0.60,sh=BASE_W*0.16;
         els.shadow.style.transition=`transform ${SLIDE_MS}ms linear`;
-        const _br2=-_tokenRotationDeg*Math.PI/180;
+        const _br2=_tokenRotationDeg*Math.PI/180;
         const _sdx2=Math.sin(_br2)*2, _sdy2=Math.cos(_br2)*2;
         els.shadow.style.transform=`translate(${endXY.x-sw/2+_sdx2}px,${endXY.y-sh/2+_sdy2}px)`;
       }
