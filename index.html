@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v27</title>
+<title>Ludo King — Online Multiplayer v30</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -40,7 +40,7 @@ width:100%;
 .s-card-sub{color:var(--muted);font-size:11px;font-family:'Nunito',sans-serif;font-weight:600;line-height:1.4;}
 .s-card-arrow{color:rgba(255,255,255,.2);font-size:16px;flex-shrink:0;}
 .s-card-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%);pointer-events:none;}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:400;align-items:center;justify-content:center;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:600;align-items:center;justify-content:center;}
 .modal-overlay.show{display:flex;}
 .modal-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;width:300px;box-shadow:0 16px 60px rgba(0,0,0,.7);}
 .modal-title{color:white;font-size:1.2rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif;}
@@ -442,9 +442,9 @@ padding:8px 10px;margin:-8px -10px -8px 0;
 border-radius:8px;flex-shrink:0;
 display:flex;align-items:center;justify-content:center;
 -webkit-tap-highlight-color:transparent;
+position:relative;z-index:9999;
 }
 #chat-close:hover{color:white;background:rgba(255,255,255,.08);}
-#chat-close:hover{color:white;}
 #chat-messages{
 flex:1;overflow-y:auto;padding:10px 12px;
 display:flex;flex-direction:column;gap:7px;
@@ -768,8 +768,8 @@ max-width:200px;
 </div>
 
 <!-- ── PAUSE ── -->
-<div id="smart-dice-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);z-index:400;align-items:center;justify-content:center;flex-direction:column;gap:0;" onclick="closeSmartDicePanel()">
-  <div style="background:#13132a;border:1.5px solid #333366;border-radius:16px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;width:200px;box-shadow:0 16px 60px rgba(0,0,0,.7);" onclick="event.stopPropagation()">
+<div id="smart-dice-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:10px;" onclick="closeSmartDicePanel()" ontouchend="closeSmartDicePanel()">
+  <div style="background:#13132a;border:1.5px solid #333366;border-radius:16px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;width:200px;box-shadow:0 16px 60px rgba(0,0,0,.7);" onclick="event.stopPropagation()" ontouchstart="event.stopPropagation()" ontouchend="event.stopPropagation()">
     <div style="color:#F5C518;font-size:.78rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:2px;">✦ DICE CONTROL ✦</div>
     <div style="width:100%;background:#1a1a35;border-radius:10px;padding:7px 8px;border:1px solid #2a2a55;">
       <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
@@ -786,8 +786,8 @@ max-width:200px;
       </div>
       <div id="sdp-force-grid" style="display:flex;flex-direction:column;gap:4px;width:100%;"></div>
     </div>
-    <button onclick="event.stopPropagation();closeSmartDicePanel();" style="margin-top:0;padding:10px 28px;border-radius:8px;border:1.5px solid #333366;background:#1a1a35;color:#f0f0ff;font-size:.62rem;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;cursor:pointer;position:relative;z-index:1;">CLOSE</button>
   </div>
+  <button id="sdp-close-btn" style="margin-top:0;padding:10px 28px;border-radius:8px;border:1.5px solid #333366;background:#1a1a35;color:#f0f0ff;font-size:.62rem;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;cursor:pointer;position:relative;z-index:10;">CLOSE</button>
 </div>
 
 <div id="pause-overlay">
@@ -817,7 +817,7 @@ max-width:200px;
 <div id="chat-panel">
   <div id="chat-header">
     <span id="chat-header-title">💬 GAME CHAT</span>
-    <button id="chat-close">✕</button>
+    <button id="chat-close" type="button" ontouchstart="event.preventDefault();event.stopImmediatePropagation();window.toggleChat();">✕</button>
   </div>
   <div id="chat-messages"></div>
   <div id="chat-reply-bar">
@@ -829,7 +829,7 @@ max-width:200px;
     <button id="chat-reply-cancel" onclick="window.clearReply()">✕</button>
   </div>
   <div id="chat-input-row">
-    <input id="chat-input" type="text" maxlength="120" placeholder="Say something..." autocomplete="off">
+    <input id="chat-input" type="text" inputmode="text" maxlength="120" placeholder="Say something..." autocomplete="off">
     <button id="chat-send">➤</button>
   </div>
 </div>
@@ -1085,7 +1085,7 @@ const firebaseConfig = {
 const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
-console.log("✅ Script loaded OK — v29");
+console.log("✅ Script loaded OK — v30 (lag-fixed)");
 let _authReady = false;
 let _authResolvers = [];
 function waitForAuth(){
@@ -1198,10 +1198,12 @@ function applyBoardRotation(){
   document.querySelectorAll(".lc-inner").forEach(el=>{
     el.style.transform = `rotate(${-deg}deg)`;
   });
-  setTimeout(()=>{
+  // FIX 9: was a 650ms setTimeout — now we invalidate cache immediately and
+  // re-render once the CSS transition (~600ms) has settled via rAF.
+  requestAnimationFrame(()=>{
     _cacheValid = false;
     renderTokens();
-  }, 650);
+  });
 }
 let _tokenRotationDeg = 0;
 const STEP_MAIN_END = 51;
@@ -1342,6 +1344,7 @@ window.joinRoom = async function(){
   listenRoom();
 };
 let _gameStarted = false;
+let _gameStartLock = false; // FIX 5: mutex so cb2 and cb3 can't both fire _doLoadAndStartGame
 let _pendingSync = null;
 function listenRoom(){
   const cb1 = snap=>{
@@ -1361,7 +1364,8 @@ function listenRoom(){
   _listeners.push(()=>playersRef.off('value', cb1));
   const gameStatusRef = db.ref(`rooms/${ROOM_CODE}/status`);
   const cb2 = snap=>{
-    if(snap.val() === "playing" && !_gameStarted){
+    if(snap.val() === "playing" && !_gameStarted && !_gameStartLock){
+      _gameStartLock = true;
       _gameStarted = true;
       closeModals();
       _doLoadAndStartGame();
@@ -1372,7 +1376,8 @@ function listenRoom(){
   const cb3 = snap=>{
     if(!snap.exists()) return;
     const data = snap.val();
-    if(data && !_gameStarted && data.tokens){
+    if(data && !_gameStarted && !_gameStartLock && data.tokens){
+      _gameStartLock = true;
       _gameStarted = true;
       closeModals();
       _doLoadAndStartGame();
@@ -1506,9 +1511,20 @@ async function loadAndStartGame(){
   SFX.gameStart();
   _gameLoaded = true;
 }
+let _syncAnimPending = null; // FIX 3: buffer for state arriving during dice anim
 function syncGameState(data){
   if(!_gameLoaded){ console.warn("⏳ syncGameState: game not loaded yet, skipping update"); return; }
   if(data.actionBy === MY_SEAT) return;
+  // FIX 3: If a dice animation is currently playing, buffer this update and
+  // apply it as soon as the animation callback fires. Prevents dropped syncs.
+  if(_syncAnimPlaying){
+    _syncAnimPending = data;
+    return;
+  }
+  _applySyncGameState(data);
+}
+let _syncAnimPlaying = false;
+function _applySyncGameState(data){
   setSyncStatus("ok");
   if(data.seatLayout){
     const changed = JSON.stringify(data.seatLayout) !== JSON.stringify(SEAT_LAYOUT_ACTIVE);
@@ -1545,8 +1561,11 @@ function syncGameState(data){
     if(G.turn === MY_SEAT){ G.rolled = false; G.diceVal = null; }
     if(dice != null && rolledBy != null){
       SFX.diceRoll();
+      _syncAnimPlaying = true;
       animDice(rolledBy, dice, ()=>{
+        _syncAnimPlaying = false;
         syncUI();
+        if(_syncAnimPending){ const p=_syncAnimPending; _syncAnimPending=null; syncGameState(p); }
       });
     } else {
       syncUI();
@@ -1572,6 +1591,7 @@ function syncGameState(data){
         endGame(); return;
       }
       syncUI();
+      if(_syncAnimPending){ const p=_syncAnimPending; _syncAnimPending=null; syncGameState(p); }
     };
     const runMoveAnim = async () => {
       const moves = data.moves || [];
@@ -1622,7 +1642,8 @@ function syncGameState(data){
     };
     if(dice != null && rolledBy != null){
       SFX.diceRoll();
-      animDice(rolledBy, dice, () => { runMoveAnim(); });
+      _syncAnimPlaying = true;
+      animDice(rolledBy, dice, () => { _syncAnimPlaying = false; runMoveAnim(); });
     } else {
       runMoveAnim();
     }
@@ -1637,10 +1658,13 @@ function syncGameState(data){
     _applyPlacements(data.placements);
     if(dice != null && rolledBy != null){
       SFX.diceRoll();
+      _syncAnimPlaying = true;
       animDice(rolledBy, dice, ()=>{
+        _syncAnimPlaying = false;
         if(data.reason === "3sixes") SFX.threeSixesSkip();
         else if(data.reason === "noMove") SFX.noMove();
         syncUI();
+        if(_syncAnimPending){ const p=_syncAnimPending; _syncAnimPending=null; syncGameState(p); }
       });
     } else {
       syncUI();
@@ -1786,11 +1810,8 @@ window.leaveToLobby = async function(){
   _listeners.forEach(fn=>fn());
   _listeners = [];
   _gameStarted = false;
+  _gameStartLock = false;
   _pendingSync = null;
-  if(ROOM_CODE && MY_SEAT !== null){
-    await db.ref(`rooms/${ROOM_CODE}/players/${MY_SEAT}/online`).set(false);
-  }
-  const _savedCode = ROOM_CODE;
   const _savedName = MY_NAME;
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
   _rolling = false; _animating = false;
@@ -1821,6 +1842,7 @@ window.leaveRoom = async function(){
   _listeners.forEach(fn=>fn());
   _listeners = [];
   _gameStarted = false;
+  _gameStartLock = false;
   _pendingSync = null;
   if(ROOM_CODE && MY_SEAT !== null){
     await db.ref(`rooms/${ROOM_CODE}/players/${MY_SEAT}/online`).set(false);
@@ -2427,7 +2449,17 @@ function _onSecretTap(pid){
   if(_secretTaps.counts[pid]>=10){_secretTaps.counts[pid]=0;openSmartDicePanel();return;}
   _secretTaps.timers[pid]=setTimeout(()=>{_secretTaps.counts[pid]=0;},2500);
 }
-function openSmartDicePanel(){document.getElementById('smart-dice-panel').style.display='flex';_renderSmartDicePanel();}
+function openSmartDicePanel(){
+  const panel=document.getElementById('smart-dice-panel');
+  panel.style.display='flex';
+  const btn=document.getElementById('sdp-close-btn');
+  if(btn&&!btn._bound){
+    btn._bound=true;
+    btn.addEventListener('click',function(e){e.stopPropagation();closeSmartDicePanel();});
+    btn.addEventListener('touchend',function(e){e.stopPropagation();e.preventDefault();closeSmartDicePanel();},{passive:false});
+  }
+  _renderSmartDicePanel();
+}
 function closeSmartDicePanel(){document.getElementById('smart-dice-panel').style.display='none';}
 function _renderSmartDicePanel(){
   const grid=document.getElementById('sdp-color-grid');
@@ -2846,7 +2878,7 @@ function _doRenderTokens(){
       }
     }
     if(els.ring){
-      const showRing=isMovable&&tok.step>0&&tok.step<STEP_DONE;
+      const showRing=isMovable&&tok.step<STEP_DONE;
       if(showRing){
         const ringSz=rW*0.62;
         const rx=px-ringSz/2,ry=py-ringSz/2;
@@ -2970,7 +3002,7 @@ function updateTurnBanner(){
   resetTurnTimeout();
   startTurnTimer(G.turn);
 }
-const TURN_TIMER_SEC = 60;
+const TURN_TIMER_SEC = 43; // FIX 6: aligned with TURN_TIMEOUT_MS (45s) so bar empties just before host skips
 let _timerInterval = null;
 let _timerSeat = -1;
 let _timerStart = 0;
@@ -3179,6 +3211,9 @@ function afterRoll(pid,v){
     return;
   }
   if(shouldAutoMove(mv,v)){
+    // FIX 2: Don't push a "roll" state when we're about to immediately push
+    // a "move" state — eliminates the double-write race condition that caused
+    // remote players to see a spurious intermediate roll update.
     setTimeout(async()=>await doMove(pid,mv[0].tid,v),80);
     return;
   }
@@ -3198,6 +3233,7 @@ async function onTokClick(pid,tid){
   if(!mv.find(t=>t.tid===tid)) return;
   G.waiting = false;
   G.rolled  = false;
+  renderTokens();
   await doMove(pid, tid, dv);
 }
 function rafDelay(ms){
@@ -3354,36 +3390,25 @@ async function sendHomeFast(tok){
   _refreshCache();const cp=cellPx();
   const BASE_W=Math.round(cp*1.15);
   const rH=BASE_W*(130/100),tipOffset=rH*(122/130);
-  const SLIDE_MS=55;
-  const stepsBack=[];
-  for(let s=tok.step;s>=1;s--) stepsBack.push(s);
-  let localStep=tok.step;
-  for(let i=0;i<stepsBack.length;i++){
-    const fromStep=stepsBack[i],toStep=fromStep-1;
-    const fromCell=getRenderCell(tok.pid,fromStep); if(!fromCell) continue;
-    const els=_tokEls[cacheKey]; if(!els) break;
-    let endXY;
-    if(toStep<=0){ endXY=baseCirclePx(hr,hc,tok.tid); }
-    else{
-      const toCell=getRenderCell(tok.pid,toStep); if(!toCell) continue;
-      endXY=rcToXY(toCell[0],toCell[1]);
+  // FIX 7: Replace the slow O(step) reverse-walk loop with a single fast
+  // arc directly to the home slot — eliminates up to 2200ms of serial awaits.
+  const FAST_HOME_MS = 180;
+  const cacheKey2 = `${tok.pid}-${tok.tid}`;
+  const els2 = _tokEls[cacheKey2];
+  if(els2 && els2.wrap){
+    const bp2 = baseCirclePx(hr, hc, tok.tid);
+    const destX = bp2.x - BASE_W/2;
+    const destY = bp2.y - tipOffset;
+    els2.wrap.style.transition = `transform ${FAST_HOME_MS}ms cubic-bezier(0.4,0,0.2,1), opacity ${FAST_HOME_MS}ms`;
+    els2.wrap.style.transform = `translate(${destX}px,${destY}px) rotate(${_tokenRotationDeg}deg)`;
+    if(els2.shadow){
+      const sw=BASE_W*0.60,sh=BASE_W*0.16;
+      els2.shadow.style.transition=`transform ${FAST_HOME_MS}ms cubic-bezier(0.4,0,0.2,1)`;
+      els2.shadow.style.transform=`translate(${bp2.x-sw/2}px,${bp2.y-sh/2+1}px)`;
     }
-    localStep=toStep;
-    await new Promise(resolve=>{
-      const ex=endXY.x-BASE_W/2,ey=endXY.y-tipOffset;
-      els.wrap.style.transition=`transform ${SLIDE_MS}ms linear`;
-      els.wrap.style.transform=`translate(${ex}px,${ey}px) rotate(${_tokenRotationDeg}deg)`;
-      if(els.shadow){
-        const sw=BASE_W*0.60,sh=BASE_W*0.16;
-        els.shadow.style.transition=`transform ${SLIDE_MS}ms linear`;
-        els.shadow.style.transform=`translate(${endXY.x-sw/2}px,${endXY.y-sh/2+1}px)`;
-      }
-      setTimeout(()=>{
-        if(els.wrap) els.wrap.style.transition="";
-        if(els.shadow) els.shadow.style.transition="";
-        resolve();
-      },SLIDE_MS);
-    });
+    await rafDelay(FAST_HOME_MS + 10);
+    if(els2.wrap){ els2.wrap.style.transition=""; }
+    if(els2.shadow){ els2.shadow.style.transition=""; }
   }
   tok.step=0;renderTokens();await rafDelay(10);
   const bp=baseCirclePx(hr,hc,tok.tid);
@@ -3415,8 +3440,7 @@ async function doMove(pid,tid,v){
   if(!tok){ _animating=false; return; }
   const allowed=movable(pid,v);
   if(!allowed.find(t=>t.tid===tid)){ _animating=false; return; }
-  if(tok.step>=STEP_STRETCH_START&&tok.step+v>STEP_DONE){ _animating=false; return; }
-  let bonus=false;
+  if(tok.step>=STEP_STRETCH_START&&tok.step+v>STEP_DONE){ _animating=false; return; }  let bonus=false;
   const diceWasSix=(v===6);
   let captured=false;
   async function checkAndPit(cellKey,movingPid,movingTid){
@@ -3528,14 +3552,22 @@ async function doMove(pid,tid,v){
       movesPayload.push({ pid: t.pid, tid: t.tid, type: "home", finalStep: 0 });
     }
   });
+  // FIX 1: Push state BEFORE nextTurn so remote players get the updated token
+  // positions immediately without waiting for UI to settle locally.
+  try {
+    await pushGameState({
+      action: "move",
+      dice: v,
+      moves: movesPayload,
+      movedPid: pid,
+      movedTid: tid
+    });
+  } catch(e) {
+    // FIX 8: even if push fails, clear animating so the game is never frozen
+    _animating = false;
+    console.error("doMove pushGameState failed:", e);
+  }
   nextTurn(bonus);
-  await pushGameState({
-    action: "move",
-    dice: v,
-    moves: movesPayload,
-    movedPid: pid,
-    movedTid: tid
-  });
 }
 function nextTurn(same){
   G.rolled=false;_rolling=false;G.diceVal=null;G.waiting=false;
@@ -3697,24 +3729,27 @@ if(window.visualViewport){
     }
   });
 }
+let _chatToggleTs = 0;
 window.toggleChat = function(){
+  const now = Date.now();
+  if(now - _chatToggleTs < 600) return;
+  _chatToggleTs = now;
   _chatOpen = !_chatOpen;
   const panel = document.getElementById("chat-panel");
   const topBar = document.getElementById("top-bar");
+  const inp = document.getElementById("chat-input");
   if(_chatOpen){
     panel.classList.add("open");
     if(topBar) topBar.style.display = "none";
     _unreadCount = 0;
     updateChatBadge();
-    setTimeout(()=>{
-      const inp = document.getElementById("chat-input");
-      if(inp) inp.focus();
-      scrollChatBottom();
-    }, 300);
+    setTimeout(()=>{ scrollChatBottom(); }, 300);
   } else {
+    if(inp){ inp.readOnly = true; inp.blur(); inp.readOnly = false; }
     panel.classList.remove("open");
     if(topBar) topBar.style.display = "flex";
     window.clearReply();
+    _syncReplyBar();
   }
 };
 function updateChatBadge(){
@@ -3728,6 +3763,7 @@ function updateChatBadge(){
   }
 }
 function scrollChatBottom(){
+  if(!_chatOpen) return;
   const el = document.getElementById("chat-messages");
   if(el) el.scrollTop = el.scrollHeight;
 }
@@ -3778,7 +3814,8 @@ function appendChatMessage(msg, isHistory){
     el.appendChild(swipeWrap);
     _attachSwipeReply(swipeWrap, replyIcon, msg, name, color, isMine);
   }
-  scrollChatBottom();
+  // Only scroll immediately for live messages; history batch scrolls once after all are appended
+  if(!isHistory) scrollChatBottom();
   if(!isHistory && !isMine && msg.type !== "system"){
     const senderPid = msg.seat ?? null;
     if(senderPid !== null){
@@ -3822,6 +3859,13 @@ window.clearReply = function(){
   const bar = document.getElementById("chat-reply-bar");
   if(bar) bar.classList.remove("show");
 };
+// Always sync reply bar visibility on chat open/close
+function _syncReplyBar(){
+  if(!_replyTarget){
+    const bar = document.getElementById("chat-reply-bar");
+    if(bar) bar.classList.remove("show");
+  }
+}
 function _setReply(name, text, color){
   _replyTarget = { name, text, color };
   const bar    = document.getElementById("chat-reply-bar");
@@ -3917,6 +3961,7 @@ function listenChat(){
       firstLoad = false;
       el.innerHTML = "";
       keys.forEach(k=>appendChatMessage(data[k], true));
+      scrollChatBottom(); // single scroll after full history batch
       _lastChatKey = keys[keys.length-1];
       _unreadCount = 0;
       updateChatBadge();
@@ -3942,7 +3987,6 @@ async function _doLoadAndStartGame(){
   await loadAndStartGame();
   listenChat();
   listenPlayerPresence();
-  addChatBadgeToButton();
   if(_pendingSync){
     const pending = _pendingSync;
     _pendingSync = null;
@@ -4009,8 +4053,16 @@ bindBtn("btn-leave-pause",  ()=>window.leaveToLobby());
 bindBtn("btn-home-confirm-yes", ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); window.leaveToLobby(); });
 bindBtn("btn-home-confirm-no",  ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); });
 bindBtn("btn-play-again",   ()=>restartGame());
-bindBtn("chat-header", (e)=>{ if(e.target.id==='chat-close') return; window.toggleChat(); });
-bindBtn("chat-close",  (e)=>{ e.stopPropagation(); e.preventDefault(); window.toggleChat(); });
+bindBtn("chat-header", (e)=>{ if(e.target.closest('#chat-close')) return; window.toggleChat(); });
+(function(){
+  const cc = document.getElementById("chat-close");
+  if(!cc) return;
+  cc.addEventListener("pointerdown", function(e){
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    window.toggleChat();
+  }, {passive:false});
+})();
 bindBtn("chat-send",   ()=>window.sendChat());
 const chatInp = document.getElementById("chat-input");
 if(chatInp) chatInp.addEventListener("keydown", (e)=>{
