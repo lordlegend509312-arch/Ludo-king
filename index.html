@@ -7,16 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
-<style>
-:root{
-  --gold:#F5C518;--gold2:#b8920f;--pink:#FF2D78;--blue:#00AEEF;--green:#00C853;--yellow:#FFD600;
-  --bg:#0d0d1a;--surface:#13132a;--surface2:#1a1a35;--border:#252550;--border2:#333366;
-  --text:#f0f0ff;--muted:rgba(240,240,255,.4);
+<style>:root{
+--gold:#F5C518;--gold2:#b8920f;--pink:#FF2D78;--blue:#00AEEF;--green:#00C853;--yellow:#FFD600;
+--bg:#0d0d1a;--surface:#13132a;--surface2:#1a1a35;--border:#252550;--border2:#333366;
+--text:#f0f0ff;--muted:rgba(240,240,255,.4);
 }
 *{box-sizing:border-box;margin:0;padding:0;user-select:none !important;-webkit-user-select:none !important;-webkit-touch-callout:none !important;}
 body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:52px 12px 0;font-family:'Inter',sans-serif;touch-action:manipulation;overflow:hidden;}
-
-/* ── LOBBY SCREEN ── */
 #lobby{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 #lobby-inner{display:flex;flex-direction:column;align-items:center;gap:20px;width:300px;}
 #lobby-crown{font-size:3.2rem;filter:drop-shadow(0 0 20px rgba(245,197,24,.7));animation:crownFloat 3s ease-in-out infinite;}
@@ -24,17 +21,16 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 #lobby-sub{color:var(--muted);font-size:11px;letter-spacing:3px;text-transform:uppercase;text-align:center;font-family:'Nunito',sans-serif;font-weight:700;}
 #lobby-divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);}
 #lobby-title{color:var(--gold);font-size:16px;letter-spacing:2px;font-family:'Rajdhani',sans-serif;font-weight:700;text-align:center;}
-
 .s-card{
-  position:relative;overflow:hidden;
-  display:flex;align-items:center;gap:14px;
-  padding:16px 20px;
-  background:var(--surface);
-  border:1.5px solid var(--border);
-  border-radius:14px;
-  cursor:pointer;
-  transition:all 0.18s;
-  width:100%;
+position:relative;overflow:hidden;
+display:flex;align-items:center;gap:14px;
+padding:16px 20px;
+background:var(--surface);
+border:1.5px solid var(--border);
+border-radius:14px;
+cursor:pointer;
+transition:all 0.18s;
+width:100%;
 }
 .s-card:hover,.s-card:active{border-color:var(--gold);background:var(--surface2);box-shadow:0 0 0 1px rgba(245,197,24,.15),0 8px 32px rgba(0,0,0,.5);}
 .s-card:active{transform:scale(0.98);}
@@ -44,214 +40,184 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 .s-card-sub{color:var(--muted);font-size:11px;font-family:'Nunito',sans-serif;font-weight:600;line-height:1.4;}
 .s-card-arrow{color:rgba(255,255,255,.2);font-size:16px;flex-shrink:0;}
 .s-card-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%);pointer-events:none;}
-
-/* ── MODALS ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:400;align-items:center;justify-content:center;}
 .modal-overlay.show{display:flex;}
 .modal-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;width:300px;box-shadow:0 16px 60px rgba(0,0,0,.7);}
 .modal-title{color:white;font-size:1.2rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif;}
 .modal-sub{color:var(--muted);font-size:12px;text-align:center;font-family:'Nunito',sans-serif;}
 .modal-input{
-  width:100%;padding:13px 16px;
-  background:var(--surface);border:1.5px solid var(--border2);
-  border-radius:12px;color:white;font-size:1rem;
-  font-family:'Nunito',sans-serif;font-weight:700;
-  letter-spacing:4px;text-align:center;outline:none;
+width:100%;padding:13px 16px;
+background:var(--surface);border:1.5px solid var(--border2);
+border-radius:12px;color:white;font-size:1rem;
+font-family:'Nunito',sans-serif;font-weight:700;
+letter-spacing:4px;text-align:center;outline:none;
 }
 .modal-input:focus{border-color:var(--gold);}
 .modal-btn{
-  width:100%;padding:14px 0;font-size:.9rem;font-weight:800;
-  border:none;border-radius:12px;cursor:pointer;
-  transition:transform 0.12s,opacity 0.12s;letter-spacing:.5px;
-  background:var(--gold);color:#000;
+width:100%;padding:14px 0;font-size:.9rem;font-weight:800;
+border:none;border-radius:12px;cursor:pointer;
+transition:transform 0.12s,opacity 0.12s;letter-spacing:.5px;
+background:var(--gold);color:#000;
 }
 .modal-btn:active{transform:scale(0.96);}
 .modal-btn.secondary{background:var(--surface);border:1.5px solid var(--border2);color:var(--text);}
 .modal-btn:disabled{opacity:.4;cursor:not-allowed;}
-
-/* Room code display */
 .room-code-display{
-  background:var(--surface);border:2px solid var(--gold);
-  border-radius:14px;padding:14px 24px;
-  font-size:2rem;font-weight:900;color:var(--gold);
-  letter-spacing:8px;font-family:'Rajdhani',sans-serif;
-  text-align:center;cursor:pointer;transition:background 0.15s;
+background:var(--surface);border:2px solid var(--gold);
+border-radius:14px;padding:14px 24px;
+font-size:2rem;font-weight:900;color:var(--gold);
+letter-spacing:8px;font-family:'Rajdhani',sans-serif;
+text-align:center;cursor:pointer;transition:background 0.15s;
 }
 .room-code-display:hover{background:var(--surface2);}
 .copy-hint{
-  font-size:11px;color:var(--muted);font-family:'Nunito',sans-serif;
-  font-weight:700;letter-spacing:1px;text-transform:uppercase;
-  text-align:center;margin-top:-6px;
+font-size:11px;color:var(--muted);font-family:'Nunito',sans-serif;
+font-weight:700;letter-spacing:1px;text-transform:uppercase;
+text-align:center;margin-top:-6px;
 }
 .copy-toast{
-  font-size:12px;color:var(--green);font-family:'Nunito',sans-serif;
-  font-weight:800;letter-spacing:1px;text-align:center;
-  opacity:0;transition:opacity 0.2s;
+font-size:12px;color:var(--green);font-family:'Nunito',sans-serif;
+font-weight:800;letter-spacing:1px;text-align:center;
+opacity:0;transition:opacity 0.2s;
 }
 .copy-toast.show{opacity:1;}
 .waiting-dots::after{content:'';animation:dots 1.2s steps(3,end) infinite;}
 @keyframes dots{0%{content:'';}33%{content:'.';}66%{content:'..';}100%{content:'...';};}
-
-/* Player list in waiting room */
 .player-slot{
-  display:flex;align-items:center;gap:10px;
-  width:100%;padding:10px 14px;
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:10px;
+display:flex;align-items:center;gap:10px;
+width:100%;padding:10px 14px;
+background:var(--surface);border:1px solid var(--border);
+border-radius:10px;
 }
 .player-slot-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .player-slot-name{color:var(--text);font-size:.9rem;font-family:'Nunito',sans-serif;font-weight:700;flex:1;}
 .player-slot-status{color:var(--muted);font-size:.75rem;font-family:'Nunito',sans-serif;}
-
 .lc-inner{transition:transform 0.6s cubic-bezier(0.4,0,0.2,1);}
-/* ── GAME ── */
 #game-wrap{flex-direction:column;align-items:stretch;gap:6px;display:none;margin-top:12px;}
-
-.prow{display:flex;justify-content:space-between;align-items:flex-end;}
+.prow{display:flex;justify-content:space-between;align-items:flex-end;overflow:visible;}
 .prow.bottom{align-items:flex-start;}
 .pcol{display:flex;flex-direction:column;gap:8px;}
 .pcol.left{align-items:flex-start;}
 .pcol.right{align-items:flex-end;}
-
 .plabel{font-size:10px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;transition:color 0.3s;padding:0 4px;font-family:'Rajdhani',sans-serif;}
-
-.pbox{position:relative;display:flex;align-items:center;width:145px;height:76px;border-radius:12px;}
+.pbox{position:relative;display:flex;align-items:center;width:145px;height:76px;border-radius:12px;overflow:visible;}
 .pbox-bg{position:absolute;inset:0;background:#1a1a1a;border-radius:12px;border:1.5px solid #333;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:border-color 0.25s,box-shadow 0.25s;}
 .pbox-shine{position:absolute;inset:1px;border-radius:11px;background:linear-gradient(150deg,rgba(255,255,255,.04) 0%,transparent 55%);pointer-events:none;}
 .pbox-tok{position:relative;z-index:3;width:46px;display:flex;justify-content:center;align-items:center;flex-shrink:0;}
-
 .pbox-dice{
-  position:relative;z-index:3;
-  width:60px;height:60px;
-  border-radius:10px;
-  background:linear-gradient(135deg,#4a4a5a,#2e2e3e);
-  border:1.5px solid #1a1a28;
-  box-shadow:inset 0 2px 4px rgba(255,255,255,.12),0 2px 8px rgba(0,0,0,.4);
-  flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
+position:relative;z-index:100;
+width:60px;height:60px;
+border-radius:10px;
+background:linear-gradient(135deg,#4a4a5a,#2e2e3e);
+border:1.5px solid #1a1a28;
+box-shadow:inset 0 2px 4px rgba(255,255,255,.12),0 2px 8px rgba(0,0,0,.4);
+flex-shrink:0;
+display:flex;align-items:center;justify-content:center;
+overflow:visible;
 }
-
-/* Rank stamp overlay on player box */
 .pbox-rank{
-  position:absolute;inset:0;border-radius:12px;z-index:20;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-  pointer-events:none;
-  overflow:hidden;
+position:absolute;inset:0;border-radius:12px;z-index:20;
+display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+pointer-events:none;
+overflow:hidden;
 }
 .pbox-rank-crown{font-size:1.55rem;line-height:1;display:block;}
 .pbox-rank-pos{
-  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.05rem;
-  line-height:1;letter-spacing:.5px;color:#fff;
-  text-shadow:0 1px 3px rgba(0,0,0,.9);
+font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.05rem;
+line-height:1;letter-spacing:.5px;color:#fff;
+text-shadow:0 1px 3px rgba(0,0,0,.9);
 }
 .pbox-rank[data-rank="1"]{background:rgba(180,130,0,.82);}
 .pbox-rank[data-rank="2"]{background:rgba(80,100,120,.82);}
 .pbox-rank[data-rank="3"]{background:rgba(110,60,20,.82);}
 .pbox-rank[data-rank="4"]{background:rgba(40,20,50,.82);}
-
-/* ── TURN TIMER ARC ── */
 .turn-timer-svg{
-  position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);
-  pointer-events:none;z-index:5;border-radius:12px;overflow:visible;
-}
-.turn-timer-track{
-  fill:none;stroke:rgba(255,255,255,0.06);stroke-width:3;
-  stroke-linecap:round;
+position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);
+pointer-events:none;z-index:5;border-radius:12px;overflow:visible;
 }
 .turn-timer-bar{
-  fill:none;stroke-width:3;stroke-linecap:round;
-  stroke-dasharray:var(--tda,400);
-  stroke-dashoffset:var(--tdo,0);
-  transition:stroke 0.4s;
-  filter:drop-shadow(0 0 4px var(--timer-color,#fff));
+fill:none;stroke-width:3;stroke-linecap:round;
+stroke-dasharray:var(--tda,400);
+stroke-dashoffset:var(--tdo,0);
+transition:stroke 0.4s;
+filter:drop-shadow(0 0 4px var(--timer-color,#fff));
 }
 @keyframes timerDrain{
-  from{stroke-dashoffset:0;}
-  to{stroke-dashoffset:var(--tda,400);}
+from{stroke-dashoffset:0;}
+to{stroke-dashoffset:var(--tda,400);}
 }
 .turn-timer-bar.draining{
-  animation:timerDrain var(--timer-dur,60s) linear forwards;
+animation:timerDrain var(--timer-dur,60s) linear forwards;
 }
-
-/* ── OFFLINE OVERLAY — covers entire pbox including dice ── */
 .pbox-offline-overlay{
-  position:absolute;inset:0;border-radius:12px;z-index:25;
-  display:none;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  background:rgba(6,4,14,0.86);backdrop-filter:blur(3px);
-  cursor:pointer;pointer-events:auto;
-  transition:background 0.15s;
+position:absolute;inset:0;border-radius:12px;z-index:25;
+display:none;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+background:rgba(6,4,14,0.86);backdrop-filter:blur(3px);
+cursor:pointer;pointer-events:auto;
+transition:background 0.15s;
 }
 .pbox-offline-overlay:hover{ background:rgba(6,4,14,0.93); }
 .pbox-offline-overlay:active{ background:rgba(6,4,14,0.98); }
 .pbox-offline-overlay.show{ display:flex; }
 .pbox-offline-overlay.voted{ background:rgba(4,18,10,0.86); }
 .pbox-offline-label{
-  font-size:.58rem;font-weight:800;letter-spacing:1.2px;
-  color:rgba(255,255,255,.35);font-family:'Rajdhani',sans-serif;
-  text-transform:uppercase;line-height:1;
+font-size:.58rem;font-weight:800;letter-spacing:1.2px;
+color:rgba(255,255,255,.35);font-family:'Rajdhani',sans-serif;
+text-transform:uppercase;line-height:1;
 }
 .pbox-makebot-text{
-  font-size:.84rem;font-weight:900;letter-spacing:1px;
-  color:#F5C518;font-family:'Rajdhani',sans-serif;
-  text-transform:uppercase;line-height:1;
-  text-shadow:0 0 8px rgba(245,197,24,.5);
+font-size:.84rem;font-weight:900;letter-spacing:1px;
+color:#F5C518;font-family:'Rajdhani',sans-serif;
+text-transform:uppercase;line-height:1;
+text-shadow:0 0 8px rgba(245,197,24,.5);
 }
 .pbox-offline-overlay.voted .pbox-makebot-text{
-  color:#00C853;
-  text-shadow:0 0 8px rgba(0,200,83,.4);
+color:#00C853;
+text-shadow:0 0 8px rgba(0,200,83,.4);
 }
 .pbox-vote-count{
-  font-size:.5rem;font-weight:700;letter-spacing:.3px;
-  color:rgba(255,255,255,.32);font-family:'Nunito',sans-serif;
-  text-align:center;line-height:1.5;padding:0 4px;min-height:8px;
+font-size:.5rem;font-weight:700;letter-spacing:.3px;
+color:rgba(255,255,255,.32);font-family:'Nunito',sans-serif;
+text-align:center;line-height:1.5;padding:0 4px;min-height:8px;
 }
-
-/* Bot indicator label */
 .bot-label{
-  display:inline-block;
-  font-size:.55rem;font-weight:800;
-  color:#F5C518;background:rgba(245,197,24,.15);
-  border:1px solid rgba(245,197,24,.35);
-  border-radius:5px;padding:1px 5px;
-  font-family:'Rajdhani',sans-serif;letter-spacing:.5px;
-  vertical-align:middle;margin-left:3px;
+display:inline-block;
+font-size:.55rem;font-weight:800;
+color:#F5C518;background:rgba(245,197,24,.15);
+border:1px solid rgba(245,197,24,.35);
+border-radius:5px;padding:1px 5px;
+font-family:'Rajdhani',sans-serif;letter-spacing:.5px;
+vertical-align:middle;margin-left:3px;
 }
-
-/* "YOU" badge */
 .you-badge{
-  position:absolute;top:-8px;left:50%;transform:translateX(-50%);
-  background:var(--gold);color:#000;
-  font-size:8px;font-weight:900;letter-spacing:1px;
-  padding:2px 6px;border-radius:6px;
-  font-family:'Rajdhani',sans-serif;
-  z-index:10;white-space:nowrap;
+position:absolute;top:-8px;left:50%;transform:translateX(-50%);
+background:var(--gold);color:#000;
+font-size:8px;font-weight:900;letter-spacing:1px;
+padding:2px 6px;border-radius:6px;
+font-family:'Rajdhani',sans-serif;
+z-index:10;white-space:nowrap;
 }
-
-/* Board */
 #board-wrap{
-  position:relative;
-  display:inline-block;
-  transition:transform 0.6s cubic-bezier(0.34,1.26,0.64,1);
-  transform-origin:center center;
-  flex-shrink:0;
-  overflow:visible;
+position:relative;
+display:inline-block;
+transition:transform 0.6s cubic-bezier(0.34,1.26,0.64,1);
+transform-origin:center center;
+flex-shrink:0;
+overflow:visible;
 }
-/* tokens-layer rotates WITH board-wrap, tokens themselves counter-rotate */
 #board{
-  --cell:min(5.8vw,4.8dvh,40px);
-  display:grid;
-  grid-template-columns:repeat(15,var(--cell));
-  grid-template-rows:repeat(15,var(--cell));
-  gap:1px;
-  background:#3a4a55;
-  padding:5px;
-  border-radius:10px;
-  box-shadow:0 0 0 1px rgba(255,255,255,.05),0 8px 48px rgba(0,0,0,.8);
+--cell:min(5.8vw,4.8dvh,40px);
+display:grid;
+grid-template-columns:repeat(15,var(--cell));
+grid-template-rows:repeat(15,var(--cell));
+gap:1px;
+background:#3a4a55;
+padding:5px;
+border-radius:10px;
+box-shadow:0 0 0 1px rgba(255,255,255,.05),0 8px 48px rgba(0,0,0,.8);
 }
 .lc{display:flex;align-items:center;justify-content:center;contain:layout style paint;}
-
 .star-svg{width:82%;height:82%;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,200,.8));}
-
 .dice-3d{width:44px;height:44px;min-width:44px;min-height:44px;position:relative;perspective:210px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;}
 .dice-3d.off{cursor:default;pointer-events:none;}
 .dice-3d.inactive{opacity:0;pointer-events:none;}
@@ -259,7 +225,6 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 .dice-face{position:absolute;width:38px;height:38px;border-radius:7px;border:1.5px solid #cdb880;backface-visibility:hidden;overflow:hidden;}
 .face-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.65) 0%,transparent 50%);border-radius:7px;pointer-events:none;z-index:2;}
 .ddot{width:7px;height:7px;background:radial-gradient(circle at 33% 28%,#4a3878,#0e0c22);border-radius:50%;position:absolute;box-shadow:0 1px 2px rgba(0,0,0,.55);z-index:3;}
-
 #tokens-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;}
 .tok{position:absolute;pointer-events:none;will-change:transform;transition:none;left:0;top:0;}
 .tok.movable{pointer-events:auto;cursor:pointer;}
@@ -267,130 +232,96 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 .tok.movable svg{animation:movablePulse 0.9s ease-in-out infinite alternate;}
 @keyframes movablePulse{from{opacity:0.85;transform:scale(0.97);}to{opacity:1;transform:scale(1.03);}}
 .tok-shadow{position:absolute;left:0;top:0;border-radius:50%;background:rgba(0,0,0,0.38);filter:blur(3px);pointer-events:none;will-change:transform;transition:transform 0.09s cubic-bezier(0.22,1,0.36,1),opacity 0.15s;}
-
-/* Ludo King spinning ring under movable tokens */
 .tok-ring{
-  position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;
-  background:conic-gradient(rgba(0,0,0,0.72) 0deg 60deg,transparent 60deg 120deg,rgba(0,0,0,0.72) 120deg 180deg,transparent 180deg 240deg,rgba(0,0,0,0.72) 240deg 300deg,transparent 300deg 360deg);
-  -webkit-mask:radial-gradient(farthest-side,transparent 55%,black 56%);
-  mask:radial-gradient(farthest-side,transparent 55%,black 56%);
-  animation:tokRingSpin 0.65s linear infinite;
+position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;
+background:conic-gradient(rgba(0,0,0,0.72) 0deg 60deg,transparent 60deg 120deg,rgba(0,0,0,0.72) 120deg 180deg,transparent 180deg 240deg,rgba(0,0,0,0.72) 240deg 300deg,transparent 300deg 360deg);
+-webkit-mask:radial-gradient(farthest-side,transparent 55%,black 56%);
+mask:radial-gradient(farthest-side,transparent 55%,black 56%);
+animation:tokRingSpin 0.65s linear infinite;
 }
 @keyframes tokRingSpin{from{transform:var(--tr-base) rotate(0deg);}to{transform:var(--tr-base) rotate(360deg);}}
-
-/* Block shield overlay on token */
 .tok-shield {
-  position:absolute;left:0;top:0;
-  pointer-events:none;
-  z-index:4;
-  opacity:0;
-  transition:opacity 0.3s;
+position:absolute;left:0;top:0;
+pointer-events:none;
+z-index:4;
+opacity:0;
+transition:opacity 0.3s;
 }
 .tok-shield.normal { opacity:1; }
 .tok-shield.super  { opacity:1; }
-
-/* Star cell landing glow */
 @keyframes starGlow{
-  0%{box-shadow:0 0 0 0 rgba(255,220,0,0.8);}
-  40%{box-shadow:0 0 14px 8px rgba(255,220,0,0.55);}
-  100%{box-shadow:0 0 0 0 rgba(255,220,0,0);}
+0%{box-shadow:0 0 0 0 rgba(255,220,0,0.8);}
+40%{box-shadow:0 0 14px 8px rgba(255,220,0,0.55);}
+100%{box-shadow:0 0 0 0 rgba(255,220,0,0);}
 }
 .star-land-glow{animation:starGlow 0.7s ease-out forwards;border-radius:4px;}
-
 @keyframes ringPop{from{opacity:0.9;transform:translate(var(--rx),var(--ry)) scale(0.2);}to{opacity:0;transform:translate(var(--rx),var(--ry)) scale(2.2);}}
 .tok-trail{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;will-change:transform,opacity;animation:trailFade var(--td,0.4s) ease-out forwards;}
 @keyframes trailFade{from{opacity:var(--ta,0.7);transform:var(--tx) scale(var(--ts,1));}to{opacity:0;transform:var(--tx) scale(0.2);}}
 .sparkle{position:absolute;left:0;top:0;pointer-events:none;border-radius:50%;animation:sparkleFly var(--sd,0.6s) ease-out forwards;}
 @keyframes sparkleFly{0%{opacity:1;transform:var(--st) scale(1);}100%{opacity:0;transform:var(--st) translate(var(--sx),var(--sy)) scale(0);}}
-
-/* Dice hover wobble — desktop only */
 @media (hover: hover) and (pointer: fine) {
 .dice-3d:not(.off):not(.inactive):hover .dice-cube{animation:diceWobble 0.4s ease-in-out;}
 }
 @keyframes diceWobble{
-  0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg));}
-  20%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,1,0,16deg) scale(1.06);}
-  45%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,-1,0,12deg) scale(1.03);}
-  70%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(-1,1,0,8deg) scale(1.01);}
-  100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1);}
+0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg));}
+20%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,1,0,16deg) scale(1.06);}
+45%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,-1,0,12deg) scale(1.03);}
+70%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(-1,1,0,8deg) scale(1.01);}
+100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1);}
 }
-
 @keyframes diceLand{
-  0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1.22) translateY(-4px);}
-  40%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.12) scaleY(0.88) translateY(3px);}
-  65%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(0.95) scaleY(1.05) translateY(-2px);}
-  82%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.03) scaleY(0.98) translateY(0);}
-  100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1) translateY(0);}
+0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(2.2) translateY(-55px);}
+55%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.18) scaleY(0.84) translateY(5px);}
+75%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(0.94) scaleY(1.08) translateY(-3px);}
+90%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.04) scaleY(0.97) translateY(0);}
+100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1) translateY(0);}
 }
-.dice-cube.landing{animation:diceLand 0.38s cubic-bezier(0.22,1,0.36,1) forwards;}
-
-/* Status row with back + pause */
+.dice-cube.landing{animation:diceLand 0.48s cubic-bezier(0.22,1,0.36,1) forwards;z-index:9999;}
 #status-row{display:none;align-items:center;gap:8px;}
-/* ── TOP BAR ── */
 #top-bar{
-  position:fixed;top:10px;left:12px;right:12px;z-index:9999;
-  display:none;
-  align-items:center;justify-content:space-between;
-  gap:8px;
+position:fixed;top:10px;left:12px;right:12px;z-index:9999;
+display:none;
+align-items:center;justify-content:space-between;
+gap:8px;
 }
 #top-bar-left{display:flex;align-items:center;gap:8px;}
 #top-bar-right{display:flex;align-items:center;gap:8px;}
 #top-bar-center{flex:1;display:flex;align-items:center;justify-content:center;}
-
-#btn-pause{
-  width:32px;height:32px;
-  border-radius:8px;
-  border:1.5px solid var(--border2);
-  background:var(--surface2);
-  color:var(--muted);
-  font-size:13px;
-  cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all 0.15s;
-  line-height:1;flex-shrink:0;
+#btn-home{
+width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
+background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
+display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
 }
-#btn-pause:hover{background:rgba(255,60,60,.15);border-color:rgba(255,60,60,.4);color:white;}
-#btn-pause:active{transform:scale(0.92);}
-
-/* Sync indicator */
+#btn-home:hover{background:rgba(255,60,60,.15);border-color:rgba(255,60,60,.4);color:white;}
+#btn-home:active{transform:scale(0.92);}
 #sync-bar{
-  display:flex;align-items:center;gap:6px;
-  font-size:10px;font-family:'Nunito',sans-serif;font-weight:700;
-  color:var(--muted);padding:0 4px;flex:1;justify-content:center;
+display:flex;align-items:center;gap:6px;
+font-size:10px;font-family:'Nunito',sans-serif;font-weight:700;
+color:var(--muted);padding:0 4px;flex:1;justify-content:center;
 }
 #sync-dot{width:7px;height:7px;border-radius:50%;background:#555;flex-shrink:0;transition:background 0.3s;}
 #sync-dot.ok{background:#00C853;box-shadow:0 0 6px #00C853;}
 #sync-dot.warn{background:#FFD600;box-shadow:0 0 6px #FFD600;}
 #sync-dot.err{background:#FF2D78;box-shadow:0 0 6px #FF2D78;}
-
-#btn-back{
-  width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
-  background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
-}
-#btn-back:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:white;}
-#btn-back:active{transform:scale(0.92);}
-
 #btn-mute{
-  width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
-  background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
+width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
+background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
+display:flex;align-items:center;justify-content:center;
+transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
 }
 #btn-mute:hover{background:rgba(255,255,255,.28);transform:scale(1.08);}
 #btn-mute:active{transform:scale(0.94);}
 #btn-mute.muted{background:rgba(255,60,60,.25);border:1px solid rgba(255,60,60,.4);color:#FF2D78;}
-
 #btn-perf{
-  width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
-  background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
+width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
+background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
+display:flex;align-items:center;justify-content:center;
+transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
 }
 #btn-perf:hover{background:rgba(255,255,255,.08);}
 #btn-perf:active{transform:scale(0.92);}
 #btn-perf.on{background:rgba(245,197,24,.18);border-color:rgba(245,197,24,.5);color:#F5C518;}
-
 #pause-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:150;align-items:center;justify-content:center;}
 #pause-overlay.show{display:flex;}
 #pause-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:32px 36px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 16px 60px rgba(0,0,0,.7);width:280px;}
@@ -399,17 +330,16 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 .pause-btn:active{transform:scale(0.96);}
 .pause-btn{background:var(--gold);color:#000;}
 .pause-btn.secondary{background:var(--surface);border:1.5px solid var(--border2);color:var(--text);}
-
 #win{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:16px;overflow:hidden;}
 #win.show{display:flex;}
 #win-confetti-canvas{position:absolute;inset:0;pointer-events:none;z-index:0;}
 #win-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px;}
 #win-trophy{font-size:4rem;animation:trophyEntrance 0.7s cubic-bezier(.2,1.4,.4,1) forwards;opacity:0;}
 @keyframes trophyEntrance{
-  0%{opacity:0;transform:scale(0) rotate(-25deg) translateY(30px);}
-  60%{opacity:1;transform:scale(1.25) rotate(8deg) translateY(-8px);}
-  80%{transform:scale(0.92) rotate(-3deg);}
-  100%{opacity:1;transform:scale(1) rotate(0deg) translateY(0);}
+0%{opacity:0;transform:scale(0) rotate(-25deg) translateY(30px);}
+60%{opacity:1;transform:scale(1.25) rotate(8deg) translateY(-8px);}
+80%{transform:scale(0.92) rotate(-3deg);}
+100%{opacity:1;transform:scale(1) rotate(0deg) translateY(0);}
 }
 @keyframes trophyFloat{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-10px) rotate(2deg);}}
 #win-trophy.float{animation:trophyFloat 2.2s ease-in-out infinite;}
@@ -417,119 +347,114 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 @keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
 #win-crown-ring{font-size:1.1rem;letter-spacing:6px;opacity:0;animation:slideUp 0.5s 0.55s ease-out forwards;}
 #win-places{
-  color:var(--text);font-size:1rem;text-align:center;
-  font-family:'Rajdhani',sans-serif;line-height:2.1;white-space:pre;
-  opacity:0;animation:slideUp 0.5s 0.7s ease-out forwards;
-  background:rgba(255,255,255,.04);border-radius:14px;
-  padding:12px 28px;border:1px solid rgba(255,255,255,.1);
+color:var(--text);font-size:1rem;text-align:center;
+font-family:'Rajdhani',sans-serif;line-height:2.1;white-space:pre;
+opacity:0;animation:slideUp 0.5s 0.7s ease-out forwards;
+background:rgba(255,255,255,.04);border-radius:14px;
+padding:12px 28px;border:1px solid rgba(255,255,255,.1);
 }
 #win button{
-  padding:14px 44px;font-size:.95rem;border:none;border-radius:14px;
-  cursor:pointer;background:var(--gold);color:#000;font-weight:800;
-  box-shadow:0 6px 28px rgba(245,197,24,.4);letter-spacing:.5px;
-  opacity:0;animation:slideUp 0.5s 0.9s ease-out forwards;
-  transition:transform 0.12s,box-shadow 0.12s;
+padding:14px 44px;font-size:.95rem;border:none;border-radius:14px;
+cursor:pointer;background:var(--gold);color:#000;font-weight:800;
+box-shadow:0 6px 28px rgba(245,197,24,.4);letter-spacing:.5px;
+opacity:0;animation:slideUp 0.5s 0.9s ease-out forwards;
+transition:transform 0.12s,box-shadow 0.12s;
 }
 #win button:hover{transform:scale(1.05);box-shadow:0 8px 36px rgba(245,197,24,.6);}
 #win button:active{transform:scale(0.96);}
-
-/* Toast notification */
 #toast{
-  position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
-  background:rgba(30,30,60,.95);border:1px solid var(--border2);
-  color:white;font-size:.85rem;font-family:'Nunito',sans-serif;font-weight:700;
-  padding:10px 20px;border-radius:20px;
-  opacity:0;transition:opacity 0.2s,transform 0.2s;
-  pointer-events:none;z-index:500;white-space:nowrap;
+position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
+background:rgba(30,30,60,.95);border:1px solid var(--border2);
+color:white;font-size:.85rem;font-family:'Nunito',sans-serif;font-weight:700;
+padding:10px 20px;border-radius:20px;
+opacity:0;transition:opacity 0.2s,transform 0.2s;
+pointer-events:none;z-index:500;white-space:nowrap;
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-
-/* POV is achieved via color remapping ONLY — board never rotates (Rule 1) */
-
-/* ── PER-PLAYER CHAT BUBBLE ── */
-.pcol{position:relative;} /* anchor for absolute bubble */
+.pcol{position:relative;}
 .player-chat-bubble{
-  position:absolute;
-  left:50%;transform:translateX(-50%);
-  background:rgba(20,20,45,0.95);
-  border:1px solid var(--border2);
-  border-radius:8px;
-  padding:4px 10px;
-  font-size:.72rem;font-family:'Nunito',sans-serif;font-weight:600;
-  color:var(--text);
-  white-space:nowrap;max-width:140px;
-  overflow:hidden;text-overflow:ellipsis;
-  pointer-events:none;
-  z-index:350;
-  opacity:0;
-  transition:opacity 0.18s;
+position:absolute;
+left:50%;transform:translateX(-50%);
+background:rgba(20,20,45,0.95);
+border:1px solid var(--border2);
+border-radius:8px;
+padding:4px 10px;
+font-size:.72rem;font-family:'Nunito',sans-serif;font-weight:600;
+color:var(--text);
+white-space:nowrap;max-width:140px;
+overflow:hidden;text-overflow:ellipsis;
+pointer-events:none;
+z-index:350;
+opacity:0;
+transition:opacity 0.18s;
 }
 .player-chat-bubble.show{opacity:1;}
-/* Arrow — points toward the player box */
 .player-chat-bubble::after{
-  content:'';
-  position:absolute;
-  left:50%;transform:translateX(-50%);
-  border:6px solid transparent;
+content:'';
+position:absolute;
+left:50%;transform:translateX(-50%);
+border:6px solid transparent;
 }
-/* Top-row bubbles: arrow points DOWN (toward box below label) */
 .pcol.top-bubble .player-chat-bubble{
-  bottom:calc(100% + 6px); /* above the pcol */
+bottom:calc(100% + 6px);
 }
 .pcol.top-bubble .player-chat-bubble::after{
-  top:100%;
-  border-top-color:var(--border2);
+top:100%;
+border-top-color:var(--border2);
 }
-/* Bot-row bubbles: arrow points UP (toward box above label) */
 .pcol.bot-bubble .player-chat-bubble{
-  top:calc(100% + 6px); /* below the pcol */
+top:calc(100% + 6px);
 }
 .pcol.bot-bubble .player-chat-bubble::after{
-  bottom:100%;
-  border-bottom-color:var(--border2);
+bottom:100%;
+border-bottom-color:var(--border2);
 }
-
-/* ── CHAT ── */
 #chat-panel{
-  position:fixed;bottom:0;right:0;
-  width:280px;height:340px;
-  background:var(--surface2);
-  border:1.5px solid var(--border2);
-  border-radius:16px 16px 0 0;
-  display:flex;flex-direction:column;
-  z-index:300;
-  transform:translateY(100%);
-  transition:transform 0.28s cubic-bezier(0.34,1.26,0.64,1);
-  box-shadow:0 -8px 40px rgba(0,0,0,.6);
-  overflow:hidden;
-  /* Mobile keyboard: move panel up when virtual keyboard opens */
-  padding-bottom:env(safe-area-inset-bottom,0px);
+position:fixed;bottom:0;right:0;
+width:280px;height:340px;
+background:var(--surface2);
+border:1.5px solid var(--border2);
+border-radius:16px 16px 0 0;
+display:flex;flex-direction:column;
+z-index:300;
+transform:translateY(100%);
+transition:transform 0.28s cubic-bezier(0.34,1.26,0.64,1);
+box-shadow:0 -8px 40px rgba(0,0,0,.6);
+overflow:hidden;
+padding-bottom:env(safe-area-inset-bottom,0px);
 }
 #chat-panel.open{transform:translateY(0);}
 #chat-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 14px;
-  background:var(--surface);
-  border-bottom:1px solid var(--border2);
-  flex-shrink:0;
-  cursor:pointer;
+display:flex;align-items:center;justify-content:space-between;
+padding:10px 14px;
+background:var(--surface);
+border-bottom:1px solid var(--border2);
+flex-shrink:0;
+cursor:pointer;
 }
 #chat-header-title{
-  color:var(--gold);font-size:.85rem;font-weight:800;
-  font-family:'Rajdhani',sans-serif;letter-spacing:1px;
+color:var(--gold);font-size:.85rem;font-weight:800;
+font-family:'Rajdhani',sans-serif;letter-spacing:1px;
 }
-#chat-close{color:var(--muted);font-size:18px;line-height:1;background:none;border:none;cursor:pointer;padding:0 2px;}
+#chat-close{
+color:var(--muted);font-size:16px;line-height:1;background:none;border:none;cursor:pointer;
+padding:8px 10px;margin:-8px -10px -8px 0;
+border-radius:8px;flex-shrink:0;
+display:flex;align-items:center;justify-content:center;
+-webkit-tap-highlight-color:transparent;
+}
+#chat-close:hover{color:white;background:rgba(255,255,255,.08);}
 #chat-close:hover{color:white;}
 #chat-messages{
-  flex:1;overflow-y:auto;padding:10px 12px;
-  display:flex;flex-direction:column;gap:7px;
-  scrollbar-width:thin;scrollbar-color:var(--border2) transparent;
+flex:1;overflow-y:auto;padding:10px 12px;
+display:flex;flex-direction:column;gap:7px;
+scrollbar-width:thin;scrollbar-color:var(--border2) transparent;
 }
 #chat-messages::-webkit-scrollbar{width:4px;}
 #chat-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
 .chat-msg{
-  display:flex;flex-direction:column;gap:2px;
-  animation:msgIn 0.2s ease-out;
+display:flex;flex-direction:column;gap:2px;
+animation:msgIn 0.2s ease-out;
 }
 @keyframes msgIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 .chat-msg-meta{display:flex;align-items:center;gap:5px;}
@@ -537,184 +462,160 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 .chat-msg-name{font-size:.7rem;font-weight:700;font-family:'Nunito',sans-serif;}
 .chat-msg-time{font-size:.65rem;color:var(--muted);margin-left:auto;}
 .chat-msg-text{
-  font-size:.8rem;color:var(--text);font-family:'Nunito',sans-serif;
-  background:var(--surface);border-radius:0 8px 8px 8px;
-  padding:6px 10px;line-height:1.4;word-break:break-word;
-  max-width:90%;border:1px solid var(--border);
+font-size:.8rem;color:var(--text);font-family:'Nunito',sans-serif;
+background:var(--surface);border-radius:0 8px 8px 8px;
+padding:6px 10px;line-height:1.4;word-break:break-word;
+max-width:90%;border:1px solid var(--border);
 }
 .chat-msg.mine .chat-msg-text{
-  border-radius:8px 0 8px 8px;
-  background:rgba(245,197,24,.1);
-  border-color:rgba(245,197,24,.2);
-  align-self:flex-end;
+border-radius:8px 0 8px 8px;
+background:rgba(245,197,24,.1);
+border-color:rgba(245,197,24,.2);
+align-self:flex-end;
 }
 .chat-msg.mine .chat-msg-meta{flex-direction:row-reverse;}
 .chat-msg.mine .chat-msg-time{margin-left:0;margin-right:auto;}
 .chat-sys-msg{
-  text-align:center;font-size:.7rem;color:var(--muted);
-  font-family:'Nunito',sans-serif;padding:2px 0;
+text-align:center;font-size:.7rem;color:var(--muted);
+font-family:'Nunito',sans-serif;padding:2px 0;
 }
 #chat-input-row{
-  display:flex;gap:6px;padding:8px 10px;
-  border-top:1px solid var(--border2);flex-shrink:0;
-  background:var(--surface);
+display:flex;gap:6px;padding:8px 10px;
+border-top:1px solid var(--border2);flex-shrink:0;
+background:var(--surface);
 }
 #chat-input{
-  flex:1;background:var(--bg);border:1.5px solid var(--border2);
-  border-radius:20px;padding:7px 12px;color:white;
-  font-size:.82rem;font-family:'Nunito',sans-serif;
-  outline:none;min-width:0;
+flex:1;background:var(--bg);border:1.5px solid var(--border2);
+border-radius:20px;padding:7px 12px;color:white;
+font-size:.82rem;font-family:'Nunito',sans-serif;
+outline:none;min-width:0;
 }
 #chat-input:focus{border-color:var(--gold);}
 #chat-send{
-  width:32px;height:32px;border-radius:50%;border:none;
-  background:var(--gold);color:#000;font-size:14px;
-  cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  transition:transform 0.12s;align-self:center;
+width:32px;height:32px;border-radius:50%;border:none;
+background:var(--gold);color:#000;font-size:14px;
+cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+transition:transform 0.12s;align-self:center;
 }
 #chat-send:active{transform:scale(0.88);}
 #chat-badge{
-  position:absolute;top:-4px;right:-4px;
-  background:var(--pink);color:white;
-  font-size:9px;font-weight:900;
-  width:16px;height:16px;border-radius:50%;
-  display:none;align-items:center;justify-content:center;
-  font-family:'Nunito',sans-serif;
+position:absolute;top:-4px;right:-4px;
+background:var(--pink);color:white;
+font-size:9px;font-weight:900;
+width:16px;height:16px;border-radius:50%;
+display:none;align-items:center;justify-content:center;
+font-family:'Nunito',sans-serif;
 }
 #btn-chat-toggle{
-  width:32px;height:32px;
-  border-radius:8px;
-  border:1.5px solid var(--border2);
-  background:var(--surface2);
-  color:var(--muted);
-  font-size:13px;
-  cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all 0.15s;
-  line-height:1;flex-shrink:0;
+width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
+background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
+display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
 }
 #btn-chat-toggle:hover{background:rgba(245,197,24,.15);border-color:rgba(245,197,24,.4);color:white;}
 #btn-chat-toggle:active{transform:scale(0.92);}
-
-/* ── SWIPE-TO-REPLY ── */
-/* Wrapper so each msg can slide independently */
 .chat-msg-swipe{
-  position:relative;
-  touch-action:pan-y;
-  will-change:transform;
-  transition:transform 0.22s cubic-bezier(0.22,1,0.36,1);
+position:relative;
+touch-action:pan-y;
+will-change:transform;
+transition:transform 0.22s cubic-bezier(0.22,1,0.36,1);
 }
 .chat-msg-swipe.swiping{transition:none;}
-
-/* Reply icon that appears behind the sliding message */
 .chat-reply-icon{
-  position:absolute;
-  top:50%;right:4px;
-  transform:translateY(-50%) scale(0.5);
-  width:28px;height:28px;
-  background:var(--border2);
-  border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:13px;
-  opacity:0;
-  transition:opacity 0.15s,transform 0.15s;
-  pointer-events:none;
-  color:white;
+position:absolute;
+top:50%;right:4px;
+transform:translateY(-50%) scale(0.5);
+width:28px;height:28px;
+background:var(--border2);
+border-radius:50%;
+display:flex;align-items:center;justify-content:center;
+font-size:13px;
+opacity:0;
+transition:opacity 0.15s,transform 0.15s;
+pointer-events:none;
+color:white;
 }
-/* Mine messages: icon on left */
 .chat-msg.mine .chat-reply-icon{right:auto;left:4px;}
-
 .chat-reply-icon.visible{
-  opacity:1;
-  transform:translateY(-50%) scale(1);
+opacity:1;
+transform:translateY(-50%) scale(1);
 }
 .chat-reply-icon.popped{
-  transform:translateY(-50%) scale(1.35);
+transform:translateY(-50%) scale(1.35);
 }
-
-/* Reply preview bar above input */
 #chat-reply-bar{
-  display:none;
-  align-items:center;gap:8px;
-  padding:6px 10px 4px;
-  background:var(--surface);
-  border-top:1px solid var(--border2);
-  flex-shrink:0;
-  animation:replyBarIn 0.18s cubic-bezier(0.34,1.26,0.64,1);
+display:none;
+align-items:center;gap:8px;
+padding:6px 10px 4px;
+background:var(--surface);
+border-top:1px solid var(--border2);
+flex-shrink:0;
+animation:replyBarIn 0.18s cubic-bezier(0.34,1.26,0.64,1);
 }
 @keyframes replyBarIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 #chat-reply-bar.show{display:flex;}
 #chat-reply-bar-line{
-  width:3px;height:100%;min-height:28px;border-radius:3px;
-  background:var(--gold);flex-shrink:0;
+width:3px;height:100%;min-height:28px;border-radius:3px;
+background:var(--gold);flex-shrink:0;
 }
 #chat-reply-bar-content{
-  flex:1;min-width:0;
-  display:flex;flex-direction:column;gap:1px;
+flex:1;min-width:0;
+display:flex;flex-direction:column;gap:1px;
 }
 #chat-reply-bar-name{
-  font-size:.68rem;font-weight:800;color:var(--gold);
-  font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+font-size:.68rem;font-weight:800;color:var(--gold);
+font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 #chat-reply-bar-text{
-  font-size:.72rem;color:var(--muted);
-  font-family:'Nunito',sans-serif;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+font-size:.72rem;color:var(--muted);
+font-family:'Nunito',sans-serif;
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 #chat-reply-cancel{
-  background:none;border:none;color:var(--muted);font-size:16px;
-  cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0;
+background:none;border:none;color:var(--muted);font-size:16px;
+cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0;
 }
 #chat-reply-cancel:hover{color:white;}
-
-/* Quoted reply bubble inside a message */
 .chat-reply-quote{
-  background:rgba(255,255,255,.05);
-  border-left:3px solid var(--gold);
-  border-radius:0 6px 6px 0;
-  padding:4px 8px;
-  margin-bottom:4px;
-  max-width:100%;
+background:rgba(255,255,255,.05);
+border-left:3px solid var(--gold);
+border-radius:0 6px 6px 0;
+padding:4px 8px;
+margin-bottom:4px;
+max-width:100%;
 }
 .chat-reply-quote-name{
-  font-size:.65rem;font-weight:800;color:var(--gold);
-  font-family:'Nunito',sans-serif;margin-bottom:1px;
+font-size:.65rem;font-weight:800;color:var(--gold);
+font-family:'Nunito',sans-serif;margin-bottom:1px;
 }
 .chat-reply-quote-text{
-  font-size:.7rem;color:var(--muted);
-  font-family:'Nunito',sans-serif;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  max-width:200px;
+font-size:.7rem;color:var(--muted);
+font-family:'Nunito',sans-serif;
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+max-width:200px;
 }
-
-/* ── SPAWN BOUNCE ── */
 @keyframes tokSpawnBounce{
-  0%{transform:var(--sp-base) scale(0) translateY(8px);}
-  55%{transform:var(--sp-base) scale(1.32) translateY(-4px);}
-  75%{transform:var(--sp-base) scale(0.88) translateY(2px);}
-  90%{transform:var(--sp-base) scale(1.06) translateY(0);}
-  100%{transform:var(--sp-base) scale(1) translateY(0);}
+0%{transform:var(--sp-base) scale(0) translateY(8px);}
+55%{transform:var(--sp-base) scale(1.32) translateY(-4px);}
+75%{transform:var(--sp-base) scale(0.88) translateY(2px);}
+90%{transform:var(--sp-base) scale(1.06) translateY(0);}
+100%{transform:var(--sp-base) scale(1) translateY(0);}
 }
 .tok-spawn{animation:tokSpawnBounce 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards;}
-
-/* ── LANDING SQUASH ── */
 @keyframes tokLandSquash{
-  0%{transform:var(--sq-base) scaleX(1.18) scaleY(0.78);}
-  40%{transform:var(--sq-base) scaleX(0.93) scaleY(1.06);}
-  70%{transform:var(--sq-base) scaleX(1.04) scaleY(0.97);}
-  100%{transform:var(--sq-base) scaleX(1) scaleY(1);}
+0%{transform:var(--sq-base) scaleX(1.18) scaleY(0.78);}
+40%{transform:var(--sq-base) scaleX(0.93) scaleY(1.06);}
+70%{transform:var(--sq-base) scaleX(1.04) scaleY(0.97);}
+100%{transform:var(--sq-base) scaleX(1) scaleY(1);}
 }
 .tok-land{animation:tokLandSquash 0.14s cubic-bezier(0.22,1,0.36,1) forwards;}
-
-/* ── WIN SCREEN (confetti + trophy) ── */
 #win-confetti-canvas{position:absolute;inset:0;pointer-events:none;z-index:0;}
 #win-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px;}
 #win-trophy{font-size:4rem;animation:trophyEntrance 0.7s cubic-bezier(.2,1.4,.4,1) forwards;opacity:0;}
 @keyframes trophyEntrance{
-  0%{opacity:0;transform:scale(0) rotate(-25deg) translateY(30px);}
-  60%{opacity:1;transform:scale(1.25) rotate(8deg) translateY(-8px);}
-  80%{transform:scale(0.92) rotate(-3deg);}
-  100%{opacity:1;transform:scale(1) rotate(0deg) translateY(0);}
+0%{opacity:0;transform:scale(0) rotate(-25deg) translateY(30px);}
+60%{opacity:1;transform:scale(1.25) rotate(8deg) translateY(-8px);}
+80%{transform:scale(0.92) rotate(-3deg);}
+100%{opacity:1;transform:scale(1) rotate(0deg) translateY(0);}
 }
 @keyframes trophyFloat{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-10px) rotate(2deg);}}
 #win-trophy.float{animation:trophyFloat 2.2s ease-in-out infinite;}
@@ -724,9 +625,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 #win-places{opacity:0;animation:slideUp 0.5s 0.7s ease-out forwards;}
 #win button{opacity:0;animation:slideUp 0.5s 0.9s ease-out forwards;}
 .win-ring{position:absolute;border-radius:50%;pointer-events:none;border:3px solid var(--wr-col);animation:winRingExpand var(--wr-dur) var(--wr-delay) ease-out forwards;opacity:0;}
-@keyframes winRingExpand{0%{opacity:0.9;transform:translate(-50%,-50%) scale(0);}100%{opacity:0;transform:translate(-50%,-50%) scale(1);}}
-
-</style>
+@keyframes winRingExpand{0%{opacity:0.9;transform:translate(-50%,-50%) scale(0);}100%{opacity:0;transform:translate(-50%,-50%) scale(1);}}</style>
 </head>
 <body>
 
@@ -756,7 +655,15 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
         <div class="s-card-shine"></div>
       </div>
     </div>
-    <!-- Rejoin banner (shown if last session had an active room) -->
+      <div class="s-card" id="btn-test-mode" style="border-color:rgba(255,197,24,.3);background:rgba(255,197,24,.06);">
+        <div class="s-card-icon" style="background:linear-gradient(135deg,#F5C518,#b8920f);">🧪</div>
+        <div class="s-card-text">
+          <div class="s-card-title">Test Mode</div>
+          <div class="s-card-sub">Solo offline test — no Firebase</div>
+        </div>
+        <div class="s-card-arrow">›</div>
+        <div class="s-card-shine"></div>
+      </div>
     <div id="rejoin-card" class="s-card" style="display:none;border-color:rgba(0,174,239,.4);background:rgba(0,174,239,.06);" onclick="window.tryRejoin()">
       <div class="s-card-icon" style="background:linear-gradient(135deg,#00AEEF,#0077aa);">🔄</div>
       <div class="s-card-text">
@@ -827,6 +734,16 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-home-confirm">
+  <div class="modal-box">
+    <div style="font-size:2rem;">🏠</div>
+    <div class="modal-title">Leave Game?</div>
+    <div class="modal-sub">You'll leave this match and return to the lobby. Other players will continue without you.</div>
+    <button class="modal-btn" id="btn-home-confirm-yes" style="background:#FF2D78;color:#fff;">Yes, Leave</button>
+    <button class="modal-btn secondary" id="btn-home-confirm-no">Cancel</button>
+  </div>
+</div>
+
 <!-- ── GAME WRAP ── -->
 <div id="top-bar">
   <div id="top-bar-left">
@@ -836,7 +753,6 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
     <div id="sync-bar"><div id="sync-dot" class="warn"></div><span id="sync-text">Syncing...</span></div>
   </div>
   <div id="top-bar-right">
-    <button id="btn-back" title="Leave">🏠</button>
     <button id="btn-mute" title="Mute">🔊</button>
     <button id="btn-perf" title="Performance Mode">⚡</button>
     <!-- btn-chat-toggle injected here by JS -->
@@ -852,8 +768,8 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 </div>
 
 <!-- ── PAUSE ── -->
-<div id="smart-dice-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);z-index:400;align-items:center;justify-content:center;flex-direction:column;gap:0;">
-  <div style="background:#13132a;border:1.5px solid #333366;border-radius:16px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;width:200px;box-shadow:0 16px 60px rgba(0,0,0,.7);">
+<div id="smart-dice-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);z-index:400;align-items:center;justify-content:center;flex-direction:column;gap:0;" onclick="closeSmartDicePanel()">
+  <div style="background:#13132a;border:1.5px solid #333366;border-radius:16px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;width:200px;box-shadow:0 16px 60px rgba(0,0,0,.7);" onclick="event.stopPropagation()">
     <div style="color:#F5C518;font-size:.78rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:2px;">✦ DICE CONTROL ✦</div>
     <div style="width:100%;background:#1a1a35;border-radius:10px;padding:7px 8px;border:1px solid #2a2a55;">
       <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
@@ -870,7 +786,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
       </div>
       <div id="sdp-force-grid" style="display:flex;flex-direction:column;gap:4px;width:100%;"></div>
     </div>
-    <button onclick="closeSmartDicePanel()" style="margin-top:0;padding:4px 20px;border-radius:8px;border:1.5px solid #333366;background:#1a1a35;color:#f0f0ff;font-size:.62rem;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;cursor:pointer;">CLOSE</button>
+    <button onclick="event.stopPropagation();closeSmartDicePanel();" style="margin-top:0;padding:10px 28px;border-radius:8px;border:1.5px solid #333366;background:#1a1a35;color:#f0f0ff;font-size:.62rem;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;cursor:pointer;position:relative;z-index:1;">CLOSE</button>
   </div>
 </div>
 
@@ -922,34 +838,25 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script>
-// ══════════════════════════════════════════════════════════════════
-// 🔊 SOUND ENGINE V3 — All sounds synced to DICE_DUR_MS=480ms
-// ══════════════════════════════════════════════════════════════════
-const SFX=(() => {
+<script>const SFX=(() => {
   let _muted=false;
   let _ctx=null;
-
   function getCtx(){
     if(!_ctx){try{_ctx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}
     if(_ctx&&_ctx.state==='suspended')_ctx.resume().catch(()=>{});
     return _ctx;
   }
-
   function synth(fn){
     if(_muted)return;
     const ctx=getCtx();if(!ctx)return;
     try{fn(ctx);}catch(e){}
   }
-
   function mkOut(ctx,vol=0.7){
     const g=ctx.createGain();g.gain.value=vol;
     const c=ctx.createDynamicsCompressor();
     c.threshold.value=-8;c.knee.value=8;c.ratio.value=4;c.attack.value=0.002;c.release.value=0.15;
     g.connect(c);c.connect(ctx.destination);return g;
   }
-
-  // FIX Lag1: reverb buffer cached by key — created once, reused forever
   const _rvBufCache={};
   function mkReverbBuf(ctx,secs=1.2,decay=2.5){
     const key=`${Math.round(secs*10)}_${Math.round(decay*10)}`;
@@ -965,7 +872,6 @@ const SFX=(() => {
     const g=ctx.createGain();g.gain.value=wet;
     src.connect(rv);rv.connect(g);g.connect(dest);
   }
-
   function tn(ctx,{type='sine',freq,freqEnd,start,dur,gain=0.7,attack=0.005,dest,vRate=0,vDepth=0}){
     const o=ctx.createOscillator(),g=ctx.createGain();
     o.type=type;o.frequency.setValueAtTime(freq,start);
@@ -981,18 +887,15 @@ const SFX=(() => {
     g.gain.exponentialRampToValueAtTime(0.0001,start+dur);
     o.connect(g);g.connect(dest);o.start(start);o.stop(start+dur+0.05);
   }
-
-  // FIX Lag3: pre-allocated 1-sec noise buffer — reused across all nz() calls
   let _noiseBuf=null;
   function getNoiseBuf(ctx){
     if(_noiseBuf)return _noiseBuf;
-    const len=ctx.sampleRate;// 1 second
+    const len=ctx.sampleRate;
     _noiseBuf=ctx.createBuffer(1,len,ctx.sampleRate);
     const d=_noiseBuf.getChannelData(0);
     for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
     return _noiseBuf;
   }
-
   function nz(ctx,{start,dur,dest,ft='bandpass',ff=2000,Q=1.5,gain=0.5,gainEnd,ffEnd}){
     const src=ctx.createBufferSource();src.buffer=getNoiseBuf(ctx);src.loop=true;
     const f=ctx.createBiquadFilter();f.type=ft;f.frequency.value=ff;f.Q.value=Q;
@@ -1003,9 +906,6 @@ const SFX=(() => {
     src.connect(f);f.connect(g);g.connect(dest);
     src.start(start);src.stop(start+dur+0.02);
   }
-
-  // FIX: dice roll noise buffer cached — allocated once per AudioContext, reused on every roll
-  // Previously created fresh on every roll causing GC pressure and first-roll audio stutter
   let _diceNoiseBuf=null;
   let _diceNoiseBufSr=0;
   function getDiceNoiseBuf(ctx,durSecs){
@@ -1016,13 +916,9 @@ const SFX=(() => {
     const d=_diceNoiseBuf.getChannelData(0);for(let i=0;i<needed;i++)d[i]=Math.random()*2-1;
     return _diceNoiseBuf;
   }
-
-  // SOUND_SYNC: diceRoll spans exactly DICE_DUR_MS=480ms
-  // hits spread dense-to-sparse matching the visual spin-to-settle
-  // final thud lands at t=DA exactly when dice animation ends
   function diceRoll(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.62);
-    const DA=DICE_DUR_MS/1000; // 0.48s — matches animation exactly
+    const DA=DICE_DUR_MS/1000;
     const rSrc=ctx.createBufferSource();rSrc.buffer=getDiceNoiseBuf(ctx,DA);
     const rF=ctx.createBiquadFilter();rF.type='bandpass';rF.frequency.value=260;rF.Q.value=0.8;
     const rG=ctx.createGain();
@@ -1032,7 +928,6 @@ const SFX=(() => {
     rG.gain.exponentialRampToValueAtTime(0.0001,t+DA);
     rSrc.connect(rF);rF.connect(rG);rG.connect(out);
     rSrc.start(t);rSrc.stop(t+DA+0.05);
-    // Hits: dense at start (fast spin) → sparse at end (slowing down)
     const hits=[[0,.9],[.055,.78],[.11,.67],[.175,.57],[.235,.48],[.295,.39],[.355,.31],[.405,.24],[.440,.18],[.465,.12]];
     hits.forEach(([dt,intensity])=>{
       const bf=210+Math.random()*120;
@@ -1041,19 +936,16 @@ const SFX=(() => {
       nz(ctx,{start:t+dt,dur:0.007,dest:out,ft:'highpass',ff:5000,Q:0.8,gain:0.82*intensity});
       nz(ctx,{start:t+dt,dur:0.04+intensity*0.03,dest:out,ft:'bandpass',ff:340+Math.random()*140,Q:3,gain:0.52*intensity});
     });
-    // Final thud at exactly DA — perfectly synced to dice landing
     const st=t+DA-0.01;
     tn(ctx,{type:'sine',freq:190,freqEnd:75,start:st,dur:0.13,gain:0.65,attack:0.001,dest:out});
     nz(ctx,{start:st,dur:0.09,dest:out,ft:'bandpass',ff:480,Q:2,gain:0.55});
   });}
-
   function tokenStep(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.75);
     nz(ctx,{start:t,dur:0.012,dest:out,ft:'highpass',ff:4500,Q:0.8,gain:0.9});
     tn(ctx,{type:'sine',freq:240,freqEnd:120,start:t,dur:0.07,gain:0.52,attack:0.001,dest:out});
     nz(ctx,{start:t,dur:0.05,dest:out,ft:'bandpass',ff:700,Q:3,gain:0.40});
   });}
-
   function tokenSpawn(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.6);
     addReverb(ctx,out,ctx.destination,0.35,1.4);
@@ -1063,7 +955,6 @@ const SFX=(() => {
     });
     nz(ctx,{start:t,dur:0.018,dest:out,ft:'highpass',ff:6000,Q:2,gain:0.5});
   });}
-
   function tokenCapture(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.65);
     addReverb(ctx,out,ctx.destination,0.28,0.7);
@@ -1075,10 +966,7 @@ const SFX=(() => {
     tn(ctx,{type:'sawtooth',freq:320,freqEnd:50,start:t,dur:0.42,gain:0.35,attack:0.002,dest:out});
     [0.09,0.17,0.24].forEach(dt=>nz(ctx,{start:t+dt,dur:0.022,dest:out,ft:'bandpass',ff:1800+Math.random()*2000,Q:4,gain:0.25}));
   });}
-
-  // tokenCapture is called inside sendHomeFast — sound fires with ring visual, perfectly synced
-  function reverseWalk(){} // intentionally silent — reverse slide is visual only
-
+  function reverseWalk(){}
   function safeStar(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.6);
     addReverb(ctx,out,ctx.destination,0.45,2.0);
@@ -1088,7 +976,6 @@ const SFX=(() => {
     });
     nz(ctx,{start:t,dur:0.018,dest:out,ft:'highpass',ff:6000,Q:2,gain:0.4});
   });}
-
   function homeStretch(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.7);
     addReverb(ctx,out,ctx.destination,0.5,2.2);
@@ -1098,7 +985,6 @@ const SFX=(() => {
     });
     [1047,1319,1568].forEach((f,i)=>tn(ctx,{type:'sine',freq:f,start:t+0.75,dur:1.1,gain:0.33-i*0.07,attack:0.02,dest:out,vRate:5,vDepth:4}));
   });}
-
   function tokenDone(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.65);
     addReverb(ctx,out,ctx.destination,0.45,2.0);
@@ -1110,7 +996,6 @@ const SFX=(() => {
     });
     nz(ctx,{start:t,dur:0.018,dest:out,ft:'highpass',ff:5000,Q:2,gain:0.45});
   });}
-
   function rolledSix(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.7);
     addReverb(ctx,out,ctx.destination,0.4,1.6);
@@ -1120,14 +1005,12 @@ const SFX=(() => {
     });
     [0,0.08,0.20,0.33].forEach(dt=>nz(ctx,{start:t+dt,dur:0.045,dest:out,ft:'highpass',ff:6500+Math.random()*3000,Q:3,gain:0.25}));
   });}
-
   function noMove(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.55);
     tn(ctx,{type:'square',freq:110,start:t,dur:0.17,gain:0.65,attack:0.003,dest:out});
     tn(ctx,{type:'square',freq:88,start:t+0.18,dur:0.17,gain:0.65,attack:0.003,dest:out});
     nz(ctx,{start:t,dur:0.07,dest:out,ft:'lowpass',ff:380,Q:1,gain:0.28});
   });}
-
   function threeSixesSkip(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.6);
     [0,0.14,0.28].forEach((d,i)=>{
@@ -1135,7 +1018,6 @@ const SFX=(() => {
       nz(ctx,{start:t+d,dur:0.07,dest:out,ft:'lowpass',ff:550,Q:1,gain:0.22});
     });
   });}
-
   function win(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.60);
     addReverb(ctx,out,ctx.destination,0.55,2.8);
@@ -1151,7 +1033,6 @@ const SFX=(() => {
       nz(ctx,{start:t+dt,dur:0.11,dest:out,ft:'bandpass',ff:290,Q:2,gain:0.35});
     });
   });}
-
   function lose(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.55);
     addReverb(ctx,out,ctx.destination,0.35,1.4);
@@ -1159,7 +1040,6 @@ const SFX=(() => {
     tn(ctx,{type:'sine',freq:315,freqEnd:115,start:t+0.1,dur:0.85,gain:0.32,attack:0.02,dest:out});
     nz(ctx,{start:t,dur:0.28,dest:out,ft:'lowpass',ff:480,Q:1,gain:0.18});
   });}
-
   function gameStart(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.7);
     addReverb(ctx,out,ctx.destination,0.4,1.4);
@@ -1169,39 +1049,30 @@ const SFX=(() => {
     });
     [523,659,784].forEach(f=>tn(ctx,{type:'sine',freq:f,start:t+0.65,dur:0.65,gain:0.28,attack:0.02,dest:out,vRate:4,vDepth:3}));
   });}
-
   function chatPing(){synth(ctx=>{
     const t=ctx.currentTime;const out=mkOut(ctx,0.38);
     tn(ctx,{type:'sine',freq:1320,freqEnd:1100,start:t,dur:0.09,gain:0.45,attack:0.003,dest:out});
     tn(ctx,{type:'sine',freq:1760,freqEnd:1320,start:t+0.055,dur:0.07,gain:0.28,attack:0.002,dest:out});
   });}
-
-  // SOUND_SYNC: tokenStep throttle = 65ms (tighter than JUMP_MS=110ms — every step sounds)
   let _lastStepTime=0;
   function tokenStepThrottled(){
     const now=Date.now();
     if(now-_lastStepTime<65)return;
     _lastStepTime=now;tokenStep();
   }
-
   function toggleMute(){
     _muted=!_muted;
     const btn=document.getElementById('btn-mute');
     if(btn){btn.textContent=_muted?'🔇':'🔊';btn.title=_muted?'Unmute':'Mute';btn.classList.toggle('muted',_muted);}
     return _muted;
   }
-
   return{
     diceRoll,tokenStep:tokenStepThrottled,tokenSpawn,tokenCapture,
     reverseWalk,safeStar,homeStretch,tokenDone,rolledSix,noMove,
     threeSixesSkip,win,lose,gameStart,chatPing,toggleMute,isMuted:()=>_muted,
   };
-})();
-</script>
-<script>
-document.addEventListener("DOMContentLoaded", function(){
-
-// ── Firebase Config ────────────────────────────────────────────────────────────
+})();</script>
+<script>document.addEventListener("DOMContentLoaded", function(){
 const firebaseConfig = {
   apiKey: "AIzaSyCCbwUS-MK4Ic8Tyd_FIBOQTwdfP0kZ_YM",
   authDomain: "ludo-king-ka-baap.firebaseapp.com",
@@ -1211,16 +1082,10 @@ const firebaseConfig = {
   messagingSenderId: "273830749078",
   appId: "1:273830749078:web:b197c8e42fc24b2b8a73b7"
 };
-
-// Firebase compat mode — uses firebase.initializeApp, firebase.database(), firebase.auth()
 const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
-
-// DEBUG: confirm script loaded
 console.log("✅ Script loaded OK — v29");
-
-// Anonymous Auth — required for Firebase security rules
 let _authReady = false;
 let _authResolvers = [];
 function waitForAuth(){
@@ -1247,14 +1112,10 @@ auth.signInAnonymously().catch((err) => {
   _setAuthReady();
   console.warn("⚠️ Auth failed (continuing):", err.code);
 });
-
-// ── Firebase Realtime Connection Monitor ──────────────────────────────────────
-// Shows "Connected"/"Disconnected" in status bar + auto-retry toast
 const _connRef = db.ref(".info/connected");
 let _wasConnected = false;
 _connRef.on("value", snap => {
   const connected = snap.val() === true;
-  // Update lobby dot
   const lobbyDot = document.getElementById("lobby-conn-dot");
   const lobbyTxt = document.getElementById("lobby-conn-text");
   if(connected){
@@ -1274,24 +1135,18 @@ _connRef.on("value", snap => {
     _wasConnected = false;
   }
 });
-
-// ── Performance Mode ──────────────────────────────────────────────────────────
-// Sirf local device pe — dusre player ko affect nahi karta, sync same rehta hai
 let PERF_MODE = (()=>{
   try{ return localStorage.getItem('ludo_perf')==='1'; }catch(e){ return false; }
 })();
-
 function applyPerfMode(){
   const btn = document.getElementById('btn-perf');
   if(!btn) return;
   if(PERF_MODE){
     btn.classList.add('on');
     btn.title = 'Performance Mode: ON (tap to turn off)';
-    // Inject/update perf stylesheet
     let s = document.getElementById('perf-style');
     if(!s){ s = document.createElement('style'); s.id = 'perf-style'; document.head.appendChild(s); }
     s.textContent = `
-      /* ⚡ PERF MODE: disable all cosmetic infinite animations */
       .tok-ring { animation: none !important; display: none !important; }
       @keyframes movablePulse { from{opacity:1;transform:scale(1);} to{opacity:1;transform:scale(1);} }
       .tok-trail { display: none !important; }
@@ -1300,18 +1155,12 @@ function applyPerfMode(){
       @keyframes tokSpawnBounce{ 0%,100%{ transform: var(--sp-base) scale(1) translateY(0); } }
       @keyframes crownFloat { 0%,100%{ transform: translateY(0); } }
       @keyframes trophyFloat { 0%,100%{ transform: translateY(0); } }
-
-      /* ⚡ PERF MODE: CSS transitions off */
       *, *::before, *::after { transition: none !important; }
-
-      /* ⚡ PERF MODE: board glow/pulse animations off */
       @keyframes starGlow { 0%,100%{ box-shadow: none; } }
       .star-land-glow { animation: none !important; box-shadow: none !important; }
       .star-svg { filter: none !important; }
       .tok-shadow { display: none !important; }
       @keyframes ringPop { from{opacity:0;} to{opacity:0;} }
-
-      /* ⚡ PERF MODE: box-shadow + drop-shadow off (GPU heavy) */
       .pbox-bg { box-shadow: none !important; }
       .ddot { box-shadow: none !important; }
       #board-wrap { box-shadow: none !important; }
@@ -1326,81 +1175,40 @@ function applyPerfMode(){
     if(s) s.textContent = '';
   }
 }
-
 function togglePerfMode(){
   PERF_MODE = !PERF_MODE;
   try{ localStorage.setItem('ludo_perf', PERF_MODE?'1':'0'); }catch(e){}
   applyPerfMode();
   showToast(PERF_MODE ? '⚡ Performance Mode ON' : '✨ Performance Mode OFF');
 }
-
-// ── Constants ──────────────────────────────────────────────────────────────────
 const PINK="#FF2D78", BLUE="#00AEEF", GREEN="#00C853", YELLOW="#FFD600";
 const DEF="#CFD8DC", BOARD_BG="#546E7A";
-
-// GLOBAL seat → physical board color (NEVER changes, tied to fixed board positions)
-// Seat 0 = top-left     home (PINK)
-// Seat 1 = top-right    home (YELLOW)
-// Seat 2 = bottom-right home (GREEN)
-// Seat 3 = bottom-left  home (BLUE)   ← Self always here = always Blue
 const SEAT_COLOR = [PINK, YELLOW, GREEN, BLUE];
-
-
-// CW_INDEX: clockwise order of seats on physical board (used by getPanelSeats)
-// seat0(TL)=1, seat1(TR)=2, seat2(BR)=3, seat3(BL)=0
 const CW_INDEX = [1, 2, 3, 0];
-
-// v22: NO color remapping at all.
-// Board physically rotates via CSS — colors are always real assigned colors.
-// Slot 0 (Host)     = 0°   rotation → Blue bot-left as-is
-// Slot 1 (Joiner 1) = 90°  rotation → Pink appears bot-left
-// Slot 2 (Joiner 2) = 180° rotation → Yellow appears bot-left
-// Slot 3 (Joiner 3) = 270° rotation → Green appears bot-left
-
-// MY_SLOT: position index in SEAT_LAYOUT_ACTIVE (0=Host,1=J1,2=J2,3=J3)
 let MY_SLOT = 0;
-
-// BOARD_DEG: CSS rotation degrees per SEAT so that each player's home corner
-// rotates to bottom-left position.
-// Seat 0 (PINK,   top-left)      → 90°  CW brings it to bottom-left
-// Seat 1 (YELLOW, top-right)     → 180° CW brings it to bottom-left
-// Seat 2 (GREEN,  bottom-right)  → 270° CW brings it to bottom-left
-// Seat 3 (BLUE,   bottom-left)   → 0°   already correct
 const SEAT_ROTATION = [90, 180, 270, 0];
-
 function getBoardRotation(){ return MY_SEAT !== null ? (SEAT_ROTATION[MY_SEAT] || 0) : 0; }
-
-// Always returns real physical color — no remapping ever
 function getDisplayColorForSeat(seat){ return SEAT_COLOR[seat] || "#888"; }
-
-// Apply CSS rotation to board-wrap + counter-rotate tokens
 function applyBoardRotation(){
   const deg = getBoardRotation();
   const bw = document.getElementById("board-wrap");
   if(bw) bw.style.transform = `rotate(${deg}deg)`;
   _tokenRotationDeg = -deg;
   _cacheValid = false;
-  // Counter-rotate home zone inner white boxes so circles stay upright
   document.querySelectorAll(".lc-inner").forEach(el=>{
     el.style.transform = `rotate(${-deg}deg)`;
   });
-  // Re-render tokens after CSS transition completes (0.6s)
   setTimeout(()=>{
     _cacheValid = false;
     renderTokens();
   }, 650);
 }
-
 let _tokenRotationDeg = 0;
-
-
 const STEP_MAIN_END = 51;
 const STEP_STRETCH_START = 52;
-const STEP_DONE = 57; // step 57 = finished/center (stretch cells = 52..56, 5 cells)
-
-// ── Game state ─────────────────────────────────────────────────────────────────
+const STEP_DONE = 57;
 let ROOM_CODE = null;
-let MY_SEAT = null; // 0..3
+let MY_SEAT = null;
 let MY_NAME = "Player";
 let IS_HOST = false;
 let NUM_PLAYERS = 4;
@@ -1409,16 +1217,12 @@ let gameRef = null;
 let playersRef = null;
 let _listeners = [];
 let _presenceRef = null;
-
-let PLAYERS = []; // {id, seat, color, label, active, human}
+let PLAYERS = [];
 let G = { turn:0, diceVal:null, rolled:false, waiting:false, over:false, sixes:0, tokens:[], placements:[] };
 let G_PAUSED = false;
 let _rolling = false;
-let _animating = false; // true during doMove animation — blocks syncGameState token overwrite
-let _gameLoaded = false; // ✅ FIX: true only after loadAndStartGame() fully completes
-                         // Blocks syncGameState from running while PLAYERS[] is still empty
-
-// ── UI Helpers ────────────────────────────────────────────────────────────────
+let _animating = false;
+let _gameLoaded = false;
 function showToast(msg, dur=2500){
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -1426,71 +1230,46 @@ function showToast(msg, dur=2500){
   clearTimeout(t._tid);
   t._tid = setTimeout(()=>t.classList.remove("show"), dur);
 }
-
-function setSyncStatus(status){ // 'ok' | 'warn' | 'err'
+function setSyncStatus(status){
   const dot = document.getElementById("sync-dot");
   const txt = document.getElementById("sync-text");
   dot.className = status;
   txt.textContent = status==="ok"?"Synced":status==="warn"?"Syncing...":"Disconnected";
 }
-
 function closeModals(){
   document.querySelectorAll(".modal-overlay").forEach(m=>m.classList.remove("show"));
 }
-
 window.showCreateRoom = function(){
   document.getElementById("modal-name").classList.add("show");
 };
 window.showJoinRoom = function(){
   document.getElementById("modal-join").classList.add("show");
 };
-
 window.confirmHostName = function(){
   const name = document.getElementById("host-name-input").value.trim() || "Host";
   MY_NAME = name;
   closeModals();
   document.getElementById("modal-create").classList.add("show");
 };
-
-// ── Generate room code ─────────────────────────────────────────────────────────
 function genCode(){
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
   for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
   return code;
 }
-
-// ── Seat layout rules ──────────────────────────────────────────────────────────
-// Physical board mapping (FIXED, never changes):
-//   Seat 0 = top-left     (PINK   home)
-//   Seat 1 = top-right    (YELLOW home)
-//   Seat 2 = bottom-right (GREEN  home)
-//   Seat 3 = bottom-left  (BLUE   home) ← Host always here → always sees Blue
-//
-// POV illusion: every player sees themselves at bottom-left as Blue
-// Board never rotates — only display colors remap locally per client
-//
-// SEAT_LAYOUTS: which real global seats are used per player count
-// Seat 3 = bottom-left (BLUE physical home) — host always takes this
-// Seats fill clockwise: 3(bot-left) → 0(top-left) → 1(top-right) → 2(bot-right)
 const SEAT_LAYOUTS = {
-  2: [3, 1],          // diagonal: bottom-left vs top-right
-  3: [3, 0, 1],       // triangle: bot-left, top-left, top-right
-  4: [3, 0, 1, 2]     // full 4P: all seats
+  2: [3, 1],
+  3: [3, 0, 1],
+  4: [3, 0, 1, 2]
 };
-
 window.createRoom = async function(numPlayers){
   closeModals();
   showToast("Connecting to server...");
   try { await waitForAuth(); } catch(e){ showToast("⚠️ Auth error — check internet"); return; }
   NUM_PLAYERS = numPlayers;
   IS_HOST = true;
-
-  // Rule 3: Host always takes the first seat in the layout
   const layout = SEAT_LAYOUTS[numPlayers] || [0,1,2,3];
-  MY_SEAT = layout[0]; // Host gets first seat in layout
-
-  // Generate unique room code
+  MY_SEAT = layout[0];
   let code, exists;
   try {
     do {
@@ -1503,13 +1282,10 @@ window.createRoom = async function(numPlayers){
     console.error("Firebase read error:", e);
     return;
   }
-
   ROOM_CODE = code;
   roomRef = db.ref(`rooms/${code}`);
   gameRef = db.ref(`rooms/${code}/game`);
   playersRef = db.ref(`rooms/${code}/players`);
-
-  // Create room in Firebase — Rule 10: store only real seat IDs
   try {
     await roomRef.set({
       numPlayers,
@@ -1526,64 +1302,47 @@ window.createRoom = async function(numPlayers){
     console.error("Firebase write error:", e.code, e.message);
     return;
   }
-
-  // Presence
   _presenceRef = db.ref(`rooms/${code}/players/${MY_SEAT}/online`);
   _presenceRef.onDisconnect().set(false);
-
   document.getElementById("display-room-code").textContent = code;
   document.getElementById("modal-waiting").classList.add("show");
   updatePlayerList({ [MY_SEAT]: { name: MY_NAME, seat: MY_SEAT, online: true } });
   listenRoom();
 };
-
-// ── Join Room ──────────────────────────────────────────────────────────────────
 window.joinRoom = async function(){
   await waitForAuth();
   showToast("Connecting...");
   const code = document.getElementById("join-code-input").value.trim().toUpperCase();
   const name = document.getElementById("join-name-input").value.trim() || "Player";
   if(code.length !== 6){ showToast("Enter a 6-digit code"); return; }
-
   MY_NAME = name;
   const rSnap = await db.ref(`rooms/${code}`).once('value');
   if(!rSnap.exists()){ showToast("Room not found"); return; }
   const rData = rSnap.val();
   if(rData.status === "playing"){ showToast("Game already started"); return; }
-
-  // Rule 3: Use the room's seat layout (set by host)
   const layout = rData.seatLayout || SEAT_LAYOUTS[rData.numPlayers] || [0,1,2,3];
   const taken = Object.keys(rData.players||{}).map(Number);
   const free = layout.filter(s=>!taken.includes(s));
   if(free.length === 0){ showToast("Room is full"); return; }
-
-  MY_SEAT = free[0]; // Rule 3: take next available seat in fixed layout order
+  MY_SEAT = free[0];
   IS_HOST = false;
   NUM_PLAYERS = rData.numPlayers;
   ROOM_CODE = code;
   roomRef = db.ref(`rooms/${code}`);
   gameRef = db.ref(`rooms/${code}/game`);
   playersRef = db.ref(`rooms/${code}/players`);
-
-  // Rule 10: Store only real seat ID, no display colors
   await db.ref(`rooms/${code}/players/${MY_SEAT}`).set({
     name: MY_NAME, seat: MY_SEAT, online: true, joinedAt: firebase.database.ServerValue.TIMESTAMP
   });
-
   _presenceRef = db.ref(`rooms/${code}/players/${MY_SEAT}/online`);
   _presenceRef.onDisconnect().set(false);
-
   closeModals();
   document.getElementById("display-room-code").textContent = code;
   document.getElementById("modal-waiting").classList.add("show");
   listenRoom();
 };
-
-// ── Listen to room changes ─────────────────────────────────────────────────────
-// Rule 11: listenRoom handles reconnect, spectator join, late join identically
-let _gameStarted = false; // guard against double-loading on reconnect
-let _pendingSync = null;  // ✅ FIX: queue latest Firebase update that arrived during loadAndStartGame
-
+let _gameStarted = false;
+let _pendingSync = null;
 function listenRoom(){
   const cb1 = snap=>{
     const players = snap.val() || {};
@@ -1600,8 +1359,6 @@ function listenRoom(){
   };
   playersRef.on('value', cb1);
   _listeners.push(()=>playersRef.off('value', cb1));
-
-  // Listen for game start — Rule 11: also handles reconnect to already-playing room
   const gameStatusRef = db.ref(`rooms/${ROOM_CODE}/status`);
   const cb2 = snap=>{
     if(snap.val() === "playing" && !_gameStarted){
@@ -1612,22 +1369,17 @@ function listenRoom(){
   };
   gameStatusRef.on('value', cb2);
   _listeners.push(()=>gameStatusRef.off('value', cb2));
-
-  // Listen for game state changes (Rule 11: reconnect gets latest state immediately)
   const cb3 = snap=>{
     if(!snap.exists()) return;
     const data = snap.val();
-    // Rule 11: If game is playing and we haven't loaded yet, load now
     if(data && !_gameStarted && data.tokens){
       _gameStarted = true;
       closeModals();
       _doLoadAndStartGame();
       return;
     }
-    // ✅ FIX: If loadAndStartGame() is still in progress (_gameStarted=true but _gameLoaded=false),
-    // queue this update so it doesn't get dropped. After loading completes, replay it.
     if(data && _gameStarted && !_gameLoaded){
-      _pendingSync = data; // keep only latest
+      _pendingSync = data;
       return;
     }
     if(data && G.over === false) syncGameState(data);
@@ -1635,7 +1387,6 @@ function listenRoom(){
   gameRef.on('value', cb3);
   _listeners.push(()=>gameRef.off('value', cb3));
 }
-
 function updatePlayerList(players){
   const container = document.getElementById("player-list");
   container.innerHTML = "";
@@ -1644,8 +1395,7 @@ function updatePlayerList(players){
     const div = document.createElement("div");
     div.className = "player-slot";
     const isSelf = p.seat === MY_SEAT;
-    // Rule 2: Self ALWAYS Blue in lobby. Rule 4: Others use POV color map.
-    const lobbyColor = getDisplayColorForSeat(p.seat); // actual assigned color in lobby
+    const lobbyColor = getDisplayColorForSeat(p.seat);
     const colorNames = {[BLUE]:"Blue",[PINK]:"Pink",[YELLOW]:"Yellow",[GREEN]:"Green"};
     const colorLabel = colorNames[lobbyColor] || "";
     div.innerHTML = `
@@ -1655,31 +1405,20 @@ function updatePlayerList(players){
     `;
     container.appendChild(div);
   });
-
   const status = document.getElementById("waiting-status");
   const needed = NUM_PLAYERS;
   const have = Object.keys(players).length;
   status.textContent = have >= needed ? "All players joined!" : `Waiting for ${needed-have} more player${needed-have>1?'s':''}`;
 }
-
-// Safe HTML escape for lobby (before escapeHtml is defined in chat section)
 function escapeHtmlLobby(str){
   return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
-
-// ── Host starts game ──────────────────────────────────────────────────────────
 window.hostStartGame = async function(){
   if(!IS_HOST) return;
-
-  // Get players snapshot
   const snap = await playersRef.once('value');
   const playersData = snap.val() || {};
   const seats = Object.keys(playersData).map(Number);
-
-  // Rule 3: Use the fixed seat layout
   const layout = SEAT_LAYOUTS[NUM_PLAYERS] || [0,1,2,3];
-
-  // Build initial game state — Rule 9: movement logic uses global seat IDs only
   const tokens = [];
   for(const seat of layout){
     if(!seats.includes(seat)) continue;
@@ -1687,12 +1426,9 @@ window.hostStartGame = async function(){
       tokens.push({ pid: seat, tid, step: 0 });
     }
   }
-
-  // Rule 3: First seat in layout goes first (deterministic, globally fixed)
   const firstTurn = layout.find(s => seats.includes(s)) ?? layout[0];
-
   const initGame = {
-    turn: firstTurn, // Rule 10: use real seat ID only
+    turn: firstTurn,
     diceVal: null,
     rolled: false,
     waiting: false,
@@ -1705,7 +1441,6 @@ window.hostStartGame = async function(){
     actionBy: null,
     timestamp: firebase.database.ServerValue.TIMESTAMP
   };
-
   try {
     await gameRef.set(initGame);
     await roomRef.update({ status: "playing" });
@@ -1714,24 +1449,13 @@ window.hostStartGame = async function(){
     showToast("❌ Failed to start game — check connection");
   }
 };
-
-// ── Load and start game ────────────────────────────────────────────────────────
-// Rule 11: Works identically on reconnect, spectator join, late join
-let SEAT_LAYOUT_ACTIVE = [0,1,2,3]; // global seat order for turn progression
-
+let SEAT_LAYOUT_ACTIVE = [0,1,2,3];
 async function loadAndStartGame(){
-  // Get all players
   const snap = await playersRef.once('value');
   const playersData = snap.val() || {};
-
-  // Get initial game state first to get seat layout
   const gSnap = await gameRef.once('value');
   const gData = gSnap.val() || {};
-
-  // Rule 3: Reconstruct global seat layout
   SEAT_LAYOUT_ACTIVE = gData.seatLayout || SEAT_LAYOUTS[NUM_PLAYERS] || [0,1,2,3];
-
-  // Build PLAYERS array — all 4 physical seats, only active ones used
   PLAYERS = [];
   for(let seat=0; seat<4; seat++){
     const p = playersData[seat];
@@ -1739,21 +1463,16 @@ async function loadAndStartGame(){
     PLAYERS.push({
       id: seat,
       seat,
-      color: SEAT_COLOR[seat], // Global physical color — NEVER changes (Rule 1,9)
+      color: SEAT_COLOR[seat],
       label: p ? p.name : `P${seat+1}`,
-      active: !!p && inLayout, // Only seats in layout are active
+      active: !!p && inLayout,
       human: true,
     });
   }
-
-  // Hide lobby, show game
   document.getElementById("lobby").style.display = "none";
   document.getElementById("game-wrap").style.display = "inline-flex";
   document.getElementById("top-bar").style.display = "flex";
-
   const _initTurn = gData.turn ?? SEAT_LAYOUT_ACTIVE[0];
-  // ✅ FIX: If it's MY turn when I load/join, never inherit rolled=true from Firebase.
-  // This prevents stale rolled=true from blocking the joiner's dice on their first turn.
   const _myTurnNow = (_initTurn === MY_SEAT);
   G = {
     turn: _initTurn,
@@ -1765,51 +1484,32 @@ async function loadAndStartGame(){
     tokens: gData.tokens || [],
     placements: gData.placements || []
   };
-
-  // ✅ FIX C: Force-clear ALL token element cache on every game load.
-  // Without this, reconnect after leaving causes stale color SVGs to persist
-  // because _tokEls DOM elements retain the old POV color from the previous session.
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   _cacheValid=false;
-
-  // v22: Set MY_SLOT = index of MY_SEAT in the active layout
   MY_SLOT = SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT);
   if(MY_SLOT < 0) MY_SLOT = 0;
-
   buildBoard();
   buildPlayers();
   _rbReset();
   smartDice.targetPids.clear();
-  // Reset AFK/bot state on every game load
   Object.keys(_timerExpireCount).forEach(k=>delete _timerExpireCount[k]);
   _botVotes = {};
   PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
-  applyBoardRotation(); // CSS rotate board based on MY_SEAT so self is always bottom-left
+  applyBoardRotation();
   setSyncStatus("ok");
   refreshUI();
   renderTokens();
   updateTurnBanner();
   const _myColorNames={[BLUE]:"Blue",[PINK]:"Pink",[YELLOW]:"Yellow",[GREEN]:"Green"};
   showToast("Game started! You are "+(_myColorNames[SEAT_COLOR[MY_SEAT]]||""));
-
-  saveSession(); // persist room+seat for rejoin on accidental refresh
+  saveSession();
   SFX.gameStart();
-  // ✅ Only NOW allow syncGameState to process Firebase updates.
   _gameLoaded = true;
 }
-
-// ── Sync game state from Firebase ─────────────────────────────────────────────
 function syncGameState(data){
-  // Block sync until loadAndStartGame() has fully populated PLAYERS[]
   if(!_gameLoaded){ console.warn("⏳ syncGameState: game not loaded yet, skipping update"); return; }
-  // Skip updates that WE pushed — actionBy is the sole guard against self-reapply.
   if(data.actionBy === MY_SEAT) return;
-  // Don't block opponent updates based on _animating — only local doMove uses _animating
-  // _animating flag is local to MY token moves and should not affect opponent sync
-
   setSyncStatus("ok");
-
-  // On reconnect, rebuild seat layout from server state
   if(data.seatLayout){
     const changed = JSON.stringify(data.seatLayout) !== JSON.stringify(SEAT_LAYOUT_ACTIVE);
     SEAT_LAYOUT_ACTIVE = data.seatLayout;
@@ -1821,27 +1521,18 @@ function syncGameState(data){
       applyBoardRotation();
     }
   }
-
   G.over       = data.over || false;
   G.sixes      = data.sixes   || 0;
   _applyPlacements(data.placements);
-
   if(G.over && !document.getElementById("win").classList.contains("show")){
     if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
     endGame();
     return;
   }
-
   const action   = data.action || data.lastAction;
   const dice     = data.dice   ?? data.diceVal;
   const rolledBy = data.actionBy;
-
-  // ── CASE 1: action="roll" ──────────────────────────────────────────────────
-  // Opponent rolled and is picking a token. We just animate their dice and wait.
-  // CRITICAL: Do NOT set G.waiting=true here — that is only for the local player.
-  // Do NOT highlight any tokens — only the roller picks.
   if(action === "roll"){
-    // Player acted — reset their AFK counter and hide voting overlay
     if(rolledBy !== null && rolledBy !== undefined){
       _timerExpireCount[rolledBy] = 0;
       _updateOfflineBadge(rolledBy, false);
@@ -1850,25 +1541,19 @@ function syncGameState(data){
     G.diceVal = dice;
     G.rolled  = true;
     G.sixes   = data.sixes || 0;
-    G.waiting = false; // NEVER set waiting for opponent's roll
-    // ✅ FIX: If somehow this roll update arrives but turn is already MY_SEAT,
-    // clear rolled so my dice doesn't stay blocked.
+    G.waiting = false;
     if(G.turn === MY_SEAT){ G.rolled = false; G.diceVal = null; }
     if(dice != null && rolledBy != null){
       SFX.diceRoll();
       animDice(rolledBy, dice, ()=>{
-        syncUI();   // ← updates dice inactive/active classes for ALL players
+        syncUI();
       });
     } else {
       syncUI();
     }
     return;
   }
-
-  // ── CASE 2: action="move" — ATOMIC ────────────────────────────────────────
-  // Full move: animate dice, then animate token movement step-by-step, then apply final state.
   if(action === "move"){
-    // Player acted — reset their AFK counter and hide voting overlay
     if(rolledBy !== null && rolledBy !== undefined){
       _timerExpireCount[rolledBy] = 0;
       _updateOfflineBadge(rolledBy, false);
@@ -1888,11 +1573,8 @@ function syncGameState(data){
       }
       syncUI();
     };
-
-    // Animate opponent's move with step-by-step token animation
     const runMoveAnim = async () => {
       const moves = data.moves || [];
-      // Find the primary move (type "open" or "move") for the moved token
       const primaryMove = moves.find(m => m.type === "open" || m.type === "move");
       if(primaryMove && dice != null){
         const { pid, tid, type, finalStep } = primaryMove;
@@ -1900,10 +1582,9 @@ function syncGameState(data){
         if(tok && !_animating){
           _animating = true;
           if(type === "open" && tok.step === 0){
-            // Spawn animation from home to entry cell
             SFX.tokenSpawn();
             const spawnKey = `${pid}-${tid}`;
-            const [spawnHr, spawnHc] = getHomeCornerBySeat(pid); // physical home corner
+            const [spawnHr, spawnHc] = getHomeCornerBySeat(pid);
             const spawnStart = baseCirclePx(spawnHr, spawnHc, tid);
             tok.step = 1;
             renderTokens(); await rafDelay(20);
@@ -1916,7 +1597,6 @@ function syncGameState(data){
               await jumpStep(_tokEls[spawnKey].wrap, _tokEls[spawnKey].shadow, spawnStart.x, spawnStart.y, entryXY.x, entryXY.y, BASE_W2, oppColor, cp2, oppLayer);
             }
           } else if(type === "move" && tok.step > 0){
-            // Step-by-step walk animation — animateMove fires homeStretch internally at right step
             const steps = finalStep - tok.step;
             if(steps > 0 && steps <= 6){
               await animateMove(tok, steps);
@@ -1925,14 +1605,12 @@ function syncGameState(data){
           }
         }
       }
-      // Handle any captured tokens (step=0 in final state that were not 0 before)
       if(data.tokens){
         const capturePromises=[];
         data.tokens.forEach(ft => {
           if(ft.step === 0){
             const lt = tokOf(ft.pid, ft.tid);
             if(lt && lt.step > 0){
-              // This token was captured — send home fast visually
               capturePromises.push(sendHomeFast(lt));
             }
           }
@@ -1942,7 +1620,6 @@ function syncGameState(data){
       await rafDelay(80);
       applyFinalState();
     };
-
     if(dice != null && rolledBy != null){
       SFX.diceRoll();
       animDice(rolledBy, dice, () => { runMoveAnim(); });
@@ -1951,8 +1628,6 @@ function syncGameState(data){
     }
     return;
   }
-
-  // ── CASE 3: action="skip" — noMove or 3sixes ──────────────────────────────
   if(action === "skip" || action === "noMove" || action === "skip3six"){
     G.turn       = data.turn;
     G.rolled     = false;
@@ -1972,36 +1647,29 @@ function syncGameState(data){
     }
     return;
   }
-
-  // ── Fallback: apply full state safely ─────────────────────────────────────
   G.turn    = data.turn;
-  G.rolled  = false; // Never inherit rolled state from Firebase on fallback
-  G.waiting = false; // Never inherit waiting state
+  G.rolled  = false;
+  G.waiting = false;
   G.diceVal = null;
   G.sixes   = data.sixes || 0;
   _applyPlacements(data.placements);
   if(data.tokens && !_animating) G.tokens = JSON.parse(JSON.stringify(data.tokens));
-  syncUI(); // updateTurnBanner restarts timer
+  syncUI();
 }
-
-// ── Push game state to Firebase ───────────────────────────────────────────────
-// Rule 10: NEVER sync display colors — only real seat IDs, token indexes, dice values
 let _pushDebounce = null;
 async function pushGameState(extra={}){
   setSyncStatus("warn");
-  // ✅ FIX E: Removed _lastTs = Date.now() — timestamp guard deleted (Fix D).
-  // actionBy === MY_SEAT in syncGameState() is the sole guard against self-reapply.
   const payload = {
-    turn: G.turn,           // Real global seat ID
+    turn: G.turn,
     diceVal: G.diceVal,
     rolled: G.rolled,
     waiting: G.waiting,
     over: G.over,
     sixes: G.sixes,
-    tokens: G.tokens,       // Real pid/tid/step — no display colors
+    tokens: G.tokens,
     placements: G.placements,
-    seatLayout: SEAT_LAYOUT_ACTIVE, // Rule 11: persist for reconnect recovery
-    actionBy: MY_SEAT,      // Real seat ID of who acted
+    seatLayout: SEAT_LAYOUT_ACTIVE,
+    actionBy: MY_SEAT,
     timestamp: firebase.database.ServerValue.TIMESTAMP,
     ...extra
   };
@@ -2013,9 +1681,6 @@ async function pushGameState(extra={}){
     showToast("Sync error - reconnecting...");
   }
 }
-
-// ── Leave room ────────────────────────────────────────────────────────────────
-// ── Session persistence for rejoin ────────────────────────────────────────────
 function saveSession(){
   if(!ROOM_CODE || MY_SEAT === null || !MY_NAME) return;
   try { sessionStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME})); } catch(e){}
@@ -2026,7 +1691,6 @@ function clearSession(){
 function loadSession(){
   try { const s=sessionStorage.getItem('ludo_session'); return s?JSON.parse(s):null; } catch(e){ return null; }
 }
-// Show rejoin card if session exists
 (function checkRejoin(){
   const s=loadSession();
   if(!s) return;
@@ -2059,15 +1723,10 @@ window.tryRejoin = async function(){
   showToast('🔄 Rejoining...');
   listenRoom();
 };
-
-// ── Host-leave detection ───────────────────────────────────────────────────────
-// When host goes offline mid-game, show reconnect overlay so joiners know what happened.
-// Host listens to self (no-op). Joiner listens to host's online flag.
 let _hostOfflineTimer = null;
 let _hostLeaveOverlay = null;
-
 function showHostLeaveOverlay(){
-  if(_hostLeaveOverlay) return; // already shown
+  if(_hostLeaveOverlay) return;
   const div = document.createElement("div");
   div.id = "host-leave-overlay";
   div.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);z-index:350;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;`;
@@ -2080,7 +1739,6 @@ function showHostLeaveOverlay(){
   `;
   document.body.appendChild(div);
   _hostLeaveOverlay = div;
-  // Animate the dots
   let dotFrame = 0;
   const dotStates = ["● ○ ○","● ● ○","● ● ●","○ ● ●","○ ○ ●","○ ○ ○"];
   const dotsEl = div.querySelector("#host-leave-dots");
@@ -2088,7 +1746,6 @@ function showHostLeaveOverlay(){
     if(dotsEl) dotsEl.textContent = dotStates[dotFrame++ % dotStates.length];
   }, 320);
 }
-
 function hideHostLeaveOverlay(){
   if(!_hostLeaveOverlay) return;
   clearInterval(_hostLeaveOverlay._dotTimer);
@@ -2098,11 +1755,8 @@ function hideHostLeaveOverlay(){
   _hostOfflineTimer = null;
   showToast("🟢 Host reconnected — game resuming!");
 }
-
 function listenHostOnline(){
-  // Only non-host players listen — host watching themselves is pointless
   if(IS_HOST || !ROOM_CODE) return;
-  // Find host seat from room data
   db.ref(`rooms/${ROOM_CODE}/host`).once('value').then(snap=>{
     const hostSeat = snap.val();
     if(hostSeat === null || hostSeat === undefined) return;
@@ -2110,14 +1764,12 @@ function listenHostOnline(){
     const cbHost = snapH=>{
       const online = snapH.val() === true;
       if(!online){
-        // Give host 8 seconds grace period before showing overlay (network blip)
         if(!_hostOfflineTimer && !_hostLeaveOverlay){
           _hostOfflineTimer = setTimeout(()=>{
             if(!G.over) showHostLeaveOverlay();
           }, 8000);
         }
       } else {
-        // Host came back online
         if(_hostOfflineTimer){ clearTimeout(_hostOfflineTimer); _hostOfflineTimer=null; }
         if(_hostLeaveOverlay) hideHostLeaveOverlay();
       }
@@ -2126,16 +1778,11 @@ function listenHostOnline(){
     _listeners.push(()=>hostOnlineRef.off('value', cbHost));
   }).catch(()=>{});
 }
-
-// ── leaveToLobby: go back to lobby BUT keep session for rejoin card ────────────
-// Used by: btn-back (in-game 🏠), pause Leave Game, host-leave-overlay Leave
-// Session is preserved so rejoin card appears on return to lobby
 window.leaveToLobby = async function(){
   clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
   stopTurnTimer();
   if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
-  // ✅ DO NOT clearSession() — keep it so rejoin card shows
   _listeners.forEach(fn=>fn());
   _listeners = [];
   _gameStarted = false;
@@ -2143,7 +1790,6 @@ window.leaveToLobby = async function(){
   if(ROOM_CODE && MY_SEAT !== null){
     await db.ref(`rooms/${ROOM_CODE}/players/${MY_SEAT}/online`).set(false);
   }
-  // Show rejoin card before wiping state
   const _savedCode = ROOM_CODE;
   const _savedName = MY_NAME;
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
@@ -2159,7 +1805,6 @@ window.leaveToLobby = async function(){
   _replyTarget = null;
   const chatPanel = document.getElementById("chat-panel");
   if(chatPanel) chatPanel.classList.remove("open");
-  // Show rejoin card (session still exists)
   const s = loadSession();
   const rc = document.getElementById("rejoin-card");
   const rsub = document.getElementById("rejoin-sub");
@@ -2167,15 +1812,12 @@ window.leaveToLobby = async function(){
   document.getElementById("lobby").style.display = "flex";
   closeModals();
 };
-
-// ── leaveRoom: permanently leave — clears session ─────────────────────────────
-// Used by: waiting room Leave Room, Play Again (win screen), host-leave forced exit
 window.leaveRoom = async function(){
   clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
   stopTurnTimer();
   if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
-  clearSession(); // intentional leave — wipe session
+  clearSession();
   _listeners.forEach(fn=>fn());
   _listeners = [];
   _gameStarted = false;
@@ -2200,31 +1842,20 @@ window.leaveRoom = async function(){
   document.getElementById("lobby").style.display = "flex";
   closeModals();
 };
-
 window.backToLobby = window.leaveToLobby;
-
-// ══════════════════════════════════════════════════════════════════════════════
-// ONLINE PRESENCE + BOT VOTE SYSTEM
-// ══════════════════════════════════════════════════════════════════════════════
-
-// Track how many times each seat's timer expired consecutively
-const _timerExpireCount = {}; // seat → number (resets when they act)
-const EXPIRE_COUNT_FOR_VOTE = 2; // 2 consecutive timeouts = show voting overlay
-
-// Called after loadAndStartGame() — listen to all player online flags + botVotes
+const _timerExpireCount = {};
+const EXPIRE_COUNT_FOR_VOTE = 2;
 function listenPlayerPresence(){
   if(!ROOM_CODE) return;
   SEAT_LAYOUT_ACTIVE.forEach(seat=>{
     if(!PLAYERS[seat]?.active) return;
     _timerExpireCount[seat] = 0;
-    // Still listen to online flag for reconnect detection (deactivate bot)
     const ref = db.ref(`rooms/${ROOM_CODE}/players/${seat}/online`);
     const cb = snap=>{
       const online = snap.val() === true;
       if(online && PLAYERS[seat]?.isBot){
         _deactivateBot(seat);
       }
-      // If player acts again (comes online), reset their expire count
       if(online){
         _timerExpireCount[seat] = 0;
         _updateOfflineBadge(seat, false);
@@ -2233,22 +1864,17 @@ function listenPlayerPresence(){
     ref.on('value', cb);
     _listeners.push(()=>ref.off('value', cb));
   });
-  // Listen to botVotes from Firebase
   listenBotVotes();
 }
-
 function _updateOfflineBadge(seat, isOffline){
   const badge = document.getElementById(`offbadge-${seat}`);
   if(!badge) return;
   if(seat === MY_SEAT){ badge.classList.remove('show'); return; }
   if(PLAYERS[seat]?.isBot){ badge.classList.remove('show'); return; }
   if(!isOffline){ badge.classList.remove('show'); return; }
-
   badge.classList.add('show');
   const myVote = (_botVotes[seat]||{})[MY_SEAT];
   badge.classList.toggle('voted', !!myVote);
-
-  // Build vote count text e.g. "Voted by Blue, Yellow"
   const txt = document.getElementById(`offtxt-${seat}`);
   if(txt){
     const votes = _botVotes[seat] || {};
@@ -2265,39 +1891,32 @@ function _updateOfflineBadge(seat, isOffline){
     }
   }
 }
-
-// ── BOT VOTES ─────────────────────────────────────────────────────────────────
-let _botVotes = {}; // { seat: { voterSeat: true } }
-
+let _botVotes = {};
 function listenBotVotes(){
   if(!ROOM_CODE) return;
   const ref = db.ref(`rooms/${ROOM_CODE}/botVotes`);
   const cb = snap=>{
     _botVotes = snap.val() || {};
-    // Check if any seat has majority votes to become bot
     SEAT_LAYOUT_ACTIVE.forEach(seat=>{
       if(!PLAYERS[seat]?.active) return;
-      if(PLAYERS[seat]?.isBot) return; // already bot
+      if(PLAYERS[seat]?.isBot) return;
       const votes = Object.keys(_botVotes[seat]||{}).length;
       const activePlayers = SEAT_LAYOUT_ACTIVE.filter(s=>PLAYERS[s]?.active&&s!==seat);
-      const needed = Math.ceil(activePlayers.length / 2); // majority of others
+      const needed = Math.ceil(activePlayers.length / 2);
       if(votes >= needed && votes > 0){
         _activateBot(seat);
       }
-      // Update badge vote state — show overlay only if they already hit 2 timeouts
       _updateOfflineBadge(seat, (_timerExpireCount[seat]||0) >= EXPIRE_COUNT_FOR_VOTE);
     });
   };
   ref.on('value', cb);
   _listeners.push(()=>ref.off('value', cb));
 }
-
 window.voteForBot = async function(seat){
   if(MY_SEAT === null || !ROOM_CODE) return;
   if(seat === MY_SEAT) return;
   if(PLAYERS[seat]?.isBot) return;
-  if((_botVotes[seat]||{})[MY_SEAT]) return; // already voted
-  // Optimistic UI update
+  if((_botVotes[seat]||{})[MY_SEAT]) return;
   const badge = document.getElementById(`offbadge-${seat}`);
   if(badge) badge.classList.add('voted');
   navigator.vibrate && navigator.vibrate(18);
@@ -2308,11 +1927,9 @@ window.voteForBot = async function(seat){
     if(badge) badge.classList.remove('voted');
   }
 };
-
 function _activateBot(seat){
   if(!PLAYERS[seat]) return;
   PLAYERS[seat].isBot = true;
-  // Update label to show [BOT]
   const lbl = document.getElementById(`lbl-${seat}`);
   if(lbl && !lbl.querySelector('.bot-label')){
     const badge = document.createElement('span');
@@ -2320,134 +1937,58 @@ function _activateBot(seat){
     badge.textContent = 'BOT';
     lbl.appendChild(badge);
   }
-  // Hide offline badge since bot is now active
   const offBadge = document.getElementById(`offbadge-${seat}`);
   if(offBadge){ offBadge.classList.remove('show'); offBadge.classList.remove('voted'); }
   showToast(`🤖 ${PLAYERS[seat].label} is now a bot`);
-  // If it's their turn right now and we're the host, trigger bot immediately
   if(IS_HOST && G.turn === seat && !G.rolled && !G.over){
     clearTimeout(_turnTimeoutTimer);
     setTimeout(()=>_doBotTurn(seat), 400);
   }
 }
-
-// When player comes back online, remove bot status
 function _deactivateBot(seat){
   if(!PLAYERS[seat]?.isBot) return;
   PLAYERS[seat].isBot = false;
-  // Remove bot label
   const lbl = document.getElementById(`lbl-${seat}`);
   if(lbl){ const bl = lbl.querySelector('.bot-label'); if(bl) bl.remove(); }
-  // Clear their votes from Firebase
   if(IS_HOST && ROOM_CODE){
     db.ref(`rooms/${ROOM_CODE}/botVotes/${seat}`).remove().catch(()=>{});
   }
   showToast(`✅ ${PLAYERS[seat].label} reconnected — bot removed`);
 }
-
-// ══════════════════════════════════════════════════════════════════════════════
-// GAME ENGINE (ported from offline version with online sync)
-// ══════════════════════════════════════════════════════════════════════════════
-
-// ── Physical board layout (NEVER changes) ────────────────────────────────────
-// Fixed physical positions — board never rotates, only POV colors remap locally
-// Seat 0 = top-left     home (PINK   physical color, row 0-5,  col 0-5)
-// Seat 1 = top-right    home (YELLOW physical color, row 0-5,  col 9-14)
-// Seat 2 = bottom-right home (GREEN  physical color, row 9-14, col 9-14)
-// Seat 3 = bottom-left  home (BLUE   physical color, row 9-14, col 0-5)
-
-// homeZones: physical layout
 const homeZones=[
-  {r0:0,c0:0, col:PINK,   seat:0},  // top-left
-  {r0:0,c0:9, col:YELLOW, seat:1},  // top-right
-  {r0:9,c0:9, col:GREEN,  seat:2},  // bottom-right
-  {r0:9,c0:0, col:BLUE,   seat:3},  // bottom-left
+  {r0:0,c0:0, col:PINK,   seat:0},
+  {r0:0,c0:9, col:YELLOW, seat:1},
+  {r0:9,c0:9, col:GREEN,  seat:2},
+  {r0:9,c0:0, col:BLUE,   seat:3},
 ];
-
-// inHomeSeat returns the global seat index of a home zone (used for POV display)
 const inHomeSeat=(r,c)=>{for(const h of homeZones)if(r>=h.r0&&r<h.r0+6&&c>=h.c0&&c<h.c0+6)return h.seat;return null;};
 const inCenter=(r,c)=>r>=6&&r<=8&&c>=6&&c<=8;
-
-// Stretch lanes — physical color → set of cell keys
-const BLUE_S  =new Set(["9-7","10-7","11-7","12-7","13-7","8-7"]);   // seat 3 bottom-left
-const PINK_S  =new Set(["7-1","7-2","7-3","7-4","7-5","7-6"]);       // seat 0 top-left
-const YELLOW_S=new Set(["1-7","2-7","3-7","4-7","5-7","6-7"]);       // seat 1 top-right
-const GREEN_S =new Set(["7-8","7-9","7-10","7-11","7-12","7-13"]);   // seat 2 bottom-right
-
-// getStretch returns the PHYSICAL color of a stretch lane cell
+const BLUE_S  =new Set(["9-7","10-7","11-7","12-7","13-7","8-7"]);
+const PINK_S  =new Set(["7-1","7-2","7-3","7-4","7-5","7-6"]);
+const YELLOW_S=new Set(["1-7","2-7","3-7","4-7","5-7","6-7"]);
+const GREEN_S =new Set(["7-8","7-9","7-10","7-11","7-12","7-13"]);
 const getStretch=(r,c)=>{const k=`${r}-${c}`;if(BLUE_S.has(k))return BLUE;if(PINK_S.has(k))return PINK;if(YELLOW_S.has(k))return YELLOW;if(GREEN_S.has(k))return GREEN;return null;};
-// getStretchSeat returns which global seat a stretch lane belongs to
 const STRETCH_SEAT={
-  "7-1":0,"7-2":0,"7-3":0,"7-4":0,"7-5":0,"7-6":0,    // PINK=seat0  (top-left)
-  "1-7":1,"2-7":1,"3-7":1,"4-7":1,"5-7":1,"6-7":1,    // YELLOW=seat1(top-right)
-  "7-8":2,"7-9":2,"7-10":2,"7-11":2,"7-12":2,"7-13":2, // GREEN=seat2 (bot-right)
-  "8-7":3,"9-7":3,"10-7":3,"11-7":3,"12-7":3,"13-7":3  // BLUE=seat3  (bot-left)
+  "7-1":0,"7-2":0,"7-3":0,"7-4":0,"7-5":0,"7-6":0,
+  "1-7":1,"2-7":1,"3-7":1,"4-7":1,"5-7":1,"6-7":1,
+  "7-8":2,"7-9":2,"7-10":2,"7-11":2,"7-12":2,"7-13":2,
+  "8-7":3,"9-7":3,"10-7":3,"11-7":3,"12-7":3,"13-7":3
 };
 const getStretchSeat=(r,c)=>STRETCH_SEAT[`${r}-${c}`]??null;
-
-// Entry arrows — physical layout (row-col : direction, seat)
-// seat0=top-left(PINK) enters from left  at row7,col0
-// seat1=top-right(YELLOW) enters from top at row0,col7
-// seat2=bot-right(GREEN) enters from right at row7,col14
-// seat3=bot-left(BLUE) enters from bottom at row14,col7
 const ARROWS={"7-0":{dir:"right",seat:0},"0-7":{dir:"down",seat:1},"7-14":{dir:"left",seat:2},"14-7":{dir:"up",seat:3}};
-
-// Safe grey stars (neutral)
 const GREY_STARS=new Set(["2-6","8-2","6-12","12-8"]);
-
-// Colored entry stars — which global seat each belongs to
-// seat0(PINK/top-left) star at [6,1], seat1(YELLOW/top-right) star at [1,8]
-// seat2(GREEN/bot-right) star at [8,13], seat3(BLUE/bot-left) star at [13,6]
 const COLOR_STARS=new Set(["6-1","1-8","8-13","13-6"]);
 const STAR_SEAT={"6-1":0,"1-8":1,"8-13":2,"13-6":3};
-
-// Corner path cells at bend of home lanes — seat index
-// seat0(PINK/top-left)=6-6, seat1(YELLOW/top-right)=6-8
-// seat2(GREEN/bot-right)=8-8, seat3(BLUE/bot-left)=8-6
 const CORNER_SEAT={"6-6":0,"6-8":1,"8-8":2,"8-6":3};
-
-// ── MASTER COLOR PIPELINE (Rule 4, Rule 5, Rule 9) ──────────────────────────
-// Single source of truth — ALL seat visuals driven from ONE displayColor.
-// Controls: corner square, home tokens, lane tint, moving token tint,
-//           panel tint, dice tint, entry arrow, entry star (Rule final)
 function renderSeatVisuals(seat){
   const color = getDisplayColorForSeat(seat);   const isActive = G.turn === seat && !G.over;
-
-  // ── PANEL: Token icon — only if color changed ─────────────────────────────
   const tokW = _domCache.ptok[seat] || document.getElementById(`ptok-${seat}`);
   if(tokW && tokW.dataset.rc !== color){ tokW.innerHTML = tokSVG(color, 36); tokW.dataset.rc = color; }
-
-  // ── PANEL: Border + glow ──────────────────────────────────────────────────
-  const bg = _domCache.pbg[seat] || document.getElementById(`pbg-${seat}`);
-  if(bg){
-    bg.style.borderColor = isActive ? color : `${color}44`;
-    bg.style.boxShadow = isActive
-      ? `0 0 0 2px ${color}, 0 4px 20px ${color}55`
-      : "0 4px 20px rgba(0,0,0,.6)";
-  }
-
-  // ── PANEL: Label color ────────────────────────────────────────────────────
   const lbl = _domCache.lbl[seat] || document.getElementById(`lbl-${seat}`);
   if(lbl) lbl.style.color = isActive ? color : "white";
-
-  // ── PANEL: Pbox outline ───────────────────────────────────────────────────
-  const box = _domCache.box[seat] || document.getElementById(`pbox-${seat}`);
-  if(box) box.style.outline = isActive ? `2px solid ${color}` : "none";
-
-  // ── DICE: Glow ────────────────────────────────────────────────────────────
-  const diceWrap = _domCache.pdw[seat] || document.getElementById(`pdw-${seat}`);
-  if(diceWrap){
-    diceWrap.style.borderColor = isActive ? color : "#1a1a28";
-    diceWrap.style.boxShadow = isActive
-      ? `inset 0 2px 4px rgba(255,255,255,.12), 0 0 0 2px ${color}88, 0 2px 8px rgba(0,0,0,.4)`
-      : `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
-  }
 }
-
-
 function lighten(hex,a=15){let c=hex.replace("#","");const r=Math.min(255,parseInt(c.slice(0,2),16)+a);const g=Math.min(255,parseInt(c.slice(2,4),16)+a);const b=Math.min(255,parseInt(c.slice(4,6),16)+a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
 function darken(hex,a=18){let c=hex.replace("#","");const r=Math.max(0,parseInt(c.slice(0,2),16)-a);const g=Math.max(0,parseInt(c.slice(2,4),16)-a);const b=Math.max(0,parseInt(c.slice(4,6),16)-a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
-
 const MAIN_PATH=[
   [6,1],[6,2],[6,3],[6,4],[6,5],
   [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],
@@ -2460,96 +2001,53 @@ const MAIN_PATH=[
   [8,5],[8,4],[8,3],[8,2],[8,1],[8,0],
   [7,0],[6,0]
 ];
-
 const PATH=new Set(MAIN_PATH.map(([r,c])=>`${r}-${c}`));
-
-// ══════════════════════════════════════════════════════════════════════════════
-// ✅ ROOT ARCHITECTURE FIX: ALL game logic tables are now SEAT-indexed (0,1,2,3)
-// NO color keys used anywhere in movement/spawn/path logic.
-// Color is ONLY used by the render layer (getDisplayColorForSeat) — never by logic.
-//
-// Physical seat layout (FIXED, board never rotates):
-//   seat 0 = top-left     (PINK   home)  → enters main path at [6,1]   (index 0)
-//   seat 1 = top-right    (YELLOW home)  → enters main path at [1,8]   (index 13)
-//   seat 2 = bottom-right (GREEN  home)  → enters main path at [8,13]  (index 26)
-//   seat 3 = bottom-left  (BLUE   home)  → enters main path at [13,6]  (index 39)
-// ══════════════════════════════════════════════════════════════════════════════
-
-// ENTRY_BY_SEAT: index into MAIN_PATH where each seat's token enters (step=1)
 const ENTRY_BY_SEAT = [
-  MAIN_PATH.findIndex(([r,c])=>r===6 &&c===1 ),  // seat 0 → index 0
-  MAIN_PATH.findIndex(([r,c])=>r===1 &&c===8 ),  // seat 1 → index 13
-  MAIN_PATH.findIndex(([r,c])=>r===8 &&c===13),  // seat 2 → index 26
-  MAIN_PATH.findIndex(([r,c])=>r===13&&c===6 ),  // seat 3 → index 39
+  MAIN_PATH.findIndex(([r,c])=>r===6 &&c===1 ),
+  MAIN_PATH.findIndex(([r,c])=>r===1 &&c===8 ),
+  MAIN_PATH.findIndex(([r,c])=>r===8 &&c===13),
+  MAIN_PATH.findIndex(([r,c])=>r===13&&c===6 ),
 ];
-
-// STRETCH_BY_SEAT: home stretch lane cells per seat (step 52..57)
 const STRETCH_BY_SEAT = [
-  [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],        // seat 0 (top-left)    → right along row 7
-  [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],        // seat 1 (top-right)   → down  along col 7
-  [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],    // seat 2 (bot-right)   → left  along row 7
-  [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],    // seat 3 (bot-left)    → up    along col 7
+  [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],
+  [[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],
+  [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],
+  [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],
 ];
-
-// HOME_CORNER_BY_SEAT: top-left [r,c] of each seat's 6×6 home zone
 const HOME_CORNER_BY_SEAT = [
-  [0,0],   // seat 0 top-left
-  [0,9],   // seat 1 top-right
-  [9,9],   // seat 2 bot-right
-  [9,0],   // seat 3 bot-left
+  [0,0],
+  [0,9],
+  [9,9],
+  [9,0],
 ];
-
-// CENTER_OFFSET_BY_SEAT: pixel offset inside center triangle for done tokens
-// Values used in renderTokens() — kept seat-indexed, no color lookup needed
 const CENTER_OFFSET_SEAT = [
-  {dx:-1, dy: 0, sign:-1},  // seat 0 (top-left physical)    → left
-  {dx: 0, dy: 1, sign: 1},  // seat 1 (top-right physical)   → bottom
-  {dx: 1, dy: 0, sign: 1},  // seat 2 (bot-right physical)   → right
-  {dx: 0, dy:-1, sign:-1},  // seat 3 (bot-left physical)    → top
+  {dx:-1, dy: 0, sign:-1},
+  {dx: 0, dy: 1, sign: 1},
+  {dx: 1, dy: 0, sign: 1},
+  {dx: 0, dy:-1, sign:-1},
 ];
-
-// Build SAFE set — entry cells are always safe (no capture at spawn)
 const SAFE=new Set([...GREY_STARS,...COLOR_STARS]);
 ENTRY_BY_SEAT.forEach(idx=>{ const [r,c]=MAIN_PATH[idx]; SAFE.add(`${r}-${c}`); });
-
 const STRETCH_CELL_SET=new Set(
   STRETCH_BY_SEAT.flatMap(arr=>arr.map(([r,c])=>`${r}-${c}`))
 );
-
-
-// ── PURE SEAT-BASED API (used by ALL game logic) ──────────────────────────────
-
-// getHomeCornerBySeat: returns [r,c] top-left of seat's home zone — pure seat lookup
-// Used by GAME LOGIC only (getCell, movement, capture)
 function getHomeCornerBySeat(seat){
   return HOME_CORNER_BY_SEAT[seat] ?? [9,0];
 }
-
-// getRenderCell: THE render-layer path lookup.
-// Converts globalPid + globalStep → [r,c] on the fixed board grid,
-// applying local-step normalization so all tokens appear in MY path frame.
-// step 0       → null (in home base)
-// step 1..51   → main path, normalized to MY_SEAT's perspective
-// step 52..57  → seat's own stretch lane (seat-private, no normalization)
-// step >= 58   → null (finished / center)
 function getRenderCell(pid, globalStep){
-  // v22: NO local step normalization — CSS rotation handles POV.
-  // Tokens sit at their real physical board cells always.
   if(globalStep <= 0 || globalStep >= STEP_DONE) return null;
   if(globalStep >= STEP_STRETCH_START){
     const si = globalStep - STEP_STRETCH_START;
     const lane = STRETCH_BY_SEAT[pid];
     return (lane && si >= 0 && si < lane.length) ? lane[si] : null;
   }
-  // Physical path: entry at ENTRY_BY_SEAT[pid], no viewer normalization
   const entry = ENTRY_BY_SEAT[pid];
   const idx = (entry + globalStep - 1) % MAIN_PATH.length;
   return MAIN_PATH[idx];
 }
-
 function getCell(pid,step){
   if(step<=0||step>=STEP_DONE) return null;
-  const seat=pid; // pid IS the seat — explicit alias for clarity
+  const seat=pid;
   const entry=ENTRY_BY_SEAT[seat];
   if(entry===undefined||entry<0) return null;
   if(step<=STEP_MAIN_END){
@@ -2560,10 +2058,8 @@ function getCell(pid,step){
   const lane=STRETCH_BY_SEAT[seat];
   return(lane&&si>=0&&si<lane.length)?lane[si]:null;
 }
-
 const tokOf=(pid,tid)=>G.tokens.find(t=>t.pid===pid&&t.tid===tid);
 const toksOf=(pid)=>G.tokens.filter(t=>t.pid===pid);
-
 function movable(pid,dv){
   return toksOf(pid).filter(t=>{
     if(t.step===0) return dv===6;
@@ -2575,14 +2071,6 @@ function movable(pid,dv){
     }
     const targetStep=t.step+dv;
     if(targetStep>STEP_DONE) return false;
-
-    // ── Block rules ──
-    //  - Safe squares: koi bhi block nahi lagta (na landing, na crossing)
-    //  - Jis player ke tokens hain us cell pe, woh khud hamesha land + jump kar sakta hai
-    //  - Normal block (same color ke 2 tokens ek cell pe):
-    //      Opponent land nahi kar sakta, lekin jump (cross) kar sakta hai
-    //  - Super block (same color ke 3+ tokens ek cell pe):
-    //      Opponent na land kar sakta, na jump (cross) kar sakta — completely blocked
     for(let s=t.step+1;s<=targetStep&&s<=STEP_MAIN_END;s++){
       const rc=getCell(pid,s);
       if(!rc) continue;
@@ -2600,55 +2088,35 @@ function movable(pid,dv){
         oppColorCounts[col]=(oppColorCounts[col]||0)+1;
       });
       const maxOppStack=Math.max(0,...Object.values(oppColorCounts));
-      if(maxOppStack>=3) return false; // super block — fully blocked
-      if(maxOppStack>=2&&isDestination) return false; // normal block — can't land
+      if(maxOppStack>=3) return false;
+      if(maxOppStack>=2&&isDestination) return false;
     }
     return true;
   });
 }
-
 function tokRC(tok){
   if(tok.step<=0||tok.step>=STEP_DONE) return null;
   return getCell(tok.pid,tok.step)||null;
 }
-
-// ── Board build ───────────────────────────────────────────────────────────────
-// Rule 1: Board grid is FIXED — never rotates, never transforms.
-// Colors: always physical SEAT_COLOR — CSS rotation handles POV.
-// buildBoard() is called after MY_SEAT is known so colors are correct immediately.
 function buildBoard(){
   const el=document.getElementById("board");
   el.innerHTML="";
   const arDir={up:"M9,22L9,11L4,11L12,1L20,11L15,11L15,22Z",down:"M9,2L9,13L4,13L12,23L20,13L15,13L15,2Z",right:"M2,9L13,9L13,4L23,12L13,20L13,15L2,15Z",left:"M22,9L11,9L11,4L1,12L11,20L11,15L22,15Z"};
-
-  // ── HOME ZONES: render each seat at its VISUAL slot corner, not physical corner ──
-  // Pre-pass renders ALL 4 home zones (including inactive seats in 2P/3P).
-  // Inactive seats render greyed-out to show empty quadrant.
-  // Each globalSeat rendered exactly once at its POV-correct visual corner.
   const _renderedHomeSeats = new Set();
   for(const hz of homeZones){
     const homeSeat = hz.seat;
     if(_renderedHomeSeats.has(homeSeat)) continue;
     _renderedHomeSeats.add(homeSeat);
-
-    // Active = seat is in the current game layout AND has a player
     const isActive = PLAYERS[homeSeat]?.active === true;
-
-    // Active seat: POV-mapped display color. Inactive seat: grey (empty quadrant)
     const dc = isActive ? getDisplayColorForSeat(homeSeat) : "#546E7A";
     const circleColor = isActive ? lighten(dc,10) : "#4a5f6a";
     const circleBorder = isActive ? darken(dc,20) : "#3a4f5a";
-
-    // v22: use physical corner always — CSS rotation handles POV
     const [vr, vc] = [hz.r0, hz.c0];
     const br=(vr===0&&vc===0)?"10px 0 0 0":(vr===0&&vc===9)?"0 10px 0 0":(vr===9&&vc===0)?"0 0 0 10px":"0 0 10px 0";
-
     const d=document.createElement("div");
     d.className="lc";
     d.style.cssText=`grid-column:${vc+1}/span 6;grid-row:${vr+1}/span 6;`;
     d.dataset.homeSeat = homeSeat;
-
-    // data-slot uses VISUAL corner coords — must match what baseCirclePx() looks up
     d.innerHTML=`<div style="width:100%;height:100%;background:${dc};border-radius:${br};display:flex;align-items:center;justify-content:center;${isActive?'':'opacity:0.45;'}">
       <div class="lc-inner" style="width:74%;height:74%;background:white;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:10%;box-sizing:border-box;">
         <div data-slot="${vr},${vc},0" style="border-radius:50%;background:${circleColor};border:2px solid ${circleBorder};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
@@ -2659,30 +2127,14 @@ function buildBoard(){
     </div>`;
     el.appendChild(d);
   }
-
   for(let r=0;r<15;r++){
     for(let c=0;c<15;c++){
       const k=`${r}-${c}`;
-
-      // ── HOME ZONES — skip all cells that belong to any home zone ────────────
-      // Home zones are now rendered above as whole 6×6 blocks via CSS grid-span.
-      // Individual cells within those zones must be skipped here.
       if(inHomeSeat(r,c) !== null) continue;
-
-      // ── CENTER TRIANGLE ─────────────────────────────────────────────────────
       if(inCenter(r,c)){
         if(r===6&&c===6){
           const d=document.createElement("div");
           d.style.cssText=`grid-column:7/span 3;grid-row:7/span 3;overflow:hidden;`;
-          // Center triangle quadrants match the visual slot positions:
-          // top=slot2(top-right), right=slot3(bot-right), bot=slot0(self/bot-left), left=slot1(top-left)
-          // Each client sees their own color in the bottom triangle
-          // We map physical positions to visual slots:
-          // Physical top(seat1)   → getDisplayColorForSeat(1)
-          // Physical right(seat2) → getDisplayColorForSeat(2)
-          // Physical bot(seat3)   → getDisplayColorForSeat(3)
-          // Physical left(seat0)  → getDisplayColorForSeat(0)
-          // getDisplayColorForSeat already applies visualSlot mapping per client
           const cTop   = getDisplayColorForSeat(1);
           const cRight = getDisplayColorForSeat(2);
           const cBot   = getDisplayColorForSeat(3);
@@ -2697,13 +2149,10 @@ function buildBoard(){
         }
         continue;
       }
-
       const d=document.createElement("div");
       d.className="lc";
       d.style.cssText=`grid-column:${c+1};grid-row:${r+1};`;
       d.dataset.r=r;d.dataset.c=c;
-
-      // ── COLORED ENTRY STARS ─────────────────────────────────────────────────
       if(COLOR_STARS.has(k)){
         const seat = STAR_SEAT[k];
         const dc = getDisplayColorForSeat(seat);        d.style.background=lighten(dc);
@@ -2712,126 +2161,75 @@ function buildBoard(){
           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
             stroke="${darken(dc)}" stroke-width="1.8" fill="${darken(dc)}" stroke-linejoin="round"/>
         </svg>`;
-
-      // ── GREY SAFE STARS (neutral) ───────────────────────────────────────────
       } else if(GREY_STARS.has(k)){
         d.style.background=DEF;
         d.innerHTML=`<svg viewBox="0 0 24 24" class="star-svg" fill="none">
           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
             stroke="white" stroke-width="1.8" fill="transparent" stroke-linejoin="round"/>
         </svg>`;
-
-      // ── CORNER CELLS (bend of home lanes into main path) ────────────────────
       } else if(CORNER_SEAT[k] !== undefined){
         const dc = getDisplayColorForSeat(CORNER_SEAT[k]);        d.style.background=dc;
         d.dataset.cornerSeat = CORNER_SEAT[k];
-
-      // ── HOME LANE STRIPS (colored stretch lanes) ────────────────────────────
       } else {
         const stretchSeat = getStretchSeat(r,c);
         if(stretchSeat !== null){
           const dc = getDisplayColorForSeat(stretchSeat);          d.style.background=dc;
           d.dataset.laneSeat = stretchSeat;
-
-        // ── ENTRY ARROWS (into home lane) ───────────────────────────────────
         } else if(ARROWS[k]){
           d.style.background=DEF;
           const arSeat = ARROWS[k].seat;
           const dc = getDisplayColorForSeat(arSeat);          d.dataset.arrowSeat = arSeat;
           d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;"><path d="${arDir[ARROWS[k].dir]}" fill="${dc}"/></svg>`;
-
-        // ── PLAIN PATH CELLS ─────────────────────────────────────────────────
         } else if(PATH.has(k)){
           d.style.background=DEF;
-
-        // ── BOARD BACKGROUND ─────────────────────────────────────────────────
         } else {
           d.style.background=BOARD_BG;
         }
       }
       el.appendChild(d);
-      // Register in O(1) cell map for fast lookup (flashStarCell etc.)
       _boardCellMap[k] = d;
     }
   }
 }
-
-const _boardCellMap = {}; // "r-c" → DOM element
-
-// ── Build player panels ────────────────────────────────────────────────────────
-// Rule 6: 4 fixed panel positions. Self always at bottom-left.
-// POV illusion: panel colors remapped locally, board never rotates.
-//
-// Panel slot → global seat mapping (from MY perspective):
-//   [0] top-left    = opponent opposite-prev
-//   [1] top-right   = opponent next
-//   [2] bottom-left = ME (always)
-//   [3] bottom-right= opponent prev
-//
-// Rule 7: 2P → only top-right + bottom-left occupied (diagonal)
-// Rule 8: 3P → top-left empty or filled based on triangle layout
-
+const _boardCellMap = {};
 function getPanelSeats(){
   const me = MY_SEAT !== null ? MY_SEAT : SEAT_LAYOUT_ACTIVE[0];
   const active = SEAT_LAYOUT_ACTIVE.filter(s => PLAYERS[s]?.active);
-
-  // Sort active seats by CW_INDEX so we can find relative positions correctly.
-  // Then find my position in that sorted order and assign panel slots:
-  //   botLeft (slot 2) = ME always
-  //   topLeft (slot 0) = 1st opponent CW after me
-  //   topRight(slot 1) = 2nd opponent CW after me
-  //   botRight(slot 3) = 3rd opponent CW after me
-  // Missing slots stay -1 (placeholder).
-
   const sorted = [...active].sort((a,b) => CW_INDEX[a] - CW_INDEX[b]);
   const myIdx  = sorted.indexOf(me);
-
-  function cwNext(n){ // nth seat clockwise after me in active list
+  function cwNext(n){
     if(n >= sorted.length) return -1;
     return sorted[(myIdx + n) % sorted.length];
   }
-
-  const cw1 = cwNext(1); // 1 step CW = top-left
-  const cw2 = cwNext(2); // 2 steps CW = top-right
-  const cw3 = cwNext(3); // 3 steps CW = bot-right
-
-  // 2P: only 1 opponent → use cw1 (first CW seat from me) so panel matches board position
-  // e.g. if opponent is physically at top-right (1 CW step), they go to top-right panel slot
+  const cw1 = cwNext(1);
+  const cw2 = cwNext(2);
+  const cw3 = cwNext(3);
   if(active.length === 2){
     return [-1, cw1, me, -1];
   }
-
-  // 3P: 2 opponents → top-left + top-right, bot-right empty
   if(active.length === 3){
     return [cw1, cw2, me, -1];
   }
-
-  // 4P: all slots filled
   return [cw1, cw2, me, cw3];
 }
-
 function buildPlayers(){
   const top=document.getElementById("top-row");
   const bot=document.getElementById("bot-row");
   top.innerHTML="";bot.innerHTML="";
-
   const seats = getPanelSeats();
-  // seats[0]=topLeft, seats[1]=topRight, seats[2]=botLeft(me), seats[3]=botRight
-
-  // Top row: left panel, pause btn, right panel
   const s0 = seats[0]; const s1 = seats[1];
   if(s0 >= 0 && PLAYERS[s0]?.active) top.appendChild(makePanel(s0,"left","top"));
   else top.appendChild(makePlaceholder("left"));
-
-  if(!document.getElementById("btn-pause")){
-    const pauseBtn=document.createElement("button");
-    pauseBtn.id="btn-pause";
-    pauseBtn.title="Pause";
-    pauseBtn.innerHTML="&#10074;&#10074;";
-    pauseBtn.addEventListener("click",()=>window.togglePause());
-    document.getElementById("top-bar-left").appendChild(pauseBtn);
+  if(!document.getElementById("btn-home")){
+    const homeBtn=document.createElement("button");
+    homeBtn.id="btn-home";
+    homeBtn.title="Home";
+    homeBtn.innerHTML="🏠";
+    homeBtn.addEventListener("click",()=>{
+      document.getElementById("modal-home-confirm").classList.add("show");
+    });
+    document.getElementById("top-bar-left").appendChild(homeBtn);
   }
-
   if(!document.getElementById("btn-chat-toggle")){
     const chatBtn=document.createElement("button");
     chatBtn.id="btn-chat-toggle";
@@ -2841,19 +2239,13 @@ function buildPlayers(){
     document.getElementById("top-bar-right").appendChild(chatBtn);
     addChatBadgeToButton();
   }
-
   if(s1 >= 0 && PLAYERS[s1]?.active) top.appendChild(makePanel(s1,"right","top"));
   else top.appendChild(makePlaceholder("right"));
-
-  // Bot row: left panel (me), right panel
   const s2 = seats[2]; const s3 = seats[3];
   if(s2 >= 0 && PLAYERS[s2]?.active) bot.appendChild(makePanel(s2,"left","bot",true));
   else bot.appendChild(makePlaceholder("left"));
-
   if(s3 >= 0 && PLAYERS[s3]?.active) bot.appendChild(makePanel(s3,"right","bot"));
   else bot.appendChild(makePlaceholder("right"));
-
-  // Populate DOM cache after all panels are in the DOM
   PLAYERS.forEach(p=>{
     if(!p.active) return;
     const pid=p.id;
@@ -2867,89 +2259,69 @@ function buildPlayers(){
     _domCache.tbar[pid] = document.getElementById(`tbar-${pid}`);
   });
 }
-
 function makePlaceholder(side){
   const col=document.createElement("div");
   col.className=`pcol ${side}`;
   col.style.cssText="width:145px;height:78px;visibility:hidden;";
   return col;
 }
-
 function makePanel(pid,side,pos,isMe=false){
   const p=PLAYERS[pid];
   if(!p) return makePlaceholder(side);
   const col=document.createElement("div");
   col.className=`pcol ${side}`;
-  col.dataset.pid=pid; // Rule 11: for reconnect recolor
-  // Mark row position so bubble arrow points correct direction
+  col.dataset.pid=pid;
   col.classList.add(pos==="top" ? "top-bubble" : "bot-bubble");
-
-  // ── CHAT BUBBLE (shows above/below pcol when player sends a message) ──
   const bubble=document.createElement("div");
   bubble.className="player-chat-bubble";
   bubble.id=`chatbubble-${pid}`;
   col.appendChild(bubble);
-
   const lbl=document.createElement("span");
   lbl.className="plabel";
   lbl.id=`lbl-${pid}`;
   lbl.textContent=p.label+(isMe?" (You)":"");
-
   const box=document.createElement("div");
   box.className="pbox";
   box.id=`pbox-${pid}`;
   box.style.flexDirection=side==="left"?"row":"row-reverse";
   box.style.position="relative";
-
   if(isMe){
     const badge=document.createElement("div");
     badge.className="you-badge";
     badge.textContent="YOU";
     box.appendChild(badge);
   }
-
   const bg=document.createElement("div");
   bg.className="pbox-bg";
   bg.id=`pbg-${pid}`;
   const shine=document.createElement("div");
   shine.className="pbox-shine";
   bg.appendChild(shine);
-
-    const displayColor = getDisplayColorForSeat(pid); 
-    bg.style.borderColor = `${displayColor}44`; // subtle default tint
-
+    const displayColor = getDisplayColorForSeat(pid);
+    bg.style.borderColor = `${displayColor}44`;
   const tokW=document.createElement("div");
   tokW.className="pbox-tok";
   tokW.id=`ptok-${pid}`;   tokW.style[side==="left"?"marginLeft":"marginRight"]="4px";
   tokW.innerHTML=tokSVG(displayColor, 36);
-
+  tokW.addEventListener("click", ()=>_onSecretTap(pid));
   const diceW=document.createElement("div");
   diceW.className="pbox-dice";
   diceW.id=`pdw-${pid}`;
   diceW.style[side==="left"?"marginRight":"marginLeft"]="6px";
-
   const d3d=makeDice(pid);
   diceW.appendChild(d3d);
-
-  // ── TIMER ARC SVG ─────────────────────────────────────────────────────────
-  // Rounded-rect border that drains over 60s as the active turn light
   const timerSvg = document.createElementNS("http://www.w3.org/2000/svg","svg");
   timerSvg.setAttribute("class","turn-timer-svg");
   timerSvg.setAttribute("id",`tsvg-${pid}`);
   timerSvg.setAttribute("viewBox","0 0 153 84");
   timerSvg.setAttribute("preserveAspectRatio","none");
-  // Perimeter of 145x76 rounded-rect: use a rect path stroke
-  const PERIM = 2*(145+76) - 2*(12*2) + 2*Math.PI*12; // ≈ 419
+  const PERIM = 2*(145+76) - 2*(12*2) + 2*Math.PI*12;
   const P = Math.round(PERIM);
   timerSvg.innerHTML=`
-    <rect class="turn-timer-track" x="2" y="2" width="149" height="80" rx="11" ry="11"/>
     <rect class="turn-timer-bar" id="tbar-${pid}" x="2" y="2" width="149" height="80" rx="11" ry="11"
       style="--tda:${P};--tdo:0;--timer-color:${displayColor};"/>`;
   box.appendChild(timerSvg);
-  // ✅ BUG2 FIX: cache tbar immediately — buildPlayers() end-cache runs after startTurnTimer could fire
   _domCache.tbar[pid] = timerSvg.querySelector(`#tbar-${pid}`);
-
-  // ── OFFLINE BADGE ──────────────────────────────────────────────────────────
   const offBadge = document.createElement("div");
   offBadge.className = "pbox-offline-overlay";
   offBadge.id = `offbadge-${pid}`;
@@ -2959,17 +2331,13 @@ function makePanel(pid,side,pos,isMe=false){
     <div class="pbox-vote-count" id="offtxt-${pid}"></div>`;
   offBadge.addEventListener("click", ()=>window.voteForBot(pid));
   box.appendChild(offBadge);
-
   box.appendChild(bg);
   box.appendChild(tokW);
   box.appendChild(diceW);
-
   if(pos==="top"){col.appendChild(lbl);col.appendChild(box);}
   else{col.appendChild(box);col.appendChild(lbl);}
   return col;
 }
-
-// ── Rank stamp on player box ─────────────────────────────────────────────────
 const RANK_CROWNS=["👑","🥈","🥉",""];
 const RANK_POS=["1st","2nd","3rd","Loser"];
 function stampRank(pid){
@@ -2977,7 +2345,7 @@ function stampRank(pid){
   if(!box)return;
   const old=box.querySelector(".pbox-rank");
   if(old)old.remove();
-  const rank=G.placements.indexOf(pid); // 0-based
+  const rank=G.placements.indexOf(pid);
   if(rank<0)return;
   const el=document.createElement("div");
   el.className="pbox-rank";
@@ -2985,8 +2353,6 @@ function stampRank(pid){
   el.innerHTML=`<span class="pbox-rank-crown">${RANK_CROWNS[rank]||""}</span><span class="pbox-rank-pos" style="${rank===3?'font-size:1.3rem;':''}">${RANK_POS[rank]||""}</span>`;
   box.appendChild(el);
 }
-
-// Apply new placements array and stamp any newly-ranked players
 function _applyPlacements(newPlacements){
   const prev = G.placements || [];
   G.placements = newPlacements || [];
@@ -2994,20 +2360,13 @@ function _applyPlacements(newPlacements){
     if(!prev.includes(pid)) stampRank(pid);
   });
 }
-
-// ── Dice 3D ───────────────────────────────────────────────────────────────────
 const DOTS={1:["cc"],2:["tl","br"],3:["tl","cc","br"],4:["tl","tr","bl","br"],5:["tl","tr","cc","bl","br"],6:["tl","tr","ml","mr","bl","br"]};
 const DOT_POS={tl:{top:"13%",left:"13%"},tr:{top:"13%",right:"13%"},ml:{top:"50%",left:"13%",transform:"translateY(-50%)"},mr:{top:"50%",right:"13%",transform:"translateY(-50%)"},bl:{bottom:"13%",left:"13%"},br:{bottom:"13%",right:"13%"},cc:{top:"50%",left:"50%",transform:"translate(-50%,-50%)"}};
 const FACE_DEFS=[{n:1,bg:"linear-gradient(145deg,#fff,#f5ebd8)",tf:"rotateY(0deg)"},{n:6,bg:"linear-gradient(145deg,#e8dfc8,#d5c9a8)",tf:"rotateY(180deg)"},{n:2,bg:"linear-gradient(145deg,#ede4cc,#ddd0ac)",tf:"rotateY(90deg)"},{n:5,bg:"linear-gradient(145deg,#ede4cc,#ddd0ac)",tf:"rotateY(-90deg)"},{n:3,bg:"linear-gradient(145deg,#fff,#f8f0de)",tf:"rotateX(90deg)"},{n:4,bg:"linear-gradient(145deg,#d8d0b4,#c8bc98)",tf:"rotateX(-90deg)"}];
 const LAND={1:{rx:0,ry:0},2:{rx:0,ry:-90},3:{rx:-90,ry:0},4:{rx:90,ry:0},5:{rx:0,ry:90},6:{rx:0,ry:180}};
 const dAcc={rx:{},ry:{},busy:{},last:{}};
-// DOM element cache — populated after buildPlayers(), avoids getElementById every frame
 const _domCache={banner:null,pbg:{},lbl:{},box:{},ptok:{},d3d:{},dcube:{},pdw:{},tbar:{}};
-
 function rng(){if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(1);while(true){crypto.getRandomValues(a);if(a[0]<252)return(a[0]%6)+1;}}return Math.floor(Math.random()*6)+1;}
-
-// ── Rubber Band Dice System ────────────────────────────────────────────────────
-// Completely hidden — no visual indicators ever. Assists struggling human players.
 const _rb = { consecutiveAssisted:{}, totalAssists:{}, lastCutRoll:{} };
 function _rbReset(){[0,1,2,3].forEach(pid=>{_rb.consecutiveAssisted[pid]=0;_rb.totalAssists[pid]=0;_rb.lastCutRoll[pid]=0;});}
 _rbReset();
@@ -3059,8 +2418,6 @@ function rubberbandRng(pid){
   _rb.totalAssists[pid]=(_rb.totalAssists[pid]||0)+1;
   return val;
 }
-
-// ── Smart Dice System ─────────────────────────────────────────────────────────
 const smartDice={targetPids:new Set()};
 const forceDice={};
 const _secretTaps={counts:[0,0,0,0],timers:[null,null,null,null]};
@@ -3117,8 +2474,6 @@ function _renderSmartDicePanel(){
     forceGrid.appendChild(row);
   });
 }
-
-// ── Smart RNG ─────────────────────────────────────────────────────────────────
 function smartRng(pid){
   if(forceDice[pid]!=null){const forced=forceDice[pid];forceDice[pid]=null;if(document.getElementById('smart-dice-panel').style.display!=='none') _renderSmartDicePanel();return forced;}
   const blockSix=(G.sixes||0)>=2;
@@ -3147,15 +2502,12 @@ function sqY(t){
   if(p<0.4){return lerp(1,0.82,p/0.4);}
   return lerp(0.82,1,(p-0.4)/0.6);
 }
-
-// LUDO KING STYLE: dice uchhal ke player ki taraf aata hai, rotate karta hai, wapas settle
 function animDice(pid,finalVal,cb){
   const cube=_domCache.dcube[pid]||document.getElementById(`dcube-${pid}`);
   const wrap=_domCache.d3d[pid]||document.getElementById(`d3d-${pid}`);
   if(!cube){dAcc.busy[pid]=false;if(cb)cb();return;}
   if(dAcc.busy[pid]){setTimeout(()=>animDice(pid,finalVal,cb),50);return;}
   dAcc.busy[pid]=true;
-  // Safety: if rAF gets interrupted (tab hidden, GC pause), unlock after 900ms max
   const _busyGuard=setTimeout(()=>{
     if(dAcc.busy[pid]){dAcc.busy[pid]=false;if(cb)cb();}
   },900);
@@ -3166,13 +2518,10 @@ function animDice(pid,finalVal,cb){
   if(Math.abs(curRy)>5000)dAcc.ry[pid]=normRy;
   const dX=((tg.rx-normRx)%360+360)%360,dY=((tg.ry-normRy)%360+360)%360;
   const eRx=curRx+360+dX,eRy=curRy+360+dY;
-
-  const JUMP_SCALE = 1.52;  // Ludo King style — upar jaake significantly bada dikhta hai
-  const JUMP_Y     = -22;   // upar kitna jaaye (negative = up)
-  const PEAK_T     = 0.40;  // peak kab aaye — earlier = snappier jump
-
+  const JUMP_SCALE = 1.52;
+  const JUMP_Y     = -22;
+  const PEAK_T     = 0.40;
   let t0=null;
-
   function diceEase(t){
     if(t<0.60){const p=t/0.60;return eio(p)*0.85;}
     const p=(t-0.60)/0.40;
@@ -3200,7 +2549,10 @@ function animDice(pid,finalVal,cb){
     const wy=wrapY(t);
     const csx=sqX(t);
     const csy=sqY(t);
-    if(wrap)wrap.style.transform=`translateY(${wy}px) scale(${sc})`;
+    if(wrap){
+      wrap.style.transform=`translateY(${wy}px) scale(${sc})`;
+      wrap.style.zIndex = t < 0.85 ? '9999' : '';
+    }
     cube.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg) scaleX(${csx}) scaleY(${csy})`;
     if(t<1){
       requestAnimationFrame(tick);
@@ -3215,7 +2567,6 @@ function animDice(pid,finalVal,cb){
   }
   requestAnimationFrame(tick);
 }
-
 function makeDice(pid){
   const TZ=19;
   const wrap=document.createElement("div");
@@ -3247,7 +2598,6 @@ function makeDice(pid){
   });
   return wrap;
 }
-
 const _svgCache = new Map();
 function tokSVG(color,size=28){
   const cacheKey = `${color}|${size}`;
@@ -3272,13 +2622,7 @@ function tokSVG(color,size=28){
   _svgCache.set(cacheKey, svg);
   return svg;
 }
-
-// Perspective-aware token color: each player sees themselves as BLUE,
-// others shift colors based on relative seat position
-
-// ── Token element cache ───────────────────────────────────────────────────────
 const _tokEls={};
-// Shield SVG cache — keyed by "blockType|sW" — avoid rebuild when type+size unchanged
 const _shieldSvgCache = new Map();
 function _ensureTokEl(tok,color){
   const key=`${tok.pid}-${tok.tid}`;
@@ -3314,8 +2658,6 @@ function _removeTokEl(key){
     delete _tokEls[key];
   }
 }
-
-// ── Trail dot pool ─────────────────────────────────────────────────────────────
 const _dotPool=[];
 const MAX_DOTS=20;
 function spawnTrailDot(x,y,color,layer){
@@ -3328,7 +2670,6 @@ function spawnTrailDot(x,y,color,layer){
   dot.style.opacity="0.82";dot.style.transition="none";
   dot.style.transform=`translate(${x-sz/2}px,${y-sz/2}px)`;
   layer.appendChild(dot);
-  // rAF-based fade — immediate start, no 30ms dead-wait
   const fadeStart = performance.now();
   const fadeDur = 320;
   function fadeTick(now) {
@@ -3339,8 +2680,6 @@ function spawnTrailDot(x,y,color,layer){
   }
   requestAnimationFrame(fadeTick);
 }
-
-// ── Render tokens ─────────────────────────────────────────────────────────────
 let _cpx=0,_cacheValid=false;
 function _refreshCache(){
   if(_cacheValid) return;
@@ -3350,18 +2689,35 @@ function _refreshCache(){
   if(!_cpx)_cpx=Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);
 }
 function cellPx(){return _cpx||Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);}
-const GAP=1,PAD=5; // matches #board padding:5px in CSS
-
-// rcToXY: converts board grid (r,c) → pixel position on tokens-layer.
+const GAP=1,PAD=5;
 function rcToXY(r,c){
   const cp=cellPx();
   return{x:PAD+c*(cp+GAP)+cp/2, y:PAD+r*(cp+GAP)+cp/2};
 }
-
-// baseCirclePx: pure-math home circle position — always correct regardless of board rotation.
-// getBoundingClientRect was removed: it returns VISUAL (post-rotation) coords which are wrong
-// when tokens-layer is inside a rotated board-wrap — pure math uses the unrotated grid space.
+const _slotPxCache={};
 function baseCirclePx(homeR,homeC,slotIdx){
+  const ck=`${homeR},${homeC},${slotIdx}`;
+  if(_slotPxCache[ck]) return _slotPxCache[ck];
+  const layer=document.getElementById('tokens-layer');
+  const el=document.querySelector(`[data-slot="${homeR},${homeC},${slotIdx}"]`);
+  if(el&&layer){
+    const eR=el.getBoundingClientRect();
+    const lR=layer.getBoundingClientRect();
+    const sx=eR.left+eR.width/2;
+    const sy=eR.top+eR.height/2;
+    const bw=document.getElementById('board-wrap');
+    const bR=bw?bw.getBoundingClientRect():lR;
+    const bcx=bR.left+bR.width/2;
+    const bcy=bR.top+bR.height/2;
+    const deg=getBoardRotation();
+    const rad=-deg*Math.PI/180;
+    const dx=sx-bcx, dy=sy-bcy;
+    const ux=dx*Math.cos(rad)-dy*Math.sin(rad)+bcx;
+    const uy=dx*Math.sin(rad)+dy*Math.cos(rad)+bcy;
+    const r={x:ux-lR.left, y:uy-lR.top};
+    _slotPxCache[ck]=r;
+    return r;
+  }
   const cp=cellPx();
   const zoneX=PAD+homeC*(cp+GAP);
   const zoneY=PAD+homeR*(cp+GAP);
@@ -3373,10 +2729,8 @@ function baseCirclePx(homeR,homeC,slotIdx){
   const col=slotIdx%2,row=Math.floor(slotIdx/2);
   return{x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2};
 }
-
 let _renderScheduled = false;
 function renderTokens(){
-  // Never render before MY_SEAT is assigned — tokens would get wrong POV colors/positions
   if(MY_SEAT === null) return;
   if(_renderScheduled) return;
   _renderScheduled = true;
@@ -3386,13 +2740,9 @@ function _doRenderTokens(){
   _refreshCache();
   const cp=cellPx();
   const movSet=new Set();
-  // Only show movable highlights if: it's MY turn AND I rolled AND waiting for manual pick
   if(G.waiting && !G.over && G.turn === MY_SEAT && G.rolled && G.diceVal != null){
     movable(MY_SEAT, G.diceVal).forEach(t=>movSet.add(`${MY_SEAT}-${t.tid}`));
   }
-
-  // Build groups for stacking — getRenderCell handles all steps including spawn (step=1).
-  // getRenderCell is POV-aware for main path, and seat-private for stretch lane.
   const groups={};
   G.tokens.forEach(tok=>{
     if(tok.step<=0||tok.step>=STEP_DONE) return;
@@ -3402,7 +2752,6 @@ function _doRenderTokens(){
     if(!groups[key]) groups[key]=[];
     groups[key].push(tok);
   });
-
   const BASE_W=Math.round(cp*1.15);
   const sizeScale=n=>n<=1?1:n<=2?0.78:0.65;
   const stackOffset=(n,idx,cp)=>{
@@ -3412,20 +2761,17 @@ function _doRenderTokens(){
     const col=idx%2,row=Math.floor(idx/2);
     return{dx:(col-0.5)*gap,dy:(row-0.5)*gap};
   };
-
   const alive=new Set();
   G.tokens.forEach(tok=>{
     const isMovable=movSet.has(`${tok.pid}-${tok.tid}`);
     const key=`${tok.pid}-${tok.tid}`;
     let px,py,scale=1,stackCount=1;
-    let color=getDisplayColorForSeat(tok.pid); 
+    let color=getDisplayColorForSeat(tok.pid);
     if(tok.step===0){
-      // HOME: use physical home corner — CSS board rotation handles POV
       const [hr,hc]=getHomeCornerBySeat(tok.pid);
       const bp=baseCirclePx(hr,hc,tok.tid);
       px=bp.x; py=bp.y; scale=1.02;
     } else if(tok.step>=STEP_DONE){
-      // DONE/CENTER: tokens at wide base of their triangle
       const centerRC=[7,7];
       const cxy=rcToXY(centerRC[0],centerRC[1]);
       const cp2=cellPx();
@@ -3444,10 +2790,7 @@ function _doRenderTokens(){
       px=cxy.x+cOff.dx*baseR+go.dx;
       py=cxy.y+cOff.dy*baseR+go.dy;
       scale=0.75; stackCount=2;
-
     } else {
-      // MOVING: getRenderCell is POV-aware for all steps including spawn (step=1).
-      // step=1 now correctly maps to pid's physical entry via myEntry anchor.
       const rc = getRenderCell(tok.pid, tok.step);
       if(!rc) return;
       const rcKey=`${rc[0]}-${rc[1]}`;
@@ -3459,20 +2802,17 @@ function _doRenderTokens(){
       const xy=rcToXY(rc[0],rc[1]);
       px=xy.x+off.dx; py=xy.y+off.dy;
     }
-
     alive.add(key);
-    const rW=BASE_W; // Always use BASE_W for SVG — use CSS scale for stacking (no flicker)
+    const rW=BASE_W;
     const visualScale=scale;
     const rH=rW*(130/100);
     const tipOffset=rH*(122/130);
     const tx=px-rW/2,ty=py-tipOffset;
     const els=_ensureTokEl(tok,color);
     const {wrap,shadow}=els;
-    // Fix: Always use BASE_W for SVG — only rebuild if BASE_W or color changed
     const curW=parseFloat(wrap.dataset.rw||"0");
     const curColor=wrap.dataset.rc||"";
     if(Math.abs(curW-rW)>0.5||curColor!==color){wrap.innerHTML=tokSVG(color,rW);wrap.dataset.rw=rW;wrap.dataset.rc=color;}
-    // Counter-rotate tokens so they always face up regardless of board rotation.
     const _tr = _tokenRotationDeg;
     const scaleTransform = visualScale !== 1 ? ` scale(${visualScale})` : '';
     wrap.style.transformOrigin = `${rW/2}px ${tipOffset}px`;
@@ -3505,7 +2845,6 @@ function _doRenderTokens(){
         wrap.addEventListener("click",els.movHandler);
       }
     }
-    // tok-ring show/hide for movable tokens
     if(els.ring){
       const showRing=isMovable&&tok.step>0&&tok.step<STEP_DONE;
       if(showRing){
@@ -3516,8 +2855,6 @@ function _doRenderTokens(){
         els.ring.style.display="none";
       }
     }
-
-    // Block shield — show on first token of a same-color stack >= 2 (non-safe cell only)
     if(els.shield){
       let blockType=null;
       if(tok.step>=1&&tok.step<=STEP_MAIN_END){
@@ -3532,7 +2869,6 @@ function _doRenderTokens(){
           }
         }
       }
-      // Only show on the FIRST token of the stack to avoid duplicates
       const rc3=getRenderCell(tok.pid,tok.step);
       const grp3=rc3?groups[`${rc3[0]}-${rc3[1]}`]||[tok]:[tok];
       const isFirst=grp3.indexOf(tok)===0;
@@ -3603,23 +2939,17 @@ function _doRenderTokens(){
   });
   for(const key of Object.keys(_tokEls)){if(!alive.has(key))_removeTokEl(key);}
 }
-
-// syncUI: consolidated render call — replaces the repeated refreshUI+renderTokens+updateTurnBanner triple
 function syncUI(){ refreshUI(); renderTokens(); updateTurnBanner(); }
-
 function refreshUI(){
     PLAYERS.forEach(p=>{
     if(!p.active) return;
     renderSeatVisuals(p.id);
-
-    // Dice active/inactive state (separate from color)
     const d3d = _domCache.d3d[p.id] || document.getElementById(`d3d-${p.id}`);
     if(d3d){
       const active = G.turn === p.id && !G.over;
       const isMyTurn = G.turn === MY_SEAT && p.id === MY_SEAT;
       if(active){
         d3d.classList.remove("inactive");
-        // Clickable only on MY turn; opponent dice visible but non-clickable
         const canRoll = isMyTurn && !G.rolled && !G.over;
         d3d.classList.toggle("off", !canRoll);
       } else {
@@ -3628,7 +2958,6 @@ function refreshUI(){
       }
       const cube = _domCache.dcube[p.id] || document.getElementById(`dcube-${p.id}`);
       if(cube && dAcc.last[p.id] == null && !dAcc.busy[p.id]){
-        // Set initial resting face (6) only once — when never rolled before
         const tg = LAND[6];
         cube.style.transition = "none";
         cube.style.transform = `rotateX(${tg.rx}deg) rotateY(${tg.ry}deg) scaleX(1) scaleY(1)`;
@@ -3637,18 +2966,14 @@ function refreshUI(){
     }
   });
 }
-
 function updateTurnBanner(){
   resetTurnTimeout();
-  startTurnTimer(G.turn); // visual arc timer on current player's box
+  startTurnTimer(G.turn);
 }
-
-// ── TURN TIMER ARC ────────────────────────────────────────────────────────────
 const TURN_TIMER_SEC = 60;
 let _timerInterval = null;
 let _timerSeat = -1;
 let _timerStart = 0;
-
 function startTurnTimer(seat){
   stopTurnTimer();
   if(G.over || !_gameLoaded || !PLAYERS[seat]?.active) return;
@@ -3668,8 +2993,7 @@ function startTurnTimer(seat){
     bar.style.setProperty('--timer-dur', `${TURN_TIMER_SEC}s`);
     bar.classList.add('draining');
   }
-
-  const _capturedSeat = seat; // closure capture
+  const _capturedSeat = seat;
   _timerInterval = setInterval(()=>{
     const elapsed = (Date.now() - _timerStart) / 1000;
     const remaining = TURN_TIMER_SEC - elapsed;
@@ -3691,10 +3015,8 @@ function startTurnTimer(seat){
     }
   }, 500);
 }
-
 function stopTurnTimer(){
   if(_timerInterval){ clearInterval(_timerInterval); _timerInterval = null; }
-  // ✅ BUG6 FIX: guard against stale PLAYERS on leave/game-over
   if(!Array.isArray(PLAYERS) || !PLAYERS.length) return;
   try {
     PLAYERS.forEach(p=>{
@@ -3709,26 +3031,18 @@ function stopTurnTimer(){
     });
   } catch(e) {}
 }
-
-// Called when the 60s turn timer expires — auto-roll + auto-move for that seat
 async function _onTurnTimerExpired(seat){
   if(G.over || G.turn !== seat) return;
-
-  // Increment consecutive expire counter for this seat
   if(seat !== MY_SEAT && !PLAYERS[seat]?.isBot){
     _timerExpireCount[seat] = (_timerExpireCount[seat] || 0) + 1;
     if(_timerExpireCount[seat] >= EXPIRE_COUNT_FOR_VOTE){
-      // Show voting overlay after 2 consecutive timeouts
       _updateOfflineBadge(seat, true);
     }
   }
-
-  // If it's MY turn and I haven't rolled yet — auto-roll for me
   if(seat === MY_SEAT && !G.rolled){
     doRoll(seat);
     return;
   }
-  // For MY seat after rolling (waiting state) — auto-pick
   if(seat === MY_SEAT && G.waiting && G.rolled && G.diceVal != null){
     const mv = movable(seat, G.diceVal);
     if(mv.length > 0){
@@ -3738,32 +3052,25 @@ async function _onTurnTimerExpired(seat){
     }
     return;
   }
-  // For bot-flagged opponent seats: host handles the move
   if(IS_HOST && PLAYERS[seat]?.isBot){
     _doBotTurn(seat);
     return;
   }
-  // For non-bot opponent: host auto-rolls & moves on their behalf (AFK handling)
   if(IS_HOST && seat !== MY_SEAT){
-    _doBotTurn(seat); // reuse bot logic for AFK auto-play
+    _doBotTurn(seat);
   }
 }
-
-// ── BOT TURN LOGIC (host only) ────────────────────────────────────────────────
 async function _doBotTurn(seat){
   if(G.over || G.turn !== seat) return;
   if(G.rolled || G.waiting) return;
-  // ✅ BUG4 FIX: guard _rolling to prevent double-fire race condition
   if(_rolling) return;
   _rolling = true;
   const _botRollGuard = setTimeout(()=>{ _rolling = false; }, 2000);
-  // Roll for bot
   const v = smartRng(seat);
   G.rolled = true; G.diceVal = v;
   SFX.diceRoll();
   await new Promise(r => animDice(seat, v, r));
   clearTimeout(_botRollGuard); _rolling = false;
-  // Now decide move
   if(v === 6){ G.sixes = (G.sixes||0)+1;
     if(G.sixes >= 3){ G.sixes=0; G.rolled=false; G.diceVal=null; nextTurn(false);
       await pushGameState({action:"skip",dice:v,reason:"3sixes"}); return; }
@@ -3775,7 +3082,6 @@ async function _doBotTurn(seat){
     await pushGameState({action:"skip",dice:v,reason:"noMove"});
     return;
   }
-  // Pick best token (smart: capture > furthest)
   let best = mv[0];
   for(const tok of mv){
     const toStep = tok.step === 0 ? 1 : tok.step + v;
@@ -3785,20 +3091,12 @@ async function _doBotTurn(seat){
   G.rolled = false; G.waiting = false;
   await doMove(seat, best.tid, v);
 }
-
-// ── TURN TIMEOUT (host's 45s skip — kept separate from visual timer) ──────────
-// ── Turn timeout ──────────────────────────────────────────────────────────────
-// If a player is AFK/disconnected and doesn't roll, host auto-skips after 45s.
-// Only the host runs this to avoid duplicate skips.
 let _turnTimeoutTimer = null;
 const TURN_TIMEOUT_MS = 45000;
-
 function resetTurnTimeout(){
   clearTimeout(_turnTimeoutTimer);
   _turnTimeoutTimer = null;
   if(!IS_HOST || !ROOM_CODE || G.over) return;
-  // ✅ BUG5 FIX: bot turns handled ONLY by _onTurnTimerExpired — no 800ms duplicate here
-  // Only start skip timer when it's NOT my turn (opponent might be AFK)
   if(G.turn === MY_SEAT) return;
   _turnTimeoutTimer = setTimeout(async()=>{
     if(G.over || G.rolled || G.waiting || G.turn === MY_SEAT) return;
@@ -3808,14 +3106,11 @@ function resetTurnTimeout(){
     await pushGameState({ action:"skip", dice:null, reason:"timeout", skippedSeat:skippedTurn });
   }, TURN_TIMEOUT_MS);
 }
-
-// ── Game flow ─────────────────────────────────────────────────────────────────
 function onHumanRoll(){
   if(G.rolled||G.over||G_PAUSED||_rolling||_animating) return;
   if(G.turn !== MY_SEAT) return;
   doRoll(G.turn);
 }
-
 function doRoll(pid){
   if(_rolling) return;
   _rolling=true;
@@ -3827,11 +3122,8 @@ function doRoll(pid){
   G.diceVal=v;
   SFX.diceRoll();
   navigator.vibrate && navigator.vibrate(28);
-  // ✅ ATOMIC SYSTEM: Never push on roll alone.
-  // afterRoll() decides the outcome and pushes ONE atomic payload.
   animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
 }
-
 function shouldAutoMove(mv,v){
   if(mv.length===0) return false;
   if(mv.length===1) return true;
@@ -3861,7 +3153,6 @@ function shouldAutoMove(mv,v){
   if(wouldCapture.some(Boolean)!==wouldCapture.every(Boolean)) return false;
   return true;
 }
-
 function afterRoll(pid,v){
   if(v===6){
     G.sixes=(G.sixes||0)+1;
@@ -3869,59 +3160,46 @@ function afterRoll(pid,v){
       G.sixes=0;G.rolled=false;G.diceVal=null;G.waiting=false;_rolling=false;
       SFX.threeSixesSkip();
       renderTokens();
-      // ✅ ATOMIC: ONE push, action="skip", reason="3sixes"
       setTimeout(async()=>{
-        nextTurn(false); // ✅ FIX: nextTurn pehle so G.turn is updated before push
+        nextTurn(false);
         await pushGameState({ action:"skip", dice:v, reason:"3sixes" });
       },300);
       return;
     }
   } else { G.sixes=0; }
-
   if(v===6) SFX.rolledSix();
-
   const mv=movable(pid,v);
-
   if(mv.length===0){
     SFX.noMove();
     syncUI();
-    // ✅ ATOMIC: ONE push, action="skip", reason="noMove"
     setTimeout(async()=>{
-      nextTurn(false); // ✅ FIX: nextTurn pehle so G.turn updated before push
+      nextTurn(false);
       await pushGameState({ action:"skip", dice:v, reason:"noMove" });
     },300);
     return;
   }
-
   if(shouldAutoMove(mv,v)){
-    // ✅ ATOMIC: doMove() sends ONE push: action="move" + dice + moves[] + final tokens
     setTimeout(async()=>await doMove(pid,mv[0].tid,v),80);
     return;
   }
-
-  // Manual pick: player sees movable tokens. Push action="roll" with selectable list.
-  // This is the ONLY case with 2 steps (roll → move), and it's unavoidable.
   G.waiting=true;
   const selectable=mv.map(t=>t.tid);
   pushGameState({ action:"roll", dice:v, selectable });
   syncUI();
 }
-
 async function onTokClick(pid,tid){
-  // Triple guard: must be my token, my turn, and I must be waiting for a pick
-  if(pid !== MY_SEAT) return;           // Can only click MY tokens
-  if(G.turn !== MY_SEAT) return;        // Must be MY turn
-  if(!G.waiting || !G.rolled) return;   // Must have rolled and be waiting for pick
+  if(pid !== MY_SEAT) return;
+  if(G.turn !== MY_SEAT) return;
+  if(!G.waiting || !G.rolled) return;
   if(G.over || G_PAUSED) return;
-  if(G.diceVal == null) return;         // Safety: no dice value
-  const dv = G.diceVal;                 // Capture before any state change
+  if(G.diceVal == null) return;
+  const dv = G.diceVal;
   const mv = movable(MY_SEAT, dv);
   if(!mv.find(t=>t.tid===tid)) return;
   G.waiting = false;
   G.rolled  = false;
   await doMove(pid, tid, dv);
 }
-
 function rafDelay(ms){
   return new Promise(resolve=>{
     const start=performance.now();
@@ -3929,13 +3207,11 @@ function rafDelay(ms){
     requestAnimationFrame(tick);
   });
 }
-
-const JUMP_MS=110; // ms per step — snappier movement
+const JUMP_MS=110;
 const DICE_DUR_MS=420;
-
 function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
   return new Promise(resolve=>{
-    const rH=rW*(130/100),tipOffset=rH*(122/130); // tip at cell centre (Ludo King style)
+    const rH=rW*(130/100),tipOffset=rH*(122/130);
     const shadowW=rW*0.60,shadowH=rW*0.16;
     const h=cp*0.65;
     let t0=null;
@@ -3945,7 +3221,6 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
       if(!t0) t0=now;
       let t=(now-t0)/JUMP_MS;
       if(t>1) t=1;
-      // ease-out: fast start, soft landing — more natural feel
       const et=1-Math.pow(1-t,2.8);
       const x=startX+(endX-startX)*et,y=startY+(endY-startY)*et;
       const jump=-4*h*t*(1-t);
@@ -3964,22 +3239,17 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
       if(t<1) requestAnimationFrame(tick);
       else { resolve(); }
     }
-    // Fire step sound at jump peak (~55% through) for tight audio-visual sync
     setTimeout(()=>SFX.tokenStep(), Math.round(JUMP_MS * 0.55));
     requestAnimationFrame(tick);
   });
 }
-
 async function animateMove(tok,steps){
-  // 🔥 DISCIPLINE: Never mutate tok.step during animation loop.
-  // curStep = local visual walker. tok.step updated ONCE at the very end.
-  // LOGIC (global step) stays clean throughout the animation.
   const key=`${tok.pid}-${tok.tid}`;
   const color=getDisplayColorForSeat(tok.pid);
   _refreshCache();
   const cp=cellPx(),BASE_W=Math.round(cp*1.15);
   const layer=document.getElementById('tokens-layer');
-  let curStep=tok.step; // LOCAL — render uses this, never tok.step
+  let curStep=tok.step;
   const finalStep=Math.min(tok.step+steps, STEP_DONE);
   let _homeStretchFired=false;
   for(let i=0;i<steps;i++){
@@ -3998,8 +3268,6 @@ async function animateMove(tok,steps){
     els.wrap.style.zIndex="20";
     els.wrap.style.transition="";
     if(els.shadow) els.shadow.style.transition="";
-
-    // ── Slide stacked neighbors (ported from v3) ──────────────────────────────
     const prevKey=`${prevCell[0]}-${prevCell[1]}`;
     const newKey=`${rc[0]}-${rc[1]}`;
     G.tokens.forEach(other=>{
@@ -4027,13 +3295,10 @@ async function animateMove(tok,steps){
       oEls.wrap.style.transformOrigin=`${BASE_W/2}px ${oTip}px`;
       setTimeout(()=>{if(oEls.wrap)oEls.wrap.style.transition="";},JUMP_MS+10);
     });
-    // ─────────────────────────────────────────────────────────────────────────
-    // Fire homeStretch sound exactly when token first lands on stretch lane entry
     if(!_homeStretchFired && curStep===STEP_STRETCH_START){
       SFX.homeStretch();
       _homeStretchFired=true;
     }
-    // star cell glow + sound on landing
     const cellKey=`${rc[0]}-${rc[1]}`;
     const isStarCell=GREY_STARS.has(cellKey)||COLOR_STARS.has(cellKey);
     if(i===steps-1&&isStarCell){
@@ -4041,11 +3306,9 @@ async function animateMove(tok,steps){
     }
     await jumpStep(els.wrap,els.shadow,startXY.x,startXY.y,endXY.x,endXY.y,BASE_W,color,cp,layer);
     delete els.wrap.dataset.animating;
-    // Landing squash animation — use requestAnimationFrame instead of offsetWidth reflow
     const _tx2=endXY.x-BASE_W/2,_ty2=endXY.y-BASE_W*(130/100)*(122/130);
     const _sqBase=`translate(${_tx2}px,${_ty2}px) rotate(${_tokenRotationDeg}deg)`;
     els.wrap.style.setProperty('--sq-base',_sqBase);
-    // Remove+add class in next rAF to avoid forced layout reflow (was: void offsetWidth)
     els.wrap.classList.remove('tok-land');
     requestAnimationFrame(()=>{
       if(els.wrap) els.wrap.classList.add('tok-land');
@@ -4053,15 +3316,13 @@ async function animateMove(tok,steps){
     });
     els.wrap.style.zIndex="";
   }
-  // ✅ SINGLE atomic write to global token step — only after full animation
   tok.step=finalStep;
   if(tok.step>=STEP_DONE){renderTokens();await rafDelay(120);}
 }
-
 async function sendHomeFast(tok){
   SFX.tokenCapture();
   const seat=tok.pid;
-  const homeCorner=getHomeCornerBySeat(seat); // physical home corner — correct for ALL board rotations
+  const homeCorner=getHomeCornerBySeat(seat);
   if(!homeCorner) return;
   const [hr,hc]=homeCorner;
   const displayColor=getDisplayColorForSeat(seat);
@@ -4069,10 +3330,7 @@ async function sendHomeFast(tok){
   const el=(_tokEls[cacheKey]||{}).wrap||null;
   const shadowEl=(_tokEls[cacheKey]||{}).shadow||null;
   const layer=document.getElementById("tokens-layer");
-
   if(el){
-    // Kill effect — ring burst at capture position
-    // getBoundingClientRect gives exact actual pixel position regardless of transform
     const elRect=el.getBoundingClientRect();
     const layerRect=layer.getBoundingClientRect();
     const captureX=elRect.left-layerRect.left+elRect.width/2;
@@ -4093,15 +3351,13 @@ async function sendHomeFast(tok){
     await rafDelay(150);
     el.style.transition="none";el.style.opacity="1";
   }
-
   _refreshCache();const cp=cellPx();
   const BASE_W=Math.round(cp*1.15);
   const rH=BASE_W*(130/100),tipOffset=rH*(122/130);
   const SLIDE_MS=55;
   const stepsBack=[];
   for(let s=tok.step;s>=1;s--) stepsBack.push(s);
-
-  let localStep=tok.step; // use local var — don't mutate tok.step during anim
+  let localStep=tok.step;
   for(let i=0;i<stepsBack.length;i++){
     const fromStep=stepsBack[i],toStep=fromStep-1;
     const fromCell=getRenderCell(tok.pid,fromStep); if(!fromCell) continue;
@@ -4129,9 +3385,7 @@ async function sendHomeFast(tok){
       },SLIDE_MS);
     });
   }
-
   tok.step=0;renderTokens();await rafDelay(10);
-
   const bp=baseCirclePx(hr,hc,tok.tid);
   if(!PERF_MODE){
   const sparkColors=[displayColor,"white","#FFD700",displayColor];
@@ -4148,8 +3402,6 @@ async function sendHomeFast(tok){
   layer.appendChild(ring);setTimeout(()=>ring.remove(),500);
   }
 }
-
-// flashStarCell: O(1) lookup via _boardCellMap (populated in buildBoard)
 function flashStarCell(r,c){
   if(PERF_MODE) return;
   const cell=_boardCellMap[`${r}-${c}`];
@@ -4157,7 +3409,6 @@ function flashStarCell(r,c){
   cell.classList.add('star-land-glow');
   setTimeout(()=>cell.classList.remove('star-land-glow'),750);
 }
-
 async function doMove(pid,tid,v){
   _animating=true;
   const tok=tokOf(pid,tid);
@@ -4165,15 +3416,13 @@ async function doMove(pid,tid,v){
   const allowed=movable(pid,v);
   if(!allowed.find(t=>t.tid===tid)){ _animating=false; return; }
   if(tok.step>=STEP_STRETCH_START&&tok.step+v>STEP_DONE){ _animating=false; return; }
-
   let bonus=false;
   const diceWasSix=(v===6);
   let captured=false;
-
   async function checkAndPit(cellKey,movingPid,movingTid){
     const ownOnCell=G.tokens.filter(o=>{
       if(o.pid!==movingPid||o.step===0||o.step>=STEP_DONE) return false;
-      if(o.tid===movingTid) return false; // exclude the moving token itself
+      if(o.tid===movingTid) return false;
       const oc=getCell(o.pid,o.step);
       return oc&&`${oc[0]}-${oc[1]}`===cellKey;
     });
@@ -4182,16 +3431,13 @@ async function doMove(pid,tid,v){
       const oc=getCell(o.pid,o.step);
       return oc&&`${oc[0]}-${oc[1]}`===cellKey;
     });
-    // A block of 2+ own tokens already there = safe cell (moving token joins = 3 but enemies can't attack block)
     if(ownOnCell.length>=2) return;
     if(enemiesOnCell.length>=1){
-      // Capture all enemies from different players (3P/4P: multiple players may share cell)
-      // Group by pid — only capture one token per enemy player (can't capture a block of 2)
       const capturedPids=new Set();
       for(const enemy of enemiesOnCell){
         if(capturedPids.has(enemy.pid)) continue;
         const samePlayerOnCell=enemiesOnCell.filter(e=>e.pid===enemy.pid);
-        if(samePlayerOnCell.length>=2) continue; // block of 2 = safe, skip
+        if(samePlayerOnCell.length>=2) continue;
         _rbNotifyCut(enemy.pid);
         await sendHomeFast(enemy);
         capturedPids.add(enemy.pid);
@@ -4199,16 +3445,13 @@ async function doMove(pid,tid,v){
       }
     }
   }
-
   if(tok.step===0&&v===6){
-    // Animate spawn: bounce on home circle → jump to entry cell
     const spawnKey=`${tok.pid}-${tok.tid}`;
-    const [spawnHr,spawnHc]=getHomeCornerBySeat(tok.pid); // physical home corner
+    const [spawnHr,spawnHc]=getHomeCornerBySeat(tok.pid);
     const spawnStart=baseCirclePx(spawnHr,spawnHc,tok.tid);
     tok.step=1;bonus=diceWasSix;
     SFX.tokenSpawn();
     renderTokens();await rafDelay(20);
-    // Spawn bounce — scale(0) → overshoot → scale(1) on home circle before jump
     const spawnEl=_tokEls[spawnKey]?.wrap;
     if(spawnEl){
       const curT=spawnEl.style.transform||'';
@@ -4220,7 +3463,6 @@ async function doMove(pid,tid,v){
       await rafDelay(400);
       spawnEl.classList.remove('tok-spawn');
     }
-    // Now jump from home circle → entry cell
     const entryRC=getRenderCell(tok.pid,1);
     if(entryRC&&_tokEls[spawnKey]){
       const entryXY=rcToXY(entryRC[0],entryRC[1]);
@@ -4238,7 +3480,6 @@ async function doMove(pid,tid,v){
     await animateMove(tok,v);
     bonus=diceWasSix;
   }
-
   if(tok.step>=STEP_DONE){
     SFX.tokenDone();
     renderTokens();await rafDelay(100);
@@ -4259,8 +3500,6 @@ async function doMove(pid,tid,v){
       bonus=false;
     }
   }
-
-  // 1. PREVIOUS CELL CHECK (jahan se token aayi — agar apni 1 token bachi + enemy hai => capture)
   const prevStep = tok.step === 0 ? 0 : tok.step - v;
   if(prevStep>=1&&prevStep<=STEP_MAIN_END){
     const prevCell=getCell(pid,prevStep);
@@ -4268,8 +3507,6 @@ async function doMove(pid,tid,v){
       await checkAndPit(`${prevCell[0]}-${prevCell[1]}`,pid,tok.tid);
     }
   }
-
-  // 2. CURRENT CELL CHECK (jahan token aayi)
   if(tok.step>=1&&tok.step<=STEP_MAIN_END){
     const cell=getCell(pid,tok.step);
     if(cell){
@@ -4277,34 +3514,20 @@ async function doMove(pid,tid,v){
       if(!SAFE.has(cellKey)) await checkAndPit(cellKey,pid,tok.tid);
     }
   }
-
   if(captured) bonus=true;
-
   renderTokens();await rafDelay(60);
   _animating=false;
-
-  // ✅ BUILD moves[] — structured per-token diff for opponent to replay exactly
-  // type:"open"  = token spawned from home (step 0 → 1)
-  // type:"move"  = token advanced on board
-  // type:"home"  = token captured and sent back (step → 0)
-  // finalStep is the ABSOLUTE step value — opponent sets token.step = finalStep directly.
-  // Never += steps, always = finalStep, so desync is impossible.
   const movesPayload = [];
   const finalTok = tokOf(pid, tid);
   if(finalTok){
     const moveType = (finalTok.step === 1 && v === 6) ? "open" : "move";
     movesPayload.push({ pid, tid, type: moveType, finalStep: finalTok.step });
   }
-  // Captured tokens: include all step=0 opponent tokens so joiner can reconcile
   G.tokens.forEach(t => {
     if(t.pid !== pid && t.step === 0){
       movesPayload.push({ pid: t.pid, tid: t.tid, type: "home", finalStep: 0 });
     }
   });
-
-  // ✅ FIX: nextTurn() PEHLE call karo taaki G.turn update ho next player pe,
-  // PHIR push karo — warna Firebase mein purana (mover ka) turn jaata tha
-  // aur joiner ko dice kabhi shift nahi hota tha.
   nextTurn(bonus);
   await pushGameState({
     action: "move",
@@ -4314,13 +3537,10 @@ async function doMove(pid,tid,v){
     movedTid: tid
   });
 }
-
 function nextTurn(same){
-  // Rule 9: Turn order uses GLOBAL seat IDs from the fixed layout — never display colors
   G.rolled=false;_rolling=false;G.diceVal=null;G.waiting=false;
   if(!same){
-    G.sixes=0; // reset six counter on turn change
-    // Advance turn along the fixed seat layout order
+    G.sixes=0;
     const layout = SEAT_LAYOUT_ACTIVE;
     const curIdx = layout.indexOf(G.turn);
     let tries = 0;
@@ -4335,21 +3555,17 @@ function nextTurn(same){
       nextIdx = (nextIdx + 1) % layout.length;
       tries++;
     }
-    // If we exhausted all — game must be over, don't change turn
     if(tries >= layout.length) return;
   }
   if(same){
     const pid=G.turn;
     if(dAcc.busy[pid]) dAcc.busy[pid]=false;
   }
-  syncUI(); // refreshUI handles renderSeatVisuals + dice state; updateTurnBanner restarts timer
+  syncUI();
 }
-
 function endGame(){
   G.over=true;
   const medals=["🥇","🥈","🥉","4️⃣"];
-
-  // Rule 4 & 2: Win screen uses POV display colors — self shown as Blue
   const lines=G.placements.map((pid,i)=>{
     const name = pid === MY_SEAT ? "You" : (PLAYERS[pid]?.label||`P${pid}`);
     const dColor = getDisplayColorForSeat(pid);
@@ -4357,7 +3573,6 @@ function endGame(){
     const colorName = colorNames[dColor] || "";
     return `${medals[i]||"  "} ${name} (${colorName})`;
   });
-
   const winner=G.placements[0];
   const isIWinner = winner === MY_SEAT;
   const winColor = getDisplayColorForSeat(winner);
@@ -4365,15 +3580,11 @@ function endGame(){
   const heading = isIWinner
     ? `🎉 You Win! ${winColorEmoji}`
     : `🎉 ${PLAYERS[winner]?.label||"Winner"} Wins!`;
-
   if(isIWinner) SFX.win(); else SFX.lose();
-
   document.getElementById("win-msg").textContent=heading;
   document.getElementById("win-places").textContent=lines.join("\n");
   const winEl=document.getElementById("win");
   winEl.classList.add("show");
-
-  // Trophy entrance + float
   const trophy=document.getElementById("win-trophy");
   if(trophy){
     trophy.style.animation="none";
@@ -4381,8 +3592,6 @@ function endGame(){
     trophy.style.animation="trophyEntrance 0.7s cubic-bezier(.2,1.4,.4,1) forwards";
     setTimeout(()=>{trophy.style.animation="trophyFloat 2.2s ease-in-out infinite";},900);
   }
-
-  // Win rings
   if(!PERF_MODE){
   const cx=window.innerWidth/2,cy=window.innerHeight/2;
   [0,1,2,3].forEach(i=>{
@@ -4394,8 +3603,6 @@ function endGame(){
     setTimeout(()=>ring.remove(),2500);
   });
   }
-
-  // Confetti canvas
   if(!PERF_MODE){
   const canvas=document.getElementById("win-confetti-canvas");
   if(canvas){
@@ -4435,19 +3642,16 @@ function endGame(){
     }
     window._confettiFrame=requestAnimationFrame(drawConfetti);
   }
-  } // end !PERF_MODE confetti block
+  }
 }
-
 function restartGame(){
   if(window._confettiFrame){cancelAnimationFrame(window._confettiFrame);window._confettiFrame=null;}
   const canvas=document.getElementById("win-confetti-canvas");
   if(canvas){const c=canvas.getContext("2d");c.clearRect(0,0,canvas.width,canvas.height);}
   document.querySelectorAll(".win-ring").forEach(r=>r.remove());
   document.getElementById("win").classList.remove("show");
-  // Online: go back to lobby (leaveRoom handles Firebase cleanup)
   window.leaveRoom();
 }
-
 window.togglePause=function(){
   if(G.over) return;
   G_PAUSED=!G_PAUSED;
@@ -4461,35 +3665,28 @@ window.togglePause=function(){
     if(btn){btn.innerHTML="&#10074;&#10074;";btn.title="Pause";}
   }
 };
-
 let _resizeTimer;
 window.addEventListener("resize",()=>{
   clearTimeout(_resizeTimer);
   _cacheValid=false;
+  for(const k in _slotPxCache) delete _slotPxCache[k];
   _resizeTimer=setTimeout(()=>{
-    // Re-apply board rotation so _tokenRotationDeg stays in sync after resize
     if(MY_SEAT !== null) applyBoardRotation();
     else renderTokens();
   },100);
 });
-
 document.addEventListener("contextmenu",e=>e.preventDefault());
 document.addEventListener("selectstart",e=>e.preventDefault());
 document.addEventListener("dragstart",e=>e.preventDefault());
 document.addEventListener("touchstart",e=>{if(e.touches.length>1)e.preventDefault();},{passive:false});
-
 window.addEventListener("wheel",e=>{if(e.ctrlKey)e.preventDefault();},{passive:false});
-
-// ── CHAT ──────────────────────────────────────────────────────────────────────
 let _chatOpen = false;
 let _unreadCount = 0;
 let _chatListening = false;
 let _lastChatKey = null;
-
-// Mobile keyboard: move chat panel above virtual keyboard using visualViewport
 if(window.visualViewport){
   window.visualViewport.addEventListener("resize", ()=>{
-    if(!_chatOpen) return; // only adjust when chat is open
+    if(!_chatOpen) return;
     const panel = document.getElementById("chat-panel");
     if(!panel) return;
     const keyboardHeight = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
@@ -4500,7 +3697,6 @@ if(window.visualViewport){
     }
   });
 }
-
 window.toggleChat = function(){
   _chatOpen = !_chatOpen;
   const panel = document.getElementById("chat-panel");
@@ -4518,10 +3714,9 @@ window.toggleChat = function(){
   } else {
     panel.classList.remove("open");
     if(topBar) topBar.style.display = "flex";
-    window.clearReply(); // clear pending reply when closing chat
+    window.clearReply();
   }
 };
-
 function updateChatBadge(){
   const badge = document.getElementById("chat-badge");
   if(!badge) return;
@@ -4532,16 +3727,13 @@ function updateChatBadge(){
     badge.style.display = "none";
   }
 }
-
 function scrollChatBottom(){
   const el = document.getElementById("chat-messages");
   if(el) el.scrollTop = el.scrollHeight;
 }
-
 function escapeHtml(str){
   return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
-
 function appendChatMessage(msg, isHistory){
   const el = document.getElementById("chat-messages");
   if(!el) return;
@@ -4555,21 +3747,13 @@ function appendChatMessage(msg, isHistory){
     const color = getDisplayColorForSeat(msg.seat);
     const name = msg.name || `P${msg.seat+1}`;
     const time = new Date(msg.ts || Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-
-    // Outer swipe wrapper
     const swipeWrap = document.createElement("div");
     swipeWrap.className = "chat-msg-swipe";
-
-    // Reply icon (hidden until swipe)
     const replyIcon = document.createElement("div");
     replyIcon.className = "chat-reply-icon";
     replyIcon.textContent = "↩";
-
-    // Inner message div
     const div = document.createElement("div");
     div.className = `chat-msg${isMine?" mine":""}`;
-
-    // Build reply quote if this msg is a reply
     let replyQuoteHTML = "";
     if(msg.replyTo){
       const rName = escapeHtml(msg.replyTo.name || "Someone");
@@ -4580,7 +3764,6 @@ function appendChatMessage(msg, isHistory){
         <div class="chat-reply-quote-text">${rText}</div>
       </div>`;
     }
-
     div.innerHTML = `
       <div class="chat-msg-meta">
         <div class="chat-msg-dot" style="background:${color}"></div>
@@ -4590,18 +3773,12 @@ function appendChatMessage(msg, isHistory){
       ${replyQuoteHTML}
       <div class="chat-msg-text">${escapeHtml(msg.text)}</div>
     `;
-
     swipeWrap.appendChild(replyIcon);
     swipeWrap.appendChild(div);
     el.appendChild(swipeWrap);
-
-    // Attach swipe handler
     _attachSwipeReply(swipeWrap, replyIcon, msg, name, color, isMine);
   }
   scrollChatBottom();
-
-  // ── PLAYER BOX CHAT BUBBLE ──
-  // Sirf opponents ke messages — apna bubble apne aap ko nahi dikhta
   if(!isHistory && !isMine && msg.type !== "system"){
     const senderPid = msg.seat ?? null;
     if(senderPid !== null){
@@ -4614,8 +3791,6 @@ function appendChatMessage(msg, isHistory){
       }
     }
   }
-
-  // ✅ FIX #5: msg.type !== "system" check pehle — system msgs unread count mein nahi jayenge
   if(!isHistory && !isMine && !_chatOpen && msg.type !== "system"){
     _unreadCount++;
     updateChatBadge();
@@ -4623,7 +3798,6 @@ function appendChatMessage(msg, isHistory){
     showToast(`${escapeHtml(msg.name||"Someone")}: ${escapeHtml(msg.text)}`, 3000);
   }
 }
-
 window.sendChat = function(){
   const inp = document.getElementById("chat-input");
   if(!inp || !ROOM_CODE || MY_SEAT === null) return;
@@ -4631,7 +3805,6 @@ window.sendChat = function(){
   if(!text) return;
   inp.value = "";
   const payload = { seat:MY_SEAT, name:MY_NAME, text, ts:Date.now(), type:"user" };
-  // Attach reply context if replying
   if(_replyTarget){
     payload.replyTo = {
       name: _replyTarget.name,
@@ -4643,16 +3816,12 @@ window.sendChat = function(){
   const chatRef = db.ref(`rooms/${ROOM_CODE}/chat`);
   chatRef.push(payload).catch(()=>showToast("Chat send failed"));
 };
-
-// ── Reply state ──────────────────────────────────────────────────────────────
-let _replyTarget = null; // { name, text, color }
-
+let _replyTarget = null;
 window.clearReply = function(){
   _replyTarget = null;
   const bar = document.getElementById("chat-reply-bar");
   if(bar) bar.classList.remove("show");
 };
-
 function _setReply(name, text, color){
   _replyTarget = { name, text, color };
   const bar    = document.getElementById("chat-reply-bar");
@@ -4663,21 +3832,14 @@ function _setReply(name, text, color){
   barName.style.color = color;
   barText.textContent = text.slice(0, 80);
   bar.classList.add("show");
-  // Focus input
   const inp = document.getElementById("chat-input");
   if(inp) setTimeout(()=>inp.focus(), 60);
 }
-
-// ── Swipe-to-reply handler (Instagram style) ────────────────────────────────
-// Right-to-left swipe for others' msgs, left-to-right for mine (mirrored)
-// Threshold: 60px drag triggers reply
 const SWIPE_TRIGGER = 60;
 const SWIPE_MAX     = 72;
-
 function _attachSwipeReply(swipeWrap, replyIcon, msg, name, color, isMine){
   let startX = 0, startY = 0, curX = 0;
   let active = false, triggered = false;
-
   function onStart(e){
     const touch = e.touches ? e.touches[0] : e;
     startX = touch.clientX;
@@ -4687,79 +3849,58 @@ function _attachSwipeReply(swipeWrap, replyIcon, msg, name, color, isMine){
     triggered = false;
     swipeWrap.classList.add("swiping");
   }
-
   function onMove(e){
     if(!active) return;
     const touch = e.touches ? e.touches[0] : e;
     const dx = touch.clientX - startX;
     const dy = touch.clientY - startY;
-    // If predominantly vertical scroll, abort
     if(!triggered && Math.abs(dy) > Math.abs(dx) + 8){ active=false; _resetSwipe(swipeWrap,replyIcon); return; }
-
-    // Direction logic: others swipe RIGHT (positive dx), mine swipe LEFT (negative dx)
     const dir = isMine ? -1 : 1;
-    const raw = dx * dir; // positive = correct swipe direction
+    const raw = dx * dir;
     if(raw < 0){ _resetSwipe(swipeWrap,replyIcon); return; }
-
     curX = Math.min(raw, SWIPE_MAX);
-    // Rubber-band easing past 45px
     const visual = curX <= 45 ? curX : 45 + (curX - 45) * 0.4;
     swipeWrap.style.transform = `translateX(${visual * dir}px)`;
-
-    // Show icon after 20px
     if(curX > 20){
       replyIcon.classList.add("visible");
     } else {
       replyIcon.classList.remove("visible");
     }
-
-    // Pop icon at trigger threshold
     if(curX >= SWIPE_TRIGGER && !triggered){
       triggered = true;
       replyIcon.classList.add("popped");
-      // Haptic
       if(navigator.vibrate) navigator.vibrate(18);
     }
     if(curX < SWIPE_TRIGGER && triggered){
       triggered = false;
       replyIcon.classList.remove("popped");
     }
-
-    // Prevent page scroll during horizontal swipe — handled by CSS touch-action:pan-y
   }
-
   function onEnd(){
     if(!active) return;
     active = false;
     swipeWrap.classList.remove("swiping");
     if(triggered){
-      // Trigger reply
       _setReply(isMine ? "You" : name, msg.text, color);
     }
     _resetSwipe(swipeWrap, replyIcon);
   }
-
   function _resetSwipe(wrap, icon){
     wrap.classList.remove("swiping");
     wrap.style.transform = "";
     icon.classList.remove("visible","popped");
     active = false;
   }
-
-  // Touch events (mobile) — all passive so they never block clicks
   swipeWrap.addEventListener("touchstart", onStart, {passive:true});
   swipeWrap.addEventListener("touchmove",  onMove,  {passive:true});
   swipeWrap.addEventListener("touchend",   onEnd,   {passive:true});
   swipeWrap.addEventListener("touchcancel",onEnd,   {passive:true});
-
-  // Mouse events (desktop) — scoped to swipeWrap, no global window listeners
   let mouseDown = false;
   swipeWrap.addEventListener("mousedown", e=>{ mouseDown=true; onStart(e); });
   swipeWrap.addEventListener("mousemove", e=>{ if(mouseDown) onMove(e); });
   swipeWrap.addEventListener("mouseup",   e=>{ if(mouseDown){ mouseDown=false; onEnd(); } });
   swipeWrap.addEventListener("mouseleave",e=>{ if(mouseDown){ mouseDown=false; onEnd(); } });
 }
-
 function listenChat(){
   if(_chatListening || !ROOM_CODE) return;
   _chatListening = true;
@@ -4790,7 +3931,6 @@ function listenChat(){
   chatRef.on('value', chatCb);
   _listeners.push(()=>chatRef.off('value', chatCb));
 }
-
 function addChatBadgeToButton(){
   const btn = document.getElementById("btn-chat-toggle");
   if(!btn || btn.querySelector("#chat-badge")) return;
@@ -4798,81 +3938,86 @@ function addChatBadgeToButton(){
   badge.id = "chat-badge";
   btn.appendChild(badge);
 }
-
-// _doLoadAndStartGame: called by listenRoom when game starts
 async function _doLoadAndStartGame(){
   await loadAndStartGame();
   listenChat();
-  listenPlayerPresence(); // ← online/offline tracking + bot vote system
+  listenPlayerPresence();
   addChatBadgeToButton();
-  // ✅ FIX: Replay any Firebase update that arrived while loadAndStartGame() was running.
-  // Without this, host's first move gets dropped if it arrives before _gameLoaded=true,
-  // causing joiner's dice to never activate (stuck on a turn that already passed).
   if(_pendingSync){
     const pending = _pendingSync;
     _pendingSync = null;
     if(G.over === false) syncGameState(pending);
   }
 }
-
-// ── Bind ALL buttons safely ───────────────────────────────────────────────────
 function bindBtn(id, fn){
   const el = document.getElementById(id);
   if(el) el.addEventListener("click", fn);
   else console.warn("Button not found:", id);
 }
-
-// Lobby
 bindBtn("btn-create-room", ()=>window.showCreateRoom());
 bindBtn("btn-join-room",   ()=>window.showJoinRoom());
-
-// Create room modal
 bindBtn("btn-2p",            ()=>window.createRoom(2));
 bindBtn("btn-3p",            ()=>window.createRoom(3));
 bindBtn("btn-4p",            ()=>window.createRoom(4));
 bindBtn("btn-cancel-create", ()=>closeModals());
-
-// Name modal
 bindBtn("btn-confirm-name", ()=>window.confirmHostName());
-
-// Waiting room
 bindBtn("btn-start-game",   ()=>window.hostStartGame());
-// Waiting room — permanent leave, session clear
 bindBtn("btn-leave-waiting",()=>window.leaveRoom());
-
-// Join modal
 bindBtn("btn-join",         ()=>window.joinRoom());
 bindBtn("btn-cancel-join",  ()=>closeModals());
-
-// Game controls — leaveToLobby keeps session for rejoin card
-bindBtn("btn-back",         ()=>window.leaveToLobby());
-// btn-chat-toggle listener is added dynamically in buildPlayers() (like btn-pause)
-
-// Pause
+bindBtn("btn-test-mode", ()=>window.launchTestMode());
+window.launchTestMode = function(){
+  MY_SEAT = 3;
+  MY_NAME = "YOU";
+  IS_HOST = true;
+  NUM_PLAYERS = 4;
+  SEAT_LAYOUT_ACTIVE = [0,1,2,3];
+  PLAYERS = [];
+  const names = ["P1","P2","P3","YOU"];
+  for(let seat=0;seat<4;seat++){
+    PLAYERS.push({id:seat,seat,color:SEAT_COLOR[seat],label:names[seat],active:true,human:seat===3});
+  }
+  G = {
+    turn: 3,
+    diceVal: null,
+    rolled: false,
+    waiting: false,
+    over: false,
+    sixes: 0,
+    tokens: Array.from({length:16},(_,i)=>({pid:Math.floor(i/4),tid:i%4,step:0})),
+    placements: []
+  };
+  Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
+  _cacheValid = false;
+  MY_SLOT = SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT);
+  document.getElementById("lobby").style.display = "none";
+  document.getElementById("game-wrap").style.display = "inline-flex";
+  document.getElementById("top-bar").style.display = "flex";
+  buildBoard();
+  buildPlayers();
+  _rbReset();
+  PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
+  applyBoardRotation();
+  setSyncStatus("ok");
+  refreshUI();
+  renderTokens();
+  updateTurnBanner();
+  showToast("Test Mode — You are Blue (seat 3)");
+};
 bindBtn("btn-resume",       ()=>window.togglePause());
 bindBtn("btn-leave-pause",  ()=>window.leaveToLobby());
-
-// Win screen
+bindBtn("btn-home-confirm-yes", ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); window.leaveToLobby(); });
+bindBtn("btn-home-confirm-no",  ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); });
 bindBtn("btn-play-again",   ()=>restartGame());
-
-// Chat
-bindBtn("chat-header", ()=>window.toggleChat());
-bindBtn("chat-close",  (e)=>{e.stopPropagation();window.toggleChat();});
+bindBtn("chat-header", (e)=>{ if(e.target.id==='chat-close') return; window.toggleChat(); });
+bindBtn("chat-close",  (e)=>{ e.stopPropagation(); e.preventDefault(); window.toggleChat(); });
 bindBtn("chat-send",   ()=>window.sendChat());
-
 const chatInp = document.getElementById("chat-input");
 if(chatInp) chatInp.addEventListener("keydown", (e)=>{
   if(e.key==="Enter"){e.preventDefault();window.sendChat();}
 });
-
 window.closeModals = closeModals;
-
-// Note: buildBoard() is intentionally NOT called here.
-// It is called inside loadAndStartGame() AFTER MY_SEAT is assigned,
-// so all POV home colors render correctly from the start. (Rule 4)
 console.log("✅ All buttons bound. Board will render after seat assignment.");
-
-// ── Room Code Copy ─────────────────────────────────────────────────────────────
 const _rcDisplay = document.getElementById("display-room-code");
 const _copyToast = document.getElementById("copy-toast");
 let _copyTimer = null;
@@ -4880,7 +4025,6 @@ if(_rcDisplay){
   _rcDisplay.addEventListener("click", function(){
     const code = _rcDisplay.textContent.trim();
     if(!code || code === "------") return;
-    // Try Clipboard API first, fallback to execCommand
     const doCopy = () => {
       if(_copyTimer) clearTimeout(_copyTimer);
       _copyToast.classList.add("show");
@@ -4888,7 +4032,6 @@ if(_rcDisplay){
     };
     if(navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(code).then(doCopy).catch(()=>{
-        // Fallback
         const ta = document.createElement("textarea");
         ta.value = code; ta.style.cssText="position:fixed;opacity:0;";
         document.body.appendChild(ta); ta.select(); document.execCommand("copy");
@@ -4902,18 +4045,10 @@ if(_rcDisplay){
     }
   });
 }
-
-// Bind mute button
 bindBtn("btn-mute", ()=>SFX.toggleMute());
-// Bind performance mode button
 bindBtn("btn-perf", ()=>togglePerfMode());
-// Apply saved perf mode state on load
 applyPerfMode();
-
-}); // end DOMContentLoaded
-
-
-</script>
+});</script>
 
 </body>
 </html>
