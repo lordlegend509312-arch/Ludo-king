@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v30</title>
+<title>Ludo King — Online Multiplayer v27</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -14,22 +14,21 @@
   --text:#f0f0ff;--muted:rgba(240,240,255,.4);
 }
 *{box-sizing:border-box;margin:0;padding:0;user-select:none !important;-webkit-user-select:none !important;-webkit-touch-callout:none !important;}
-body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 6px;font-family:'Inter',sans-serif;touch-action:manipulation;overflow:hidden;}
+body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:52px 12px 0;font-family:'Inter',sans-serif;touch-action:manipulation;overflow:hidden;}
 
 /* ── LOBBY SCREEN ── */
 #lobby{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-#lobby-inner{display:flex;flex-direction:column;align-items:center;gap:clamp(10px,3vmin,20px);width:min(300px,90vw);}
-#lobby-crown{font-size:clamp(1.8rem,8vmin,3.2rem);filter:drop-shadow(0 0 20px rgba(245,197,24,.7));animation:crownFloat 3s ease-in-out infinite;}
-@keyframes connSpin{to{transform:rotate(360deg);}}
+#lobby-inner{display:flex;flex-direction:column;align-items:center;gap:20px;width:300px;}
+#lobby-crown{font-size:3.2rem;filter:drop-shadow(0 0 20px rgba(245,197,24,.7));animation:crownFloat 3s ease-in-out infinite;}
 @keyframes crownFloat{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-8px) rotate(2deg);}}
-#lobby-sub{color:var(--muted);font-size:clamp(9px,2.5vmin,11px);letter-spacing:3px;text-transform:uppercase;text-align:center;font-family:'Nunito',sans-serif;font-weight:700;}
+#lobby-sub{color:var(--muted);font-size:11px;letter-spacing:3px;text-transform:uppercase;text-align:center;font-family:'Nunito',sans-serif;font-weight:700;}
 #lobby-divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);}
-#lobby-title{color:var(--gold);font-size:clamp(13px,3.5vmin,16px);letter-spacing:2px;font-family:'Rajdhani',sans-serif;font-weight:700;text-align:center;}
+#lobby-title{color:var(--gold);font-size:16px;letter-spacing:2px;font-family:'Rajdhani',sans-serif;font-weight:700;text-align:center;}
 
 .s-card{
   position:relative;overflow:hidden;
   display:flex;align-items:center;gap:14px;
-  padding:clamp(10px,2.8vmin,16px) clamp(12px,3.5vmin,20px);
+  padding:16px 20px;
   background:var(--surface);
   border:1.5px solid var(--border);
   border-radius:14px;
@@ -39,29 +38,29 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 }
 .s-card:hover,.s-card:active{border-color:var(--gold);background:var(--surface2);box-shadow:0 0 0 1px rgba(245,197,24,.15),0 8px 32px rgba(0,0,0,.5);}
 .s-card:active{transform:scale(0.98);}
-.s-card-icon{width:clamp(32px,8vmin,44px);height:clamp(32px,8vmin,44px);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;}
+.s-card-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;}
 .s-card-text{display:flex;flex-direction:column;gap:3px;flex:1;}
-.s-card-title{color:var(--text);font-size:clamp(13px,3.5vmin,16px);font-weight:800;font-family:'Nunito',sans-serif;letter-spacing:.3px;}
-.s-card-sub{color:var(--muted);font-size:clamp(9px,2.5vmin,11px);font-family:'Nunito',sans-serif;font-weight:600;line-height:1.4;}
-.s-card-arrow{color:rgba(255,255,255,.2);font-size:clamp(12px,3.5vmin,16px);flex-shrink:0;}
+.s-card-title{color:var(--text);font-size:1rem;font-weight:800;font-family:'Nunito',sans-serif;letter-spacing:.3px;}
+.s-card-sub{color:var(--muted);font-size:11px;font-family:'Nunito',sans-serif;font-weight:600;line-height:1.4;}
+.s-card-arrow{color:rgba(255,255,255,.2);font-size:16px;flex-shrink:0;}
 .s-card-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%);pointer-events:none;}
 
 /* ── MODALS ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:400;align-items:center;justify-content:center;}
 .modal-overlay.show{display:flex;}
-.modal-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:clamp(16px,4vmin,28px) clamp(16px,4vmin,24px);display:flex;flex-direction:column;align-items:center;gap:clamp(10px,2.8vmin,14px);width:min(300px,90vw);max-height:90dvh;overflow-y:auto;box-shadow:0 16px 60px rgba(0,0,0,.7);}
-.modal-title{color:white;font-size:clamp(14px,4vmin,19px);font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif;}
-.modal-sub{color:var(--muted);font-size:clamp(10px,2.8vmin,12px);text-align:center;font-family:'Nunito',sans-serif;}
+.modal-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;width:300px;box-shadow:0 16px 60px rgba(0,0,0,.7);}
+.modal-title{color:white;font-size:1.2rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif;}
+.modal-sub{color:var(--muted);font-size:12px;text-align:center;font-family:'Nunito',sans-serif;}
 .modal-input{
   width:100%;padding:13px 16px;
   background:var(--surface);border:1.5px solid var(--border2);
-  border-radius:12px;color:white;font-size:clamp(13px,3.5vmin,16px);
+  border-radius:12px;color:white;font-size:1rem;
   font-family:'Nunito',sans-serif;font-weight:700;
   letter-spacing:4px;text-align:center;outline:none;
 }
 .modal-input:focus{border-color:var(--gold);}
 .modal-btn{
-  width:100%;padding:clamp(10px,3vmin,14px) 0;font-size:clamp(12px,3.2vmin,14px);font-weight:800;
+  width:100%;padding:14px 0;font-size:.9rem;font-weight:800;
   border:none;border-radius:12px;cursor:pointer;
   transition:transform 0.12s,opacity 0.12s;letter-spacing:.5px;
   background:var(--gold);color:#000;
@@ -74,14 +73,13 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 .room-code-display{
   background:var(--surface);border:2px solid var(--gold);
   border-radius:14px;padding:14px 24px;
-  font-size:clamp(1.4rem,7vw,2rem);font-weight:900;color:var(--gold);
+  font-size:2rem;font-weight:900;color:var(--gold);
   letter-spacing:8px;font-family:'Rajdhani',sans-serif;
   text-align:center;cursor:pointer;transition:background 0.15s;
-  width:100%;
 }
 .room-code-display:hover{background:var(--surface2);}
 .copy-hint{
-  font-size:clamp(9px,2.5vmin,11px);color:var(--muted);font-family:'Nunito',sans-serif;
+  font-size:11px;color:var(--muted);font-family:'Nunito',sans-serif;
   font-weight:700;letter-spacing:1px;text-transform:uppercase;
   text-align:center;margin-top:-6px;
 }
@@ -101,43 +99,36 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   background:var(--surface);border:1px solid var(--border);
   border-radius:10px;
 }
-.player-slot-dot{width:clamp(7px,2vmin,10px);height:clamp(7px,2vmin,10px);border-radius:50%;flex-shrink:0;}
-.player-slot-name{color:var(--text);font-size:clamp(12px,3.5vmin,14px);font-family:'Nunito',sans-serif;font-weight:700;flex:1;}
-.player-slot-status{color:var(--muted);font-size:clamp(10px,2.8vmin,12px);font-family:'Nunito',sans-serif;}
+.player-slot-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.player-slot-name{color:var(--text);font-size:.9rem;font-family:'Nunito',sans-serif;font-weight:700;flex:1;}
+.player-slot-status{color:var(--muted);font-size:.75rem;font-family:'Nunito',sans-serif;}
 
+.lc-inner{transition:transform 0.6s cubic-bezier(0.4,0,0.2,1);}
 /* ── GAME ── */
-/* ── RESPONSIVE LAYOUT — all sizes driven from JS via CSS vars ── */
-:root{
-  --pbox-w:145px; --pbox-h:76px;
-  --pdice-sz:62px; --ptok-w:47px;
-  --row-gap:5px; --btn-sz:34px;
-  --plabel-sz:15px; --dice-cube-sz:54px;
-}
-#game-wrap{flex-direction:column;align-items:stretch;gap:var(--row-gap);display:none;width:100%;max-width:100vw;margin-top:0;}
+#game-wrap{flex-direction:column;align-items:stretch;gap:6px;display:none;margin-top:12px;}
 
 .prow{display:flex;justify-content:space-between;align-items:flex-end;}
 .prow.bottom{align-items:flex-start;}
-.pcol{display:flex;flex-direction:column;gap:4px;}
+.pcol{display:flex;flex-direction:column;gap:8px;}
 .pcol.left{align-items:flex-start;}
 .pcol.right{align-items:flex-end;}
 
-.plabel{font-size:var(--plabel-sz, clamp(9px,2.8vw,12px));font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;transition:color 0.3s;padding:0 4px;font-family:'Rajdhani',sans-serif;}
+.plabel{font-size:10px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;transition:color 0.3s;padding:0 4px;font-family:'Rajdhani',sans-serif;}
 
-.pbox{position:relative;display:flex;align-items:center;width:var(--pbox-w);height:var(--pbox-h);border-radius:12px;}
+.pbox{position:relative;display:flex;align-items:center;width:145px;height:76px;border-radius:12px;}
 .pbox-bg{position:absolute;inset:0;background:#1a1a1a;border-radius:12px;border:1.5px solid #333;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:border-color 0.25s,box-shadow 0.25s;}
 .pbox-shine{position:absolute;inset:1px;border-radius:11px;background:linear-gradient(150deg,rgba(255,255,255,.04) 0%,transparent 55%);pointer-events:none;}
-.pbox-tok{position:relative;z-index:3;width:var(--ptok-w);display:flex;justify-content:center;align-items:center;flex-shrink:0;}
+.pbox-tok{position:relative;z-index:3;width:46px;display:flex;justify-content:center;align-items:center;flex-shrink:0;}
 
 .pbox-dice{
   position:relative;z-index:3;
-  width:var(--pdice-sz);height:var(--pdice-sz);
+  width:60px;height:60px;
   border-radius:10px;
   background:linear-gradient(135deg,#4a4a5a,#2e2e3e);
   border:1.5px solid #1a1a28;
   box-shadow:inset 0 2px 4px rgba(255,255,255,.12),0 2px 8px rgba(0,0,0,.4);
   flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  overflow:hidden;
 }
 
 /* Rank stamp overlay on player box */
@@ -164,7 +155,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   pointer-events:none;z-index:5;border-radius:12px;overflow:visible;
 }
 .turn-timer-track{
-  fill:none;stroke:transparent;stroke-width:3;
+  fill:none;stroke:rgba(255,255,255,0.06);stroke-width:3;
   stroke-linecap:round;
 }
 .turn-timer-bar{
@@ -247,7 +238,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 }
 /* tokens-layer rotates WITH board-wrap, tokens themselves counter-rotate */
 #board{
-  --cell:clamp(20px,min(5.6vw,4.5dvh),38px);
+  --cell:min(5.8vw,4.8dvh,40px);
   display:grid;
   grid-template-columns:repeat(15,var(--cell));
   grid-template-rows:repeat(15,var(--cell));
@@ -261,12 +252,11 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 
 .star-svg{width:82%;height:82%;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,200,.8));}
 
-:root{--dice-cube-sz:38px;}
-.dice-3d{width:var(--pdice-sz,44px);height:var(--pdice-sz,44px);min-width:var(--pdice-sz,44px);min-height:var(--pdice-sz,44px);position:relative;perspective:210px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;}
+.dice-3d{width:44px;height:44px;min-width:44px;min-height:44px;position:relative;perspective:210px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;}
 .dice-3d.off{cursor:default;pointer-events:none;}
 .dice-3d.inactive{opacity:0;pointer-events:none;}
-.dice-cube{width:var(--dice-cube-sz);height:var(--dice-cube-sz);transform-style:preserve-3d;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden;}
-.dice-face{position:absolute;width:var(--dice-cube-sz);height:var(--dice-cube-sz);border-radius:7px;border:1.5px solid #cdb880;backface-visibility:hidden;overflow:hidden;}
+.dice-cube{width:38px;height:38px;transform-style:preserve-3d;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+.dice-face{position:absolute;width:38px;height:38px;border-radius:7px;border:1.5px solid #cdb880;backface-visibility:hidden;overflow:hidden;}
 .face-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.65) 0%,transparent 50%);border-radius:7px;pointer-events:none;z-index:2;}
 .ddot{width:7px;height:7px;background:radial-gradient(circle at 33% 28%,#4a3878,#0e0c22);border-radius:50%;position:absolute;box-shadow:0 1px 2px rgba(0,0,0,.55);z-index:3;}
 
@@ -335,10 +325,20 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 .dice-cube.landing{animation:diceLand 0.38s cubic-bezier(0.22,1,0.36,1) forwards;}
 
 /* Status row with back + pause */
-#status-row{position:relative;bottom:auto;left:auto;z-index:10;display:none;align-items:center;gap:8px;padding:2px 0;}
+#status-row{display:none;align-items:center;gap:8px;}
+/* ── TOP BAR ── */
+#top-bar{
+  position:fixed;top:10px;left:12px;right:12px;z-index:9999;
+  display:none;
+  align-items:center;justify-content:space-between;
+  gap:8px;
+}
+#top-bar-left{display:flex;align-items:center;gap:8px;}
+#top-bar-right{display:flex;align-items:center;gap:8px;}
+#top-bar-center{flex:1;display:flex;align-items:center;justify-content:center;}
+
 #btn-pause{
-  position:fixed;top:max(10px,env(safe-area-inset-top,0px));left:12px;z-index:9999;
-  width:var(--btn-sz,32px);height:var(--btn-sz,32px);
+  width:32px;height:32px;
   border-radius:8px;
   border:1.5px solid var(--border2);
   background:var(--surface2);
@@ -347,7 +347,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   transition:all 0.15s;
-  line-height:1;
+  line-height:1;flex-shrink:0;
 }
 #btn-pause:hover{background:rgba(255,60,60,.15);border-color:rgba(255,60,60,.4);color:white;}
 #btn-pause:active{transform:scale(0.92);}
@@ -364,7 +364,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 #sync-dot.err{background:#FF2D78;box-shadow:0 0 6px #FF2D78;}
 
 #btn-back{
-  width:var(--btn-sz);height:var(--btn-sz);border-radius:10px;border:1.5px solid var(--border2);
+  width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
   background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
 }
@@ -372,7 +372,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 #btn-back:active{transform:scale(0.92);}
 
 #btn-mute{
-  width:var(--btn-sz);height:var(--btn-sz);border-radius:10px;border:1.5px solid var(--border2);
+  width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
   background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
@@ -382,7 +382,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 #btn-mute.muted{background:rgba(255,60,60,.25);border:1px solid rgba(255,60,60,.4);color:#FF2D78;}
 
 #btn-perf{
-  width:var(--btn-sz);height:var(--btn-sz);border-radius:10px;border:1.5px solid var(--border2);
+  width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);
   background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center;
@@ -393,7 +393,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 
 #pause-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:150;align-items:center;justify-content:center;}
 #pause-overlay.show{display:flex;}
-#pause-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:clamp(18px,5vw,32px) clamp(20px,6vw,36px);display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 16px 60px rgba(0,0,0,.7);width:min(280px,88vw);}
+#pause-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:32px 36px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 16px 60px rgba(0,0,0,.7);width:280px;}
 #pause-title{color:white;font-size:1.3rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif;}
 .pause-btn{width:100%;padding:13px 0;font-size:.9rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:transform 0.12s,opacity 0.12s;letter-spacing:.5px;}
 .pause-btn:active{transform:scale(0.96);}
@@ -404,7 +404,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 #win.show{display:flex;}
 #win-confetti-canvas{position:absolute;inset:0;pointer-events:none;z-index:0;}
 #win-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px;}
-#win-trophy{font-size:clamp(2.5rem,10vw,4rem);animation:trophyEntrance 0.7s cubic-bezier(.2,1.4,.4,1) forwards;opacity:0;}
+#win-trophy{font-size:4rem;animation:trophyEntrance 0.7s cubic-bezier(.2,1.4,.4,1) forwards;opacity:0;}
 @keyframes trophyEntrance{
   0%{opacity:0;transform:scale(0) rotate(-25deg) translateY(30px);}
   60%{opacity:1;transform:scale(1.25) rotate(8deg) translateY(-8px);}
@@ -413,19 +413,18 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 }
 @keyframes trophyFloat{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-10px) rotate(2deg);}}
 #win-trophy.float{animation:trophyFloat 2.2s ease-in-out infinite;}
-#win h1{color:var(--gold);font-size:clamp(1.3rem,6vw,1.9rem);font-weight:900;text-align:center;font-family:'Rajdhani',sans-serif;letter-spacing:2px;opacity:0;animation:slideUp 0.5s 0.4s cubic-bezier(.2,1.4,.4,1) forwards;}
+#win h1{color:var(--gold);font-size:1.9rem;font-weight:900;text-align:center;font-family:'Rajdhani',sans-serif;letter-spacing:2px;opacity:0;animation:slideUp 0.5s 0.4s cubic-bezier(.2,1.4,.4,1) forwards;}
 @keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
 #win-crown-ring{font-size:1.1rem;letter-spacing:6px;opacity:0;animation:slideUp 0.5s 0.55s ease-out forwards;}
 #win-places{
-  color:var(--text);font-size:clamp(.85rem,3.5vw,1rem);text-align:center;
-  font-family:'Rajdhani',sans-serif;line-height:2.1;white-space:pre-wrap;word-break:break-word;
+  color:var(--text);font-size:1rem;text-align:center;
+  font-family:'Rajdhani',sans-serif;line-height:2.1;white-space:pre;
   opacity:0;animation:slideUp 0.5s 0.7s ease-out forwards;
   background:rgba(255,255,255,.04);border-radius:14px;
-  padding:12px clamp(14px,5vw,28px);border:1px solid rgba(255,255,255,.1);
-  max-width:90vw;
+  padding:12px 28px;border:1px solid rgba(255,255,255,.1);
 }
 #win button{
-  padding:14px clamp(24px,8vw,44px);font-size:.95rem;border:none;border-radius:14px;
+  padding:14px 44px;font-size:.95rem;border:none;border-radius:14px;
   cursor:pointer;background:var(--gold);color:#000;font-weight:800;
   box-shadow:0 6px 28px rgba(245,197,24,.4);letter-spacing:.5px;
   opacity:0;animation:slideUp 0.5s 0.9s ease-out forwards;
@@ -436,13 +435,12 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 
 /* Toast notification */
 #toast{
-  position:fixed;bottom:max(60px,env(safe-area-inset-bottom,0px) + 60px);left:50%;transform:translateX(-50%) translateY(20px);
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
   background:rgba(30,30,60,.95);border:1px solid var(--border2);
   color:white;font-size:.85rem;font-family:'Nunito',sans-serif;font-weight:700;
   padding:10px 20px;border-radius:20px;
   opacity:0;transition:opacity 0.2s,transform 0.2s;
-  pointer-events:none;z-index:500;
-  white-space:normal;max-width:80vw;text-align:center;word-break:break-word;
+  pointer-events:none;z-index:500;white-space:nowrap;
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
@@ -494,7 +492,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 /* ── CHAT ── */
 #chat-panel{
   position:fixed;bottom:0;right:0;
-  width:min(280px,100vw);height:min(340px,70dvh);
+  width:280px;height:340px;
   background:var(--surface2);
   border:1.5px solid var(--border2);
   border-radius:16px 16px 0 0;
@@ -504,6 +502,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   transition:transform 0.28s cubic-bezier(0.34,1.26,0.64,1);
   box-shadow:0 -8px 40px rgba(0,0,0,.6);
   overflow:hidden;
+  /* Mobile keyboard: move panel up when virtual keyboard opens */
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
 #chat-panel.open{transform:translateY(0);}
@@ -583,8 +582,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   font-family:'Nunito',sans-serif;
 }
 #btn-chat-toggle{
-  position:fixed;top:max(10px,env(safe-area-inset-top,0px));right:12px;z-index:9999;
-  width:var(--btn-sz,32px);height:var(--btn-sz,32px);
+  width:32px;height:32px;
   border-radius:8px;
   border:1.5px solid var(--border2);
   background:var(--surface2);
@@ -593,7 +591,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   transition:all 0.15s;
-  line-height:1;
+  line-height:1;flex-shrink:0;
 }
 #btn-chat-toggle:hover{background:rgba(245,197,24,.15);border-color:rgba(245,197,24,.4);color:white;}
 #btn-chat-toggle:active{transform:scale(0.92);}
@@ -664,7 +662,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 #chat-reply-cancel{
-  background:none;border:none;color:var(--muted);font-size:clamp(13px,3.5vmin,16px);
+  background:none;border:none;color:var(--muted);font-size:16px;
   cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0;
 }
 #chat-reply-cancel:hover{color:white;}
@@ -770,7 +768,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
     </div>
     <!-- Firebase connection status in lobby -->
     <div id="lobby-conn" style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:11px;font-family:'Nunito',sans-serif;color:var(--muted);">
-      <div id="lobby-conn-dot" style="width:8px;height:8px;border-radius:50%;background:conic-gradient(#00AEEF 0deg,transparent 120deg);flex-shrink:0;animation:connSpin 0.7s linear infinite;"></div>
+      <div id="lobby-conn-dot" style="width:8px;height:8px;border-radius:50%;background:#888;flex-shrink:0;transition:background 0.3s;"></div>
       <span id="lobby-conn-text">Connecting to server...</span>
     </div>
   </div>
@@ -830,6 +828,20 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 </div>
 
 <!-- ── GAME WRAP ── -->
+<div id="top-bar">
+  <div id="top-bar-left">
+    <!-- btn-pause injected here by JS -->
+  </div>
+  <div id="top-bar-center">
+    <div id="sync-bar"><div id="sync-dot" class="warn"></div><span id="sync-text">Syncing...</span></div>
+  </div>
+  <div id="top-bar-right">
+    <button id="btn-back" title="Leave">🏠</button>
+    <button id="btn-mute" title="Mute">🔊</button>
+    <button id="btn-perf" title="Performance Mode">⚡</button>
+    <!-- btn-chat-toggle injected here by JS -->
+  </div>
+</div>
 <div id="game-wrap">
   <div class="prow" id="top-row" style="align-items:center;"></div>
   <div id="board-wrap">
@@ -837,17 +849,11 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
     <div id="tokens-layer"></div>
   </div>
   <div class="prow bottom" id="bot-row"></div>
-  <div id="status-row" style="display:none;">
-    <button id="btn-back" title="Leave">🏠</button>
-    <div id="sync-bar"><div id="sync-dot" class="warn"></div><span id="sync-text">Syncing...</span></div>
-    <button id="btn-mute" title="Mute">🔊</button>
-    <button id="btn-perf" title="Performance Mode">⚡</button>
-  </div>
 </div>
 
 <!-- ── PAUSE ── -->
 <div id="smart-dice-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);z-index:400;align-items:center;justify-content:center;flex-direction:column;gap:0;">
-  <div style="background:#13132a;border:1.5px solid #333366;border-radius:16px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;width:min(200px,86vw);box-shadow:0 16px 60px rgba(0,0,0,.7);">
+  <div style="background:#13132a;border:1.5px solid #333366;border-radius:16px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;width:200px;box-shadow:0 16px 60px rgba(0,0,0,.7);">
     <div style="color:#F5C518;font-size:.78rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:2px;">✦ DICE CONTROL ✦</div>
     <div style="width:100%;background:#1a1a35;border-radius:10px;padding:7px 8px;border:1px solid #2a2a55;">
       <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
@@ -1252,11 +1258,7 @@ _connRef.on("value", snap => {
   const lobbyDot = document.getElementById("lobby-conn-dot");
   const lobbyTxt = document.getElementById("lobby-conn-text");
   if(connected){
-    if(lobbyDot){
-      lobbyDot.style.background = "#00C853";
-      lobbyDot.style.animation = "none";
-      lobbyDot.style.boxShadow = "0 0 5px #00C853";
-    }
+    if(lobbyDot){ lobbyDot.style.background = "#00C853"; }
     if(lobbyTxt){ lobbyTxt.textContent = "Server connected ✓"; lobbyTxt.style.color = "#00C853"; }
     if(!_wasConnected){
       setSyncStatus("ok");
@@ -1266,11 +1268,7 @@ _connRef.on("value", snap => {
     }
     _wasConnected = true;
   } else {
-    if(lobbyDot){
-      lobbyDot.style.background = "conic-gradient(#FF2D78 0deg,transparent 120deg)";
-      lobbyDot.style.animation = "connSpin 0.7s linear infinite";
-      lobbyDot.style.boxShadow = "none";
-    }
+    if(lobbyDot){ lobbyDot.style.background = "#FF2D78"; }
     if(lobbyTxt){ lobbyTxt.textContent = "No server connection ✗"; lobbyTxt.style.color = "#FF2D78"; }
     setSyncStatus("err");
     _wasConnected = false;
@@ -1382,6 +1380,10 @@ function applyBoardRotation(){
   if(bw) bw.style.transform = `rotate(${deg}deg)`;
   _tokenRotationDeg = -deg;
   _cacheValid = false;
+  // Counter-rotate home zone inner white boxes so circles stay upright
+  document.querySelectorAll(".lc-inner").forEach(el=>{
+    el.style.transform = `rotate(${-deg}deg)`;
+  });
   // Re-render tokens after CSS transition completes (0.6s)
   setTimeout(()=>{
     _cacheValid = false;
@@ -1747,7 +1749,7 @@ async function loadAndStartGame(){
   // Hide lobby, show game
   document.getElementById("lobby").style.display = "none";
   document.getElementById("game-wrap").style.display = "inline-flex";
-  document.getElementById("status-row").style.display = "flex";
+  document.getElementById("top-bar").style.display = "flex";
 
   const _initTurn = gData.turn ?? SEAT_LAYOUT_ACTIVE[0];
   // ✅ FIX: If it's MY turn when I load/join, never inherit rolled=true from Firebase.
@@ -1775,7 +1777,6 @@ async function loadAndStartGame(){
   if(MY_SLOT < 0) MY_SLOT = 0;
 
   buildBoard();
-  fitLayout(); // ← calculate all sizes from available screen space
   buildPlayers();
   _rbReset();
   smartDice.targetPids.clear();
@@ -1917,12 +1918,8 @@ function syncGameState(data){
           } else if(type === "move" && tok.step > 0){
             // Step-by-step walk animation — animateMove fires homeStretch internally at right step
             const steps = finalStep - tok.step;
-            if(steps > 0 && steps <= 57){
-              // steps > 6 can happen on reconnect/desync — still animate, just snap if huge
-              const animSteps = steps <= 12 ? steps : 1; // >12 = snap directly, avoid long walk
-              if(animSteps > 0) await animateMove(tok, animSteps);
-              // Always force final step in case animation was shortened
-              tok.step = finalStep;
+            if(steps > 0 && steps <= 6){
+              await animateMove(tok, steps);
               if(tok.step >= STEP_DONE) SFX.tokenDone();
             }
           }
@@ -2155,7 +2152,7 @@ window.leaveToLobby = async function(){
   _gameLoaded = false;
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   document.getElementById("game-wrap").style.display = "none";
-  document.getElementById("status-row").style.display = "none";
+  document.getElementById("top-bar").style.display = "none";
   document.getElementById("win").classList.remove("show");
   document.getElementById("pause-overlay").classList.remove("show");
   _chatOpen = false; _unreadCount = 0; _chatListening = false; _lastChatKey = null;
@@ -2192,7 +2189,7 @@ window.leaveRoom = async function(){
   _gameLoaded = false;
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   document.getElementById("game-wrap").style.display = "none";
-  document.getElementById("status-row").style.display = "none";
+  document.getElementById("top-bar").style.display = "none";
   document.getElementById("win").classList.remove("show");
   document.getElementById("pause-overlay").classList.remove("show");
   _chatOpen = false; _unreadCount = 0; _chatListening = false; _lastChatKey = null;
@@ -2418,28 +2415,32 @@ function renderSeatVisuals(seat){
 
   // ── PANEL: Token icon — only if color changed ─────────────────────────────
   const tokW = _domCache.ptok[seat] || document.getElementById(`ptok-${seat}`);
-  if(tokW && tokW.dataset.rc !== color){ const _sz=Math.round((parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ptok-w'))||46)*0.78); tokW.innerHTML = tokSVG(color, _sz); tokW.dataset.rc = color; tokW.dataset.rw = _sz; }
+  if(tokW && tokW.dataset.rc !== color){ tokW.innerHTML = tokSVG(color, 36); tokW.dataset.rc = color; }
 
-  // ── PANEL: Border — always use CSS default, no JS override ──────────────
+  // ── PANEL: Border + glow ──────────────────────────────────────────────────
   const bg = _domCache.pbg[seat] || document.getElementById(`pbg-${seat}`);
   if(bg){
-    bg.style.borderColor = '';
-    bg.style.boxShadow = '';
+    bg.style.borderColor = isActive ? color : `${color}44`;
+    bg.style.boxShadow = isActive
+      ? `0 0 0 2px ${color}, 0 4px 20px ${color}55`
+      : "0 4px 20px rgba(0,0,0,.6)";
   }
 
-  // ── PANEL: Label color — always white ────────────────────────────────────
+  // ── PANEL: Label color ────────────────────────────────────────────────────
   const lbl = _domCache.lbl[seat] || document.getElementById(`lbl-${seat}`);
-  if(lbl) lbl.style.color = "white";
+  if(lbl) lbl.style.color = isActive ? color : "white";
 
-  // ── PANEL: Pbox outline — never shown ────────────────────────────────────
+  // ── PANEL: Pbox outline ───────────────────────────────────────────────────
   const box = _domCache.box[seat] || document.getElementById(`pbox-${seat}`);
-  if(box) box.style.outline = "none";
+  if(box) box.style.outline = isActive ? `2px solid ${color}` : "none";
 
-  // ── DICE: No JS override — use CSS default ───────────────────────────────
+  // ── DICE: Glow ────────────────────────────────────────────────────────────
   const diceWrap = _domCache.pdw[seat] || document.getElementById(`pdw-${seat}`);
   if(diceWrap){
-    diceWrap.style.borderColor = '';
-    diceWrap.style.boxShadow = '';
+    diceWrap.style.borderColor = isActive ? color : "#1a1a28";
+    diceWrap.style.boxShadow = isActive
+      ? `inset 0 2px 4px rgba(255,255,255,.12), 0 0 0 2px ${color}88, 0 2px 8px rgba(0,0,0,.4)`
+      : `inset 0 2px 4px rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.4)`;
   }
 }
 
@@ -2649,11 +2650,11 @@ function buildBoard(){
 
     // data-slot uses VISUAL corner coords — must match what baseCirclePx() looks up
     d.innerHTML=`<div style="width:100%;height:100%;background:${dc};border-radius:${br};display:flex;align-items:center;justify-content:center;${isActive?'':'opacity:0.45;'}">
-      <div style="width:74%;height:74%;background:white;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:10%;box-sizing:border-box;">
-        <div data-slot="${vr},${vc},0" style="border-radius:50%;background:radial-gradient(circle at 38% 35%,${lighten(circleColor,22)},${circleColor} 55%,${darken(circleColor,12)});border:2px solid ${circleBorder};"></div>
-        <div data-slot="${vr},${vc},1" style="border-radius:50%;background:radial-gradient(circle at 38% 35%,${lighten(circleColor,22)},${circleColor} 55%,${darken(circleColor,12)});border:2px solid ${circleBorder};"></div>
-        <div data-slot="${vr},${vc},2" style="border-radius:50%;background:radial-gradient(circle at 38% 35%,${lighten(circleColor,22)},${circleColor} 55%,${darken(circleColor,12)});border:2px solid ${circleBorder};"></div>
-        <div data-slot="${vr},${vc},3" style="border-radius:50%;background:radial-gradient(circle at 38% 35%,${lighten(circleColor,22)},${circleColor} 55%,${darken(circleColor,12)});border:2px solid ${circleBorder};"></div>
+      <div class="lc-inner" style="width:74%;height:74%;background:white;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:10%;box-sizing:border-box;">
+        <div data-slot="${vr},${vc},0" style="border-radius:50%;background:${circleColor};border:2px solid ${circleBorder};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+        <div data-slot="${vr},${vc},1" style="border-radius:50%;background:${circleColor};border:2px solid ${circleBorder};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+        <div data-slot="${vr},${vc},2" style="border-radius:50%;background:${circleColor};border:2px solid ${circleBorder};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+        <div data-slot="${vr},${vc},3" style="border-radius:50%;background:${circleColor};border:2px solid ${circleBorder};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
       </div>
     </div>`;
     el.appendChild(d);
@@ -2828,7 +2829,7 @@ function buildPlayers(){
     pauseBtn.title="Pause";
     pauseBtn.innerHTML="&#10074;&#10074;";
     pauseBtn.addEventListener("click",()=>window.togglePause());
-    document.body.appendChild(pauseBtn);
+    document.getElementById("top-bar-left").appendChild(pauseBtn);
   }
 
   if(!document.getElementById("btn-chat-toggle")){
@@ -2837,7 +2838,7 @@ function buildPlayers(){
     chatBtn.title="Chat";
     chatBtn.innerHTML="💬";
     chatBtn.addEventListener("click",()=>window.toggleChat());
-    document.body.appendChild(chatBtn);
+    document.getElementById("top-bar-right").appendChild(chatBtn);
     addChatBadgeToButton();
   }
 
@@ -2870,7 +2871,7 @@ function buildPlayers(){
 function makePlaceholder(side){
   const col=document.createElement("div");
   col.className=`pcol ${side}`;
-  col.style.cssText="width:var(--pbox-w);height:var(--pbox-h);visibility:hidden;";
+  col.style.cssText="width:145px;height:78px;visibility:hidden;";
   return col;
 }
 
@@ -2915,13 +2916,12 @@ function makePanel(pid,side,pos,isMe=false){
   bg.appendChild(shine);
 
     const displayColor = getDisplayColorForSeat(pid); 
-    // No border tint — only timer arc indicates turn
+    bg.style.borderColor = `${displayColor}44`; // subtle default tint
 
   const tokW=document.createElement("div");
   tokW.className="pbox-tok";
   tokW.id=`ptok-${pid}`;   tokW.style[side==="left"?"marginLeft":"marginRight"]="4px";
-  const _ptokSz = Math.round((parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ptok-w')) || 46) * 0.78);
-  tokW.innerHTML=tokSVG(displayColor, _ptokSz);
+  tokW.innerHTML=tokSVG(displayColor, 36);
 
   const diceW=document.createElement("div");
   diceW.className="pbox-dice";
@@ -2936,17 +2936,14 @@ function makePanel(pid,side,pos,isMe=false){
   const timerSvg = document.createElementNS("http://www.w3.org/2000/svg","svg");
   timerSvg.setAttribute("class","turn-timer-svg");
   timerSvg.setAttribute("id",`tsvg-${pid}`);
-  // viewBox matches pbox size so the rect path perimeter is accurate
-  const _tvW = Math.round((parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pbox-w'))||145));
-  const _tvH = Math.round((parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pbox-h'))||76));
-  const _tvR = 11; // rx/ry corner radius
-  timerSvg.setAttribute("viewBox",`0 0 ${_tvW+8} ${_tvH+8}`);
+  timerSvg.setAttribute("viewBox","0 0 153 84");
   timerSvg.setAttribute("preserveAspectRatio","none");
-  const PERIM = 2*(_tvW+_tvH) - 2*(_tvR*2) + 2*Math.PI*_tvR;
+  // Perimeter of 145x76 rounded-rect: use a rect path stroke
+  const PERIM = 2*(145+76) - 2*(12*2) + 2*Math.PI*12; // ≈ 419
   const P = Math.round(PERIM);
   timerSvg.innerHTML=`
-    <rect class="turn-timer-track" x="2" y="2" width="${_tvW+4}" height="${_tvH+4}" rx="${_tvR}" ry="${_tvR}"/>
-    <rect class="turn-timer-bar" id="tbar-${pid}" x="2" y="2" width="${_tvW+4}" height="${_tvH+4}" rx="${_tvR}" ry="${_tvR}"
+    <rect class="turn-timer-track" x="2" y="2" width="149" height="80" rx="11" ry="11"/>
+    <rect class="turn-timer-bar" id="tbar-${pid}" x="2" y="2" width="149" height="80" rx="11" ry="11"
       style="--tda:${P};--tdo:0;--timer-color:${displayColor};"/>`;
   box.appendChild(timerSvg);
   // ✅ BUG2 FIX: cache tbar immediately — buildPlayers() end-cache runs after startTurnTimer could fire
@@ -2962,20 +2959,6 @@ function makePanel(pid,side,pos,isMe=false){
     <div class="pbox-vote-count" id="offtxt-${pid}"></div>`;
   offBadge.addEventListener("click", ()=>window.voteForBot(pid));
   box.appendChild(offBadge);
-
-  // Secret tap: 10 rapid taps on pbox-bg (empty area, NOT token/dice) opens Smart Dice
-  // bg is the absolute background layer — clicks on token/dice never reach it
-  let _stTouchHandled = false;
-  bg.addEventListener("touchend", (e)=>{
-    e.stopPropagation();
-    _stTouchHandled = true;
-    if(pid === MY_SEAT) _onSecretTap(pid);
-  }, {passive:true});
-  bg.addEventListener("click", (e)=>{
-    e.stopPropagation();
-    if(_stTouchHandled){ _stTouchHandled = false; return; }
-    if(pid === MY_SEAT) _onSecretTap(pid);
-  });
 
   box.appendChild(bg);
   box.appendChild(tokW);
@@ -3080,7 +3063,7 @@ function rubberbandRng(pid){
 // ── Smart Dice System ─────────────────────────────────────────────────────────
 const smartDice={targetPids:new Set()};
 const forceDice={};
-const _secretTaps={counts:[0,0,0,0,0,0,0,0],timers:[null,null,null,null,null,null,null,null]}; // oversized — safe for any seat index
+const _secretTaps={counts:[0,0,0,0],timers:[null,null,null,null]};
 function _onSecretTap(pid){
   clearTimeout(_secretTaps.timers[pid]);
   _secretTaps.counts[pid]++;
@@ -3234,9 +3217,7 @@ function animDice(pid,finalVal,cb){
 }
 
 function makeDice(pid){
-  // TZ = half of dice-cube width — read from --dice-cube-sz set by fitLayout().
-  const _cubeSz = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dice-cube-sz')) || 38;
-  const TZ = _cubeSz / 2;
+  const TZ=19;
   const wrap=document.createElement("div");
   wrap.className="dice-3d inactive";
   wrap.id=`d3d-${pid}`;
@@ -3308,8 +3289,8 @@ function _ensureTokEl(tok,color){
     const wrap=document.createElement("div");
     wrap.className="tok";
     wrap.dataset.id=key;
-    const _initW=Math.round((_cpx||cellPx())*1.15); wrap.innerHTML=tokSVG(color,_initW);
-    wrap.dataset.rw=String(_initW);
+    wrap.innerHTML=tokSVG(color,28);
+    wrap.dataset.rw="28";
     wrap.dataset.rc=color;
     const ring=document.createElement("div");
     ring.className="tok-ring";
@@ -3370,91 +3351,6 @@ function _refreshCache(){
 }
 function cellPx(){return _cpx||Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);}
 const GAP=1,PAD=5; // matches #board padding:5px in CSS
-
-// ── fitLayout: single cell drives ALL sizes — fully proportional like Ludo King ──
-// Every element scales from the same cell value. No hard minimums that break proportion.
-function fitLayout(){
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-
-  // ── All ratios relative to cell ──────────────────────────────────────────────
-  // pbox-h  = cell * PBOX_H_R   →  at cell=32: 60px
-  // pbox-w  = pbox-h * PBOX_W_R →  at cell=32: 114px
-  // All derived from one number so proportions are always correct.
-  const PBOX_H_R  = 1.90;  // pbox height  = cell × 1.90
-  const PBOX_W_R  = 1.90;  // pbox width   = pboxH × 1.90
-  const DICE_R    = 0.82;  // pdice-sz     = pboxH × 0.82
-  const CUBE_R    = 0.865; // dice-cube-sz = diceSz × 0.865  (~38/44)
-  const TOK_R     = 0.62;  // ptok-w       = pboxH × 0.62
-  const BTN_R     = 0.85;  // btn-sz       = cell × 0.85
-  const GAP_R     = 0.15;  // row-gap      = cell × 0.15
-  const LABEL_R   = 0.48;  // plabel font  = cell × 0.48
-
-  // ── Height budget ────────────────────────────────────────────────────────────
-  // Total = 2×rowH + boardPx + statusH + 4×rowGap + 2×bodyPad + safeBuffer
-  // rowH  = pboxH + labelH(≈cell×0.56) + pcolGap(≈cell×0.15)
-  //       = cell×(PBOX_H_R + 0.56 + 0.15) = cell × 2.61
-  // boardPx = 15×cell + 14×GAP + 2×PAD  ≈ cell×15 + 24
-  // statusH = cell×BTN_R + 4
-  // rowGap  = cell×GAP_R
-  // So totalH ≈ cell × (2×2.61 + 15 + BTN_R + 4×GAP_R) + constants
-  //           = cell × (5.22 + 15 + 0.85 + 0.60) + (24 + 4 + 2×6 + 24)
-  //           = cell × 21.67 + 64
-  // Solving for cell: cell = (vh - 64) / 21.67
-  const bodyPad    = 6;
-  const safeBuffer = 24;  // browser chrome / safe-area-inset
-  const fixedH     = 14*GAP + 2*PAD + 4 + 2*bodyPad + safeBuffer; // ~64px
-  const cellPerH   = 2*(PBOX_H_R + 0.56 + GAP_R) + 15 + BTN_R + 4*GAP_R;
-  const cellFromH  = (vh - fixedH) / cellPerH;
-
-  // ── Width budget ─────────────────────────────────────────────────────────────
-  // For 4P layout: board (15×cell+24) fills full width, pboxes go top/bottom → no width constraint from pboxes
-  // But for 2P/3P landscape: board is centred and pboxes flank it
-  // Simple approach: board fills available width
-  const boardMaxW  = vw - bodyPad * 2;
-  const cellFromW  = (boardMaxW - 2*PAD - 14*GAP) / 15;
-
-  // ── Pick the limiting dimension, cap at 40 ───────────────────────────────────
-  let cell = Math.min(cellFromH, cellFromW, 40);
-
-  // For 3P/4P where pboxes sit beside the board horizontally, also check that
-  const numP = (typeof NUM_PLAYERS !== 'undefined') ? NUM_PLAYERS : 4;
-  if(numP >= 3){
-    // board + 2×pboxW + 20px margins must fit in vw
-    // pboxW = cell×PBOX_H_R×PBOX_W_R, boardPx = 15×cell+24
-    // cell×(15 + PBOX_H_R×PBOX_W_R×2) + 24 + 20 ≤ vw
-    const cellFromSide = (vw - 44) / (15 + PBOX_H_R*PBOX_W_R*2);
-    cell = Math.min(cell, cellFromSide);
-  }
-
-  // Minimum: anything below 14px is unplayable — just let it clip rather than break layout
-  cell = Math.max(cell, 14);
-
-  // ── Derive ALL values from cell — no independent minimums ────────────────────
-  const pboxH   = Math.round(cell * PBOX_H_R);
-  const pboxW   = Math.round(pboxH * PBOX_W_R);
-  const diceSz  = Math.round(pboxH * DICE_R);
-  const cubeSz  = Math.round(diceSz * CUBE_R);
-  const tokW    = Math.round(pboxH * TOK_R);
-  const btnSz   = Math.round(cell * BTN_R);
-  const rowGap  = Math.max(1, Math.round(cell * GAP_R));
-  const labelSz = Math.max(7, Math.round(cell * LABEL_R));
-
-  const r = document.documentElement;
-  r.style.setProperty('--pbox-w',       pboxW   + 'px');
-  r.style.setProperty('--pbox-h',       pboxH   + 'px');
-  r.style.setProperty('--pdice-sz',     diceSz  + 'px');
-  r.style.setProperty('--dice-cube-sz', cubeSz  + 'px');
-  r.style.setProperty('--ptok-w',       tokW    + 'px');
-  r.style.setProperty('--row-gap',      rowGap  + 'px');
-  r.style.setProperty('--btn-sz',       btnSz   + 'px');
-  r.style.setProperty('--plabel-sz',    labelSz + 'px');
-
-  const board = document.getElementById('board');
-  if(board) board.style.setProperty('--cell', cell + 'px');
-  _cpx = cell;
-  _cacheValid = true;
-}
 
 // rcToXY: converts board grid (r,c) → pixel position on tokens-layer.
 function rcToXY(r,c){
@@ -3527,7 +3423,7 @@ function _doRenderTokens(){
       // HOME: use physical home corner — CSS board rotation handles POV
       const [hr,hc]=getHomeCornerBySeat(tok.pid);
       const bp=baseCirclePx(hr,hc,tok.tid);
-      px=bp.x; py=bp.y; scale=1.0;
+      px=bp.x; py=bp.y; scale=1.02;
     } else if(tok.step>=STEP_DONE){
       // DONE/CENTER: tokens at wide base of their triangle
       const centerRC=[7,7];
@@ -3568,8 +3464,8 @@ function _doRenderTokens(){
     const rW=BASE_W; // Always use BASE_W for SVG — use CSS scale for stacking (no flicker)
     const visualScale=scale;
     const rH=rW*(130/100);
-    const tipOffset=rH*(122/130); // tip at cell center
-    const tx=px-rW/2, ty=py-tipOffset;
+    const tipOffset=rH*(122/130);
+    const tx=px-rW/2,ty=py-tipOffset;
     const els=_ensureTokEl(tok,color);
     const {wrap,shadow}=els;
     // Fix: Always use BASE_W for SVG — only rebuild if BASE_W or color changed
@@ -3600,30 +3496,10 @@ function _doRenderTokens(){
       if(isMovable){
         let _touchHandled=false;
         els.movHandler=(e)=>{
-          if(e.type==='touchend'){
-            _touchHandled=true;
-            // Hit-test: check if touch coords actually land on THIS token's visual bounds.
-            // Without this, the topmost DOM element absorbs all touches even if user
-            // tapped a visually different (offset) token underneath it.
-            const touch = e.changedTouches && e.changedTouches[0];
-            if(touch){
-              const rect = wrap.getBoundingClientRect();
-              const tx2 = touch.clientX, ty2 = touch.clientY;
-              // Expand hit area by 6px on each side for fat-finger tolerance
-              const HIT_PAD = 6;
-              if(tx2 < rect.left - HIT_PAD || tx2 > rect.right  + HIT_PAD ||
-                 ty2 < rect.top  - HIT_PAD || ty2 > rect.bottom + HIT_PAD){
-                // Touch landed outside this token's bounds — ignore, let it fall through
-                return;
-              }
-            }
-            // Pass touch coords so onTokClick can pick the nearest movable token
-            e.stopPropagation();
-            onTokClick(tok.pid, tok.tid, touch ? touch.clientX : null, touch ? touch.clientY : null);
-            return;
-          } else if(e.type==='click'&&_touchHandled){ _touchHandled=false; return; }
+          if(e.type==='touchend'){ _touchHandled=true; }
+          else if(e.type==='click'&&_touchHandled){ _touchHandled=false; return; }
           e.stopPropagation();
-          onTokClick(tok.pid,tok.tid,null,null);
+          onTokClick(tok.pid,tok.tid);
         };
         wrap.addEventListener("touchend",els.movHandler,{passive:true});
         wrap.addEventListener("click",els.movHandler);
@@ -3781,13 +3657,7 @@ function startTurnTimer(seat){
   const color = getDisplayColorForSeat(seat);
   const bar = _domCache.tbar[seat] || document.getElementById(`tbar-${seat}`);
   if(bar){
-    // Show the background track
-    const track = bar.previousElementSibling;
-    if(track) track.style.stroke = 'rgba(255,255,255,0.06)';
-    const _stW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pbox-w'))||145;
-    const _stH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pbox-h'))||76;
-    const _stR = 11;
-    const PERIM = 2*(_stW+_stH) - 2*(_stR*2) + 2*Math.PI*_stR;
+    const PERIM = 2*(149+80) - 2*(11*2) + 2*Math.PI*11;
     const P = Math.round(PERIM);
     bar.style.setProperty('--tda', P);
     bar.style.setProperty('--timer-color', color);
@@ -3832,11 +3702,9 @@ function stopTurnTimer(){
       const bar = _domCache.tbar[p.id] || document.getElementById(`tbar-${p.id}`);
       if(bar){
         bar.classList.remove('draining');
-        bar.style.setProperty('stroke-dashoffset', '0');
-        bar.style.stroke = 'transparent';
+        bar.style.strokeDashoffset = '0';
+        bar.style.stroke = getDisplayColorForSeat(p.id);
         bar.style.filter = '';
-        const track = bar.previousElementSibling;
-        if(track) track.style.stroke = 'transparent';
       }
     });
   } catch(e) {}
@@ -3884,9 +3752,8 @@ async function _onTurnTimerExpired(seat){
 // ── BOT TURN LOGIC (host only) ────────────────────────────────────────────────
 async function _doBotTurn(seat){
   if(G.over || G.turn !== seat) return;
-  // Clear potentially stale rolled/waiting state for bot (e.g. after reconnect)
-  if(G.waiting){ G.waiting=false; }
-  if(G.rolled){ G.rolled=false; G.diceVal=null; }
+  if(G.rolled || G.waiting) return;
+  // ✅ BUG4 FIX: guard _rolling to prevent double-fire race condition
   if(_rolling) return;
   _rolling = true;
   const _botRollGuard = setTimeout(()=>{ _rolling = false; }, 2000);
@@ -4040,36 +3907,19 @@ function afterRoll(pid,v){
   syncUI();
 }
 
-async function onTokClick(pid, tid, touchClientX, touchClientY){
+async function onTokClick(pid,tid){
   // Triple guard: must be my token, my turn, and I must be waiting for a pick
-  if(pid !== MY_SEAT) return;
-  if(G.turn !== MY_SEAT) return;
-  if(!G.waiting || !G.rolled) return;
+  if(pid !== MY_SEAT) return;           // Can only click MY tokens
+  if(G.turn !== MY_SEAT) return;        // Must be MY turn
+  if(!G.waiting || !G.rolled) return;   // Must have rolled and be waiting for pick
   if(G.over || G_PAUSED) return;
-  if(G.diceVal == null) return;
-  const dv = G.diceVal;
+  if(G.diceVal == null) return;         // Safety: no dice value
+  const dv = G.diceVal;                 // Capture before any state change
   const mv = movable(MY_SEAT, dv);
   if(!mv.find(t=>t.tid===tid)) return;
-
-  // If touch coords provided AND multiple movable tokens exist, pick the visually closest one.
-  // This corrects wrong-token taps when tokens are stacked/offset on the same cell.
-  let finalTid = tid;
-  if(touchClientX != null && mv.length > 1){
-    let bestTid = tid, bestDist = Infinity;
-    for(const t of mv){
-      const el = (_tokEls[`${MY_SEAT}-${t.tid}`]||{}).wrap;
-      if(!el) continue;
-      const r = el.getBoundingClientRect();
-      const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
-      const dist = Math.hypot(touchClientX - cx, touchClientY - cy);
-      if(dist < bestDist){ bestDist = dist; bestTid = t.tid; }
-    }
-    finalTid = bestTid;
-  }
-
   G.waiting = false;
   G.rolled  = false;
-  await doMove(pid, finalTid, dv);
+  await doMove(pid, tid, dv);
 }
 
 function rafDelay(ms){
@@ -4085,7 +3935,7 @@ const DICE_DUR_MS=420;
 
 function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
   return new Promise(resolve=>{
-    const rH=rW*(130/100), tipOffset=rH*(122/130);
+    const rH=rW*(130/100),tipOffset=rH*(122/130); // tip at cell centre (Ludo King style)
     const shadowW=rW*0.60,shadowH=rW*0.16;
     const h=cp*0.65;
     let t0=null;
@@ -4221,20 +4071,13 @@ async function sendHomeFast(tok){
   const layer=document.getElementById("tokens-layer");
 
   if(el){
-    // Kill effect — ring burst at capture position.
-    // Use rcToXY (grid math) instead of getBoundingClientRect so rotated board doesn't give wrong coords.
-    let captureX, captureY;
-    const captureCell = (tok.step > 0) ? getRenderCell(tok.pid, tok.step) : null;
-    if(captureCell){
-      const cxy = rcToXY(captureCell[0], captureCell[1]);
-      captureX = cxy.x; captureY = cxy.y;
-    } else {
-      // Fallback: token is in home — use baseCirclePx
-      const bp0 = baseCirclePx(hr, hc, tok.tid);
-      captureX = bp0.x; captureY = bp0.y;
-    }
-    const BASE_W0 = Math.round(cellPx() * 1.15);
-    const cfT = `translate(${captureX - BASE_W0/2}px,${captureY - BASE_W0*(130/100)*(122/130)}px)`;
+    // Kill effect — ring burst at capture position
+    // getBoundingClientRect gives exact actual pixel position regardless of transform
+    const elRect=el.getBoundingClientRect();
+    const layerRect=layer.getBoundingClientRect();
+    const captureX=elRect.left-layerRect.left+elRect.width/2;
+    const captureY=elRect.top-layerRect.top+elRect.height/2;
+    const cfT=`translate(${captureX-elRect.width/2}px,${captureY-elRect.height/2}px)`;
     if(!PERF_MODE){
     for(let r=0;r<2;r++){
       const ring=document.createElement("div");
@@ -4326,11 +4169,6 @@ async function doMove(pid,tid,v){
   let bonus=false;
   const diceWasSix=(v===6);
   let captured=false;
-  // Snapshot all token steps BEFORE any mutation — used for capture diff at payload time
-  const _preMovSteps = {};
-  G.tokens.forEach(t => { _preMovSteps[`${t.pid}-${t.tid}`] = t.step; });
-  // Capture prevStep BEFORE animateMove mutates tok.step
-  const prevStepBeforeMove = tok.step;
 
   async function checkAndPit(cellKey,movingPid,movingTid){
     const ownOnCell=G.tokens.filter(o=>{
@@ -4423,8 +4261,7 @@ async function doMove(pid,tid,v){
   }
 
   // 1. PREVIOUS CELL CHECK (jahan se token aayi — agar apni 1 token bachi + enemy hai => capture)
-  // prevStepBeforeMove was captured before animateMove so tok.step mutation doesn't affect it
-  const prevStep = prevStepBeforeMove;
+  const prevStep = tok.step === 0 ? 0 : tok.step - v;
   if(prevStep>=1&&prevStep<=STEP_MAIN_END){
     const prevCell=getCell(pid,prevStep);
     if(prevCell&&!SAFE.has(`${prevCell[0]}-${prevCell[1]}`)){
@@ -4458,13 +4295,10 @@ async function doMove(pid,tid,v){
     const moveType = (finalTok.step === 1 && v === 6) ? "open" : "move";
     movesPayload.push({ pid, tid, type: moveType, finalStep: finalTok.step });
   }
-  // Captured tokens: only those that were ACTUALLY sent home THIS move (step was >0 before)
+  // Captured tokens: include all step=0 opponent tokens so joiner can reconcile
   G.tokens.forEach(t => {
     if(t.pid !== pid && t.step === 0){
-      const wasStep = _preMovSteps[`${t.pid}-${t.tid}`];
-      if(wasStep > 0){
-        movesPayload.push({ pid: t.pid, tid: t.tid, type: "home", finalStep: 0 });
-      }
+      movesPayload.push({ pid: t.pid, tid: t.tid, type: "home", finalStep: 0 });
     }
   });
 
@@ -4633,14 +4467,10 @@ window.addEventListener("resize",()=>{
   clearTimeout(_resizeTimer);
   _cacheValid=false;
   _resizeTimer=setTimeout(()=>{
-    // Recalculate all layout CSS vars for the new viewport
-    if(document.getElementById("game-wrap")?.style.display !== "none"){
-      fitLayout();
-      // Re-apply board rotation so _tokenRotationDeg stays in sync after resize
-      if(MY_SEAT !== null) applyBoardRotation();
-      else renderTokens();
-    }
-  },120);
+    // Re-apply board rotation so _tokenRotationDeg stays in sync after resize
+    if(MY_SEAT !== null) applyBoardRotation();
+    else renderTokens();
+  },100);
 });
 
 document.addEventListener("contextmenu",e=>e.preventDefault());
@@ -4659,28 +4489,25 @@ let _lastChatKey = null;
 // Mobile keyboard: move chat panel above virtual keyboard using visualViewport
 if(window.visualViewport){
   window.visualViewport.addEventListener("resize", ()=>{
+    if(!_chatOpen) return; // only adjust when chat is open
     const panel = document.getElementById("chat-panel");
-    if(!panel || !_chatOpen) return;
+    if(!panel) return;
     const keyboardHeight = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
     if(keyboardHeight > 50){
-      // Add safe-area-inset-bottom on top of keyboard height so chat clears both
-      const safeBottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sab') || '0') || 0;
-      panel.style.bottom = (keyboardHeight + safeBottom) + "px";
+      panel.style.bottom = keyboardHeight + "px";
     } else {
-      panel.style.bottom = "";
+      panel.style.bottom = "0px";
     }
   });
-  // Cache safe-area-inset-bottom as a CSS var so JS can read it
-  const _sabEl = document.createElement('style');
-  _sabEl.textContent = ':root { --sab: env(safe-area-inset-bottom, 0px); }';
-  document.head.appendChild(_sabEl);
 }
 
 window.toggleChat = function(){
   _chatOpen = !_chatOpen;
   const panel = document.getElementById("chat-panel");
+  const topBar = document.getElementById("top-bar");
   if(_chatOpen){
     panel.classList.add("open");
+    if(topBar) topBar.style.display = "none";
     _unreadCount = 0;
     updateChatBadge();
     setTimeout(()=>{
@@ -4690,6 +4517,7 @@ window.toggleChat = function(){
     }, 300);
   } else {
     panel.classList.remove("open");
+    if(topBar) topBar.style.display = "flex";
     window.clearReply(); // clear pending reply when closing chat
   }
 };
@@ -4792,6 +4620,7 @@ function appendChatMessage(msg, isHistory){
     _unreadCount++;
     updateChatBadge();
     SFX.chatPing();
+    showToast(`${escapeHtml(msg.name||"Someone")}: ${escapeHtml(msg.text)}`, 3000);
   }
 }
 
