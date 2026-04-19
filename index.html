@@ -2692,6 +2692,9 @@ function _removeTokEl(key){
 }
 const _dotPool=[];
 const MAX_DOTS=20;
+// PERF FIX 1: Use CSS transition for dot fade instead of per-dot rAF loop.
+// Previously each dot spawned its own rAF chain — 6 steps = 6 parallel loops.
+// Now browser handles fade natively, zero JS per frame.
 function spawnTrailDot(x,y,color,layer){
   if(PERF_MODE)return;
   let dot=_dotPool.pop();
@@ -2699,18 +2702,21 @@ function spawnTrailDot(x,y,color,layer){
   const sz=6+Math.random()*3;
   dot.style.width=`${sz}px`;dot.style.height=`${sz}px`;
   dot.style.background=color;dot.style.boxShadow=`0 0 4px ${color}88`;
-  dot.style.opacity="0.82";dot.style.transition="none";
+  dot.style.transition="none";
+  dot.style.opacity="0.82";
   dot.style.transform=`translate(${x-sz/2}px,${y-sz/2}px)`;
   layer.appendChild(dot);
-  const fadeStart = performance.now();
-  const fadeDur = 320;
-  function fadeTick(now) {
-    const progress = Math.min((now - fadeStart) / fadeDur, 1);
-    dot.style.opacity = String((1 - progress) * 0.82);
-    if (progress < 1) { requestAnimationFrame(fadeTick); }
-    else { dot.remove(); dot.style.opacity = "0.82"; if(_dotPool.length < MAX_DOTS) _dotPool.push(dot); }
-  }
-  requestAnimationFrame(fadeTick);
+  // Force paint, then let CSS transition handle the fade
+  requestAnimationFrame(()=>{
+    dot.style.transition="opacity 320ms linear";
+    dot.style.opacity="0";
+    setTimeout(()=>{
+      dot.remove();
+      dot.style.transition="none";
+      dot.style.opacity="0.82";
+      if(_dotPool.length < MAX_DOTS) _dotPool.push(dot);
+    }, 340);
+  });
 }
 let _cpx=0,_cacheValid=false;
 function _refreshCache(){
@@ -3026,41 +3032,50 @@ function startTurnTimer(seat){
     bar.classList.add('draining');
   }
   const _capturedSeat = seat;
+  let _timerPhase = 0; // PERF FIX 2: track phase so we only write DOM when color changes
   _timerInterval = setInterval(()=>{
     const elapsed = (Date.now() - _timerStart) / 1000;
     const remaining = TURN_TIMER_SEC - elapsed;
-    const bar2 = _domCache.tbar[_capturedSeat] || document.getElementById(`tbar-${_capturedSeat}`);
-    if(bar2){
-      if(remaining < 10){
-        bar2.style.stroke = '#FF2D78';
-        bar2.style.setProperty('--timer-color','#FF2D78');
-        bar2.style.filter = 'drop-shadow(0 0 7px #FF2D78)';
-      } else if(remaining < 25){
-        bar2.style.stroke = '#FFD600';
-        bar2.style.setProperty('--timer-color','#FFD600');
-        bar2.style.filter = 'drop-shadow(0 0 5px #FFD600)';
-      }
-    }
     if(remaining <= 0){
       stopTurnTimer();
       _onTurnTimerExpired(_capturedSeat);
+      return;
+    }
+    const newPhase = remaining < 10 ? 2 : remaining < 25 ? 1 : 0;
+    if(newPhase !== _timerPhase){
+      _timerPhase = newPhase;
+      const bar2 = _domCache.tbar[_capturedSeat] || document.getElementById(`tbar-${_capturedSeat}`);
+      if(bar2){
+        if(newPhase === 2){
+          bar2.style.stroke = '#FF2D78';
+          bar2.style.setProperty('--timer-color','#FF2D78');
+          bar2.style.filter = 'drop-shadow(0 0 7px #FF2D78)';
+        } else if(newPhase === 1){
+          bar2.style.stroke = '#FFD600';
+          bar2.style.setProperty('--timer-color','#FFD600');
+          bar2.style.filter = 'drop-shadow(0 0 5px #FFD600)';
+        }
+      }
     }
   }, 500);
 }
 function stopTurnTimer(){
   if(_timerInterval){ clearInterval(_timerInterval); _timerInterval = null; }
   if(!Array.isArray(PLAYERS) || !PLAYERS.length) return;
+  // PERF FIX 5: Only reset the currently draining seat's bar instead of
+  // looping all players and writing DOM styles for each on every turn change.
   try {
-    PLAYERS.forEach(p=>{
-      if(!p || !p.active) return;
-      const bar = _domCache.tbar[p.id] || document.getElementById(`tbar-${p.id}`);
+    const seat = _timerSeat >= 0 ? _timerSeat : -1;
+    if(seat >= 0){
+      const bar = _domCache.tbar[seat] || document.getElementById(`tbar-${seat}`);
       if(bar){
         bar.classList.remove('draining');
         bar.style.strokeDashoffset = '0';
-        bar.style.stroke = getDisplayColorForSeat(p.id);
+        bar.style.stroke = getDisplayColorForSeat(seat);
         bar.style.filter = '';
       }
-    });
+    }
+    _timerSeat = -1;
   } catch(e) {}
 }
 async function _onTurnTimerExpired(seat){
@@ -3367,11 +3382,24 @@ async function sendHomeFast(tok){
   const shadowEl=(_tokEls[cacheKey]||{}).shadow||null;
   const layer=document.getElementById("tokens-layer");
   if(el){
-    const elRect=el.getBoundingClientRect();
-    const layerRect=layer.getBoundingClientRect();
-    const captureX=elRect.left-layerRect.left+elRect.width/2;
-    const captureY=elRect.top-layerRect.top+elRect.height/2;
-    const cfT=`translate(${captureX-elRect.width/2}px,${captureY-elRect.height/2}px)`;
+    // PERF FIX 4: Extract current position from the transform string instead
+    // of getBoundingClientRect() which forces a layout/reflow mid-animation.
+    let captureX=0, captureY=0;
+    const tr=el.style.transform||'';
+    const m=tr.match(/translate\(([^,]+)px,([^)]+)px\)/);
+    if(m){
+      const _rW=parseFloat(el.dataset.rw||"28");
+      const _rH=_rW*(130/100), _tipOffset=_rH*(122/130);
+      captureX=parseFloat(m[1])+_rW/2;
+      captureY=parseFloat(m[2])+_tipOffset;
+    } else {
+      // fallback: use current token position from game state
+      _refreshCache();
+      const rc=getRenderCell(tok.pid,tok.step);
+      if(rc){const xy=rcToXY(rc[0],rc[1]);captureX=xy.x;captureY=xy.y;}
+    }
+    const _rW2=parseFloat(el.dataset.rw||"28");
+    const cfT=`translate(${captureX-_rW2/2}px,${captureY-_rW2/2}px)`;
     if(!PERF_MODE){
     for(let r=0;r<2;r++){
       const ring=document.createElement("div");
@@ -3950,31 +3978,37 @@ function listenChat(){
   _chatListening = true;
   addChatBadgeToButton();
   const chatRef = db.ref(`rooms/${ROOM_CODE}/chat`);
-  let firstLoad = true;
-  const chatCb = snap=>{
+  // PERF FIX 3: Use once() for initial history load, then child_added for
+  // new messages only. Previously on('value') re-downloaded ALL messages
+  // on every single new chat entry — O(n) data per message.
+  chatRef.once('value', snap=>{
     const el = document.getElementById("chat-messages");
     if(!el) return;
-    if(!snap.exists()){firstLoad=false;return;}
-    const data = snap.val();
-    const keys = Object.keys(data);
-    if(firstLoad){
-      firstLoad = false;
+    if(snap.exists()){
+      const data = snap.val();
+      const keys = Object.keys(data);
       el.innerHTML = "";
       keys.forEach(k=>appendChatMessage(data[k], true));
-      scrollChatBottom(); // single scroll after full history batch
+      scrollChatBottom();
       _lastChatKey = keys[keys.length-1];
       _unreadCount = 0;
       updateChatBadge();
-    } else {
-      const newKeys = _lastChatKey ? keys.filter(k=>k>_lastChatKey) : keys;
-      newKeys.forEach(k=>{
-        appendChatMessage(data[k], false);
-        _lastChatKey = k;
-      });
     }
-  };
-  chatRef.on('value', chatCb);
-  _listeners.push(()=>chatRef.off('value', chatCb));
+    // Now subscribe to new children only
+    const newRef = _lastChatKey
+      ? chatRef.orderByKey().startAfter(_lastChatKey)
+      : chatRef.orderByKey().limitToLast(1);
+    const childCb = snap2=>{
+      if(!snap2.exists()) return;
+      const el2 = document.getElementById("chat-messages");
+      if(!el2) return;
+      if(_lastChatKey && snap2.key <= _lastChatKey) return;
+      appendChatMessage(snap2.val(), false);
+      _lastChatKey = snap2.key;
+    };
+    newRef.on('child_added', childCb);
+    _listeners.push(()=>newRef.off('child_added', childCb));
+  });
 }
 function addChatBadgeToButton(){
   const btn = document.getElementById("btn-chat-toggle");
