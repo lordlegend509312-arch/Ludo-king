@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v27</title>
+<title>Ludo King — Online Multiplayer v30</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@700;900&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -18,18 +18,18 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 
 /* ── LOBBY SCREEN ── */
 #lobby{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-#lobby-inner{display:flex;flex-direction:column;align-items:center;gap:20px;width:min(300px,90vw);}
+#lobby-inner{display:flex;flex-direction:column;align-items:center;gap:clamp(10px,3vmin,20px);width:min(300px,90vw);}
 #lobby-crown{font-size:clamp(1.8rem,8vmin,3.2rem);filter:drop-shadow(0 0 20px rgba(245,197,24,.7));animation:crownFloat 3s ease-in-out infinite;}
 @keyframes connSpin{to{transform:rotate(360deg);}}
 @keyframes crownFloat{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-8px) rotate(2deg);}}
-#lobby-sub{color:var(--muted);font-size:11px;letter-spacing:3px;text-transform:uppercase;text-align:center;font-family:'Nunito',sans-serif;font-weight:700;}
+#lobby-sub{color:var(--muted);font-size:clamp(9px,2.5vmin,11px);letter-spacing:3px;text-transform:uppercase;text-align:center;font-family:'Nunito',sans-serif;font-weight:700;}
 #lobby-divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);}
-#lobby-title{color:var(--gold);font-size:16px;letter-spacing:2px;font-family:'Rajdhani',sans-serif;font-weight:700;text-align:center;}
+#lobby-title{color:var(--gold);font-size:clamp(13px,3.5vmin,16px);letter-spacing:2px;font-family:'Rajdhani',sans-serif;font-weight:700;text-align:center;}
 
 .s-card{
   position:relative;overflow:hidden;
   display:flex;align-items:center;gap:14px;
-  padding:16px 20px;
+  padding:clamp(10px,2.8vmin,16px) clamp(12px,3.5vmin,20px);
   background:var(--surface);
   border:1.5px solid var(--border);
   border-radius:14px;
@@ -39,29 +39,29 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 }
 .s-card:hover,.s-card:active{border-color:var(--gold);background:var(--surface2);box-shadow:0 0 0 1px rgba(245,197,24,.15),0 8px 32px rgba(0,0,0,.5);}
 .s-card:active{transform:scale(0.98);}
-.s-card-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;}
+.s-card-icon{width:clamp(32px,8vmin,44px);height:clamp(32px,8vmin,44px);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;}
 .s-card-text{display:flex;flex-direction:column;gap:3px;flex:1;}
-.s-card-title{color:var(--text);font-size:1rem;font-weight:800;font-family:'Nunito',sans-serif;letter-spacing:.3px;}
-.s-card-sub{color:var(--muted);font-size:11px;font-family:'Nunito',sans-serif;font-weight:600;line-height:1.4;}
-.s-card-arrow{color:rgba(255,255,255,.2);font-size:16px;flex-shrink:0;}
+.s-card-title{color:var(--text);font-size:clamp(13px,3.5vmin,16px);font-weight:800;font-family:'Nunito',sans-serif;letter-spacing:.3px;}
+.s-card-sub{color:var(--muted);font-size:clamp(9px,2.5vmin,11px);font-family:'Nunito',sans-serif;font-weight:600;line-height:1.4;}
+.s-card-arrow{color:rgba(255,255,255,.2);font-size:clamp(12px,3.5vmin,16px);flex-shrink:0;}
 .s-card-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%);pointer-events:none;}
 
 /* ── MODALS ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:400;align-items:center;justify-content:center;}
 .modal-overlay.show{display:flex;}
-.modal-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;width:min(300px,90vw);max-height:90dvh;overflow-y:auto;box-shadow:0 16px 60px rgba(0,0,0,.7);}
-.modal-title{color:white;font-size:1.2rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif;}
-.modal-sub{color:var(--muted);font-size:12px;text-align:center;font-family:'Nunito',sans-serif;}
+.modal-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:clamp(16px,4vmin,28px) clamp(16px,4vmin,24px);display:flex;flex-direction:column;align-items:center;gap:clamp(10px,2.8vmin,14px);width:min(300px,90vw);max-height:90dvh;overflow-y:auto;box-shadow:0 16px 60px rgba(0,0,0,.7);}
+.modal-title{color:white;font-size:clamp(14px,4vmin,19px);font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif;}
+.modal-sub{color:var(--muted);font-size:clamp(10px,2.8vmin,12px);text-align:center;font-family:'Nunito',sans-serif;}
 .modal-input{
   width:100%;padding:13px 16px;
   background:var(--surface);border:1.5px solid var(--border2);
-  border-radius:12px;color:white;font-size:1rem;
+  border-radius:12px;color:white;font-size:clamp(13px,3.5vmin,16px);
   font-family:'Nunito',sans-serif;font-weight:700;
   letter-spacing:4px;text-align:center;outline:none;
 }
 .modal-input:focus{border-color:var(--gold);}
 .modal-btn{
-  width:100%;padding:14px 0;font-size:.9rem;font-weight:800;
+  width:100%;padding:clamp(10px,3vmin,14px) 0;font-size:clamp(12px,3.2vmin,14px);font-weight:800;
   border:none;border-radius:12px;cursor:pointer;
   transition:transform 0.12s,opacity 0.12s;letter-spacing:.5px;
   background:var(--gold);color:#000;
@@ -81,7 +81,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 }
 .room-code-display:hover{background:var(--surface2);}
 .copy-hint{
-  font-size:11px;color:var(--muted);font-family:'Nunito',sans-serif;
+  font-size:clamp(9px,2.5vmin,11px);color:var(--muted);font-family:'Nunito',sans-serif;
   font-weight:700;letter-spacing:1px;text-transform:uppercase;
   text-align:center;margin-top:-6px;
 }
@@ -101,16 +101,17 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   background:var(--surface);border:1px solid var(--border);
   border-radius:10px;
 }
-.player-slot-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-.player-slot-name{color:var(--text);font-size:.9rem;font-family:'Nunito',sans-serif;font-weight:700;flex:1;}
-.player-slot-status{color:var(--muted);font-size:.75rem;font-family:'Nunito',sans-serif;}
+.player-slot-dot{width:clamp(7px,2vmin,10px);height:clamp(7px,2vmin,10px);border-radius:50%;flex-shrink:0;}
+.player-slot-name{color:var(--text);font-size:clamp(12px,3.5vmin,14px);font-family:'Nunito',sans-serif;font-weight:700;flex:1;}
+.player-slot-status{color:var(--muted);font-size:clamp(10px,2.8vmin,12px);font-family:'Nunito',sans-serif;}
 
 /* ── GAME ── */
 /* ── RESPONSIVE LAYOUT — all sizes driven from JS via CSS vars ── */
 :root{
   --pbox-w:145px; --pbox-h:76px;
-  --pdice-sz:60px; --ptok-w:46px;
-  --row-gap:6px; --btn-sz:34px;
+  --pdice-sz:62px; --ptok-w:47px;
+  --row-gap:5px; --btn-sz:34px;
+  --plabel-sz:15px; --dice-cube-sz:54px;
 }
 #game-wrap{flex-direction:column;align-items:stretch;gap:var(--row-gap);display:none;width:100%;max-width:100vw;margin-top:0;}
 
@@ -120,9 +121,9 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 .pcol.left{align-items:flex-start;}
 .pcol.right{align-items:flex-end;}
 
-.plabel{font-size:clamp(8px,2.2vw,10px);font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;transition:color 0.3s;padding:0 4px;font-family:'Rajdhani',sans-serif;}
+.plabel{font-size:var(--plabel-sz, clamp(9px,2.8vw,12px));font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;transition:color 0.3s;padding:0 4px;font-family:'Rajdhani',sans-serif;}
 
-.pbox{position:relative;display:flex;align-items:center;width:var(--pbox-w);height:var(--pbox-h);border-radius:12px;isolation:isolate;}
+.pbox{position:relative;display:flex;align-items:center;width:var(--pbox-w);height:var(--pbox-h);border-radius:12px;}
 .pbox-bg{position:absolute;inset:0;background:#1a1a1a;border-radius:12px;border:1.5px solid #333;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:border-color 0.25s,box-shadow 0.25s;}
 .pbox-shine{position:absolute;inset:1px;border-radius:11px;background:linear-gradient(150deg,rgba(255,255,255,.04) 0%,transparent 55%);pointer-events:none;}
 .pbox-tok{position:relative;z-index:3;width:var(--ptok-w);display:flex;justify-content:center;align-items:center;flex-shrink:0;}
@@ -136,6 +137,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   box-shadow:inset 0 2px 4px rgba(255,255,255,.12),0 2px 8px rgba(0,0,0,.4);
   flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
 }
 
 /* Rank stamp overlay on player box */
@@ -245,7 +247,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 }
 /* tokens-layer rotates WITH board-wrap, tokens themselves counter-rotate */
 #board{
-  --cell:min(5.6vw,4.5dvh,38px);
+  --cell:clamp(20px,min(5.6vw,4.5dvh),38px);
   display:grid;
   grid-template-columns:repeat(15,var(--cell));
   grid-template-rows:repeat(15,var(--cell));
@@ -259,11 +261,12 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 
 .star-svg{width:82%;height:82%;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,200,.8));}
 
-.dice-3d{width:44px;height:44px;min-width:44px;min-height:44px;position:relative;perspective:210px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;}
+:root{--dice-cube-sz:38px;}
+.dice-3d{width:var(--pdice-sz,44px);height:var(--pdice-sz,44px);min-width:var(--pdice-sz,44px);min-height:var(--pdice-sz,44px);position:relative;perspective:210px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;}
 .dice-3d.off{cursor:default;pointer-events:none;}
 .dice-3d.inactive{opacity:0;pointer-events:none;}
-.dice-cube{width:38px;height:38px;transform-style:preserve-3d;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden;}
-.dice-face{position:absolute;width:38px;height:38px;border-radius:7px;border:1.5px solid #cdb880;backface-visibility:hidden;overflow:hidden;}
+.dice-cube{width:var(--dice-cube-sz);height:var(--dice-cube-sz);transform-style:preserve-3d;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+.dice-face{position:absolute;width:var(--dice-cube-sz);height:var(--dice-cube-sz);border-radius:7px;border:1.5px solid #cdb880;backface-visibility:hidden;overflow:hidden;}
 .face-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.65) 0%,transparent 50%);border-radius:7px;pointer-events:none;z-index:2;}
 .ddot{width:7px;height:7px;background:radial-gradient(circle at 33% 28%,#4a3878,#0e0c22);border-radius:50%;position:absolute;box-shadow:0 1px 2px rgba(0,0,0,.55);z-index:3;}
 
@@ -335,7 +338,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 #status-row{position:relative;bottom:auto;left:auto;z-index:10;display:none;align-items:center;gap:8px;padding:2px 0;}
 #btn-pause{
   position:fixed;top:max(10px,env(safe-area-inset-top,0px));left:12px;z-index:9999;
-  width:32px;height:32px;
+  width:var(--btn-sz,32px);height:var(--btn-sz,32px);
   border-radius:8px;
   border:1.5px solid var(--border2);
   background:var(--surface2);
@@ -581,7 +584,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
 }
 #btn-chat-toggle{
   position:fixed;top:max(10px,env(safe-area-inset-top,0px));right:12px;z-index:9999;
-  width:32px;height:32px;
+  width:var(--btn-sz,32px);height:var(--btn-sz,32px);
   border-radius:8px;
   border:1.5px solid var(--border2);
   background:var(--surface2);
@@ -661,7 +664,7 @@ body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 #chat-reply-cancel{
-  background:none;border:none;color:var(--muted);font-size:16px;
+  background:none;border:none;color:var(--muted);font-size:clamp(13px,3.5vmin,16px);
   cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0;
 }
 #chat-reply-cancel:hover{color:white;}
@@ -1914,8 +1917,12 @@ function syncGameState(data){
           } else if(type === "move" && tok.step > 0){
             // Step-by-step walk animation — animateMove fires homeStretch internally at right step
             const steps = finalStep - tok.step;
-            if(steps > 0 && steps <= 6){
-              await animateMove(tok, steps);
+            if(steps > 0 && steps <= 57){
+              // steps > 6 can happen on reconnect/desync — still animate, just snap if huge
+              const animSteps = steps <= 12 ? steps : 1; // >12 = snap directly, avoid long walk
+              if(animSteps > 0) await animateMove(tok, animSteps);
+              // Always force final step in case animation was shortened
+              tok.step = finalStep;
               if(tok.step >= STEP_DONE) SFX.tokenDone();
             }
           }
@@ -2411,7 +2418,7 @@ function renderSeatVisuals(seat){
 
   // ── PANEL: Token icon — only if color changed ─────────────────────────────
   const tokW = _domCache.ptok[seat] || document.getElementById(`ptok-${seat}`);
-  if(tokW && tokW.dataset.rc !== color){ tokW.innerHTML = tokSVG(color, 36); tokW.dataset.rc = color; }
+  if(tokW && tokW.dataset.rc !== color){ const _sz=Math.round((parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ptok-w'))||46)*0.78); tokW.innerHTML = tokSVG(color, _sz); tokW.dataset.rc = color; tokW.dataset.rw = _sz; }
 
   // ── PANEL: Border — always use CSS default, no JS override ──────────────
   const bg = _domCache.pbg[seat] || document.getElementById(`pbg-${seat}`);
@@ -2643,10 +2650,10 @@ function buildBoard(){
     // data-slot uses VISUAL corner coords — must match what baseCirclePx() looks up
     d.innerHTML=`<div style="width:100%;height:100%;background:${dc};border-radius:${br};display:flex;align-items:center;justify-content:center;${isActive?'':'opacity:0.45;'}">
       <div style="width:74%;height:74%;background:white;border-radius:8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:10%;box-sizing:border-box;">
-        <div data-slot="${vr},${vc},0" style="border-radius:50%;background:${circleColor};border:2px solid ${circleBorder};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
-        <div data-slot="${vr},${vc},1" style="border-radius:50%;background:${circleColor};border:2px solid ${circleBorder};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
-        <div data-slot="${vr},${vc},2" style="border-radius:50%;background:${circleColor};border:2px solid ${circleBorder};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
-        <div data-slot="${vr},${vc},3" style="border-radius:50%;background:${circleColor};border:2px solid ${circleBorder};box-shadow:inset 0 2px 4px rgba(255,255,255,0.4),inset 0 -2px 3px rgba(0,0,0,0.25);"></div>
+        <div data-slot="${vr},${vc},0" style="border-radius:50%;background:radial-gradient(circle at 38% 35%,${lighten(circleColor,22)},${circleColor} 55%,${darken(circleColor,12)});border:2px solid ${circleBorder};"></div>
+        <div data-slot="${vr},${vc},1" style="border-radius:50%;background:radial-gradient(circle at 38% 35%,${lighten(circleColor,22)},${circleColor} 55%,${darken(circleColor,12)});border:2px solid ${circleBorder};"></div>
+        <div data-slot="${vr},${vc},2" style="border-radius:50%;background:radial-gradient(circle at 38% 35%,${lighten(circleColor,22)},${circleColor} 55%,${darken(circleColor,12)});border:2px solid ${circleBorder};"></div>
+        <div data-slot="${vr},${vc},3" style="border-radius:50%;background:radial-gradient(circle at 38% 35%,${lighten(circleColor,22)},${circleColor} 55%,${darken(circleColor,12)});border:2px solid ${circleBorder};"></div>
       </div>
     </div>`;
     el.appendChild(d);
@@ -2913,7 +2920,8 @@ function makePanel(pid,side,pos,isMe=false){
   const tokW=document.createElement("div");
   tokW.className="pbox-tok";
   tokW.id=`ptok-${pid}`;   tokW.style[side==="left"?"marginLeft":"marginRight"]="4px";
-  tokW.innerHTML=tokSVG(displayColor, 36);
+  const _ptokSz = Math.round((parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ptok-w')) || 46) * 0.78);
+  tokW.innerHTML=tokSVG(displayColor, _ptokSz);
 
   const diceW=document.createElement("div");
   diceW.className="pbox-dice";
@@ -2928,14 +2936,17 @@ function makePanel(pid,side,pos,isMe=false){
   const timerSvg = document.createElementNS("http://www.w3.org/2000/svg","svg");
   timerSvg.setAttribute("class","turn-timer-svg");
   timerSvg.setAttribute("id",`tsvg-${pid}`);
-  timerSvg.setAttribute("viewBox","0 0 153 84");
+  // viewBox matches pbox size so the rect path perimeter is accurate
+  const _tvW = Math.round((parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pbox-w'))||145));
+  const _tvH = Math.round((parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pbox-h'))||76));
+  const _tvR = 11; // rx/ry corner radius
+  timerSvg.setAttribute("viewBox",`0 0 ${_tvW+8} ${_tvH+8}`);
   timerSvg.setAttribute("preserveAspectRatio","none");
-  // Perimeter of 145x76 rounded-rect: use a rect path stroke
-  const PERIM = 2*(145+76) - 2*(12*2) + 2*Math.PI*12; // ≈ 419
+  const PERIM = 2*(_tvW+_tvH) - 2*(_tvR*2) + 2*Math.PI*_tvR;
   const P = Math.round(PERIM);
   timerSvg.innerHTML=`
-    <rect class="turn-timer-track" x="2" y="2" width="149" height="80" rx="11" ry="11"/>
-    <rect class="turn-timer-bar" id="tbar-${pid}" x="2" y="2" width="149" height="80" rx="11" ry="11"
+    <rect class="turn-timer-track" x="2" y="2" width="${_tvW+4}" height="${_tvH+4}" rx="${_tvR}" ry="${_tvR}"/>
+    <rect class="turn-timer-bar" id="tbar-${pid}" x="2" y="2" width="${_tvW+4}" height="${_tvH+4}" rx="${_tvR}" ry="${_tvR}"
       style="--tda:${P};--tdo:0;--timer-color:${displayColor};"/>`;
   box.appendChild(timerSvg);
   // ✅ BUG2 FIX: cache tbar immediately — buildPlayers() end-cache runs after startTurnTimer could fire
@@ -3069,7 +3080,7 @@ function rubberbandRng(pid){
 // ── Smart Dice System ─────────────────────────────────────────────────────────
 const smartDice={targetPids:new Set()};
 const forceDice={};
-const _secretTaps={counts:[0,0,0,0],timers:[null,null,null,null]};
+const _secretTaps={counts:[0,0,0,0,0,0,0,0],timers:[null,null,null,null,null,null,null,null]}; // oversized — safe for any seat index
 function _onSecretTap(pid){
   clearTimeout(_secretTaps.timers[pid]);
   _secretTaps.counts[pid]++;
@@ -3223,11 +3234,9 @@ function animDice(pid,finalVal,cb){
 }
 
 function makeDice(pid){
-  // TZ scales with dice size: dice-face is 38px wide, half = 19px at base.
-  // When fitLayout shrinks the board, --pdice-sz shrinks too, so TZ must scale.
-  // We read the CSS var at call-time; fallback to 19 if not yet set.
-  const diceSzPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pdice-sz')) || 38;
-  const TZ = Math.round(diceSzPx * 0.5);
+  // TZ = half of dice-cube width — read from --dice-cube-sz set by fitLayout().
+  const _cubeSz = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dice-cube-sz')) || 38;
+  const TZ = _cubeSz / 2;
   const wrap=document.createElement("div");
   wrap.className="dice-3d inactive";
   wrap.id=`d3d-${pid}`;
@@ -3299,8 +3308,8 @@ function _ensureTokEl(tok,color){
     const wrap=document.createElement("div");
     wrap.className="tok";
     wrap.dataset.id=key;
-    wrap.innerHTML=tokSVG(color,28);
-    wrap.dataset.rw="28";
+    const _initW=Math.round((_cpx||cellPx())*1.15); wrap.innerHTML=tokSVG(color,_initW);
+    wrap.dataset.rw=String(_initW);
     wrap.dataset.rc=color;
     const ring=document.createElement("div");
     ring.className="tok-ring";
@@ -3362,74 +3371,89 @@ function _refreshCache(){
 function cellPx(){return _cpx||Math.min(window.innerWidth*0.058,window.innerHeight*0.054,40);}
 const GAP=1,PAD=5; // matches #board padding:5px in CSS
 
-// ── fitLayout: ONE function that sets all CSS vars so everything scales together ──
-// Called after buildBoard(), before buildPlayers(). Re-call on resize if needed.
+// ── fitLayout: single cell drives ALL sizes — fully proportional like Ludo King ──
+// Every element scales from the same cell value. No hard minimums that break proportion.
 function fitLayout(){
   const vw = window.innerWidth;
-  const vh = window.innerHeight; // use full viewport
+  const vh = window.innerHeight;
 
-  // Board is 15 cells × cell + 14 gaps + 2×PAD
-  // Available width for board = vw - 2×bodyPad (6px each side)
-  const bodyPad = 6;
-  const boardMaxW = vw - bodyPad * 2;
+  // ── All ratios relative to cell ──────────────────────────────────────────────
+  // pbox-h  = cell * PBOX_H_R   →  at cell=32: 60px
+  // pbox-w  = pbox-h * PBOX_W_R →  at cell=32: 114px
+  // All derived from one number so proportions are always correct.
+  const PBOX_H_R  = 1.90;  // pbox height  = cell × 1.90
+  const PBOX_W_R  = 1.90;  // pbox width   = pboxH × 1.90
+  const DICE_R    = 0.82;  // pdice-sz     = pboxH × 0.82
+  const CUBE_R    = 0.865; // dice-cube-sz = diceSz × 0.865  (~38/44)
+  const TOK_R     = 0.62;  // ptok-w       = pboxH × 0.62
+  const BTN_R     = 0.85;  // btn-sz       = cell × 0.85
+  const GAP_R     = 0.15;  // row-gap      = cell × 0.15
+  const LABEL_R   = 0.48;  // plabel font  = cell × 0.48
 
-  // Available height = vh minus: 2 player rows (pbox + label + gap) + status row + row gaps
-  // We'll compute cell first from width, then check height fits, reduce if not
-  // pbox row height ≈ pbox-h + label(14px) + pcol gap(4px) ≈ pbox-h + 18
-  // status row ≈ 34px, row-gaps: 4 gaps × rowGap
-  // We'll iterate: start from ideal, shrink until everything fits
+  // ── Height budget ────────────────────────────────────────────────────────────
+  // Total = 2×rowH + boardPx + statusH + 4×rowGap + 2×bodyPad + safeBuffer
+  // rowH  = pboxH + labelH(≈cell×0.56) + pcolGap(≈cell×0.15)
+  //       = cell×(PBOX_H_R + 0.56 + 0.15) = cell × 2.61
+  // boardPx = 15×cell + 14×GAP + 2×PAD  ≈ cell×15 + 24
+  // statusH = cell×BTN_R + 4
+  // rowGap  = cell×GAP_R
+  // So totalH ≈ cell × (2×2.61 + 15 + BTN_R + 4×GAP_R) + constants
+  //           = cell × (5.22 + 15 + 0.85 + 0.60) + (24 + 4 + 2×6 + 24)
+  //           = cell × 21.67 + 64
+  // Solving for cell: cell = (vh - 64) / 21.67
+  const bodyPad    = 6;
+  const safeBuffer = 24;  // browser chrome / safe-area-inset
+  const fixedH     = 14*GAP + 2*PAD + 4 + 2*bodyPad + safeBuffer; // ~64px
+  const cellPerH   = 2*(PBOX_H_R + 0.56 + GAP_R) + 15 + BTN_R + 4*GAP_R;
+  const cellFromH  = (vh - fixedH) / cellPerH;
 
-  const LABEL_H = 14; // plabel line height
-  const PCOL_GAP = 4;
-  const ROW_GAPS = 4; // top-row, board, bot-row, status
+  // ── Width budget ─────────────────────────────────────────────────────────────
+  // For 4P layout: board (15×cell+24) fills full width, pboxes go top/bottom → no width constraint from pboxes
+  // But for 2P/3P landscape: board is centred and pboxes flank it
+  // Simple approach: board fills available width
+  const boardMaxW  = vw - bodyPad * 2;
+  const cellFromW  = (boardMaxW - 2*PAD - 14*GAP) / 15;
 
-  // Board cell from width: (boardMaxW - 2*PAD - 14*GAP) / 15
-  let cell = (boardMaxW - 2*PAD - 14*GAP) / 15;
-  cell = Math.min(cell, 40); // never bigger than 40
+  // ── Pick the limiting dimension, cap at 40 ───────────────────────────────────
+  let cell = Math.min(cellFromH, cellFromW, 40);
 
-  // Board pixel size
-  const boardPx = () => 15*cell + 14*GAP + 2*PAD;
-
-  // pbox proportional to cell: pbox-w ≈ 2.5 * pbox-h, pbox-h ≈ cell * 1.9
-  const pboxH = () => Math.round(cell * 1.9);
-  const pboxW = () => Math.round(pboxH() * 1.9);
-  const rowH  = () => pboxH() + LABEL_H + PCOL_GAP; // one player row total height
-  const rowGap = () => Math.max(2, Math.round(cell * 0.15));
-  const btnSz = () => Math.max(28, Math.round(cell * 0.85));
-  const statusH = () => btnSz() + 4;
-
-  // Total height needed
-  const totalH = () => rowH() * 2 + boardPx() + statusH() + rowGap() * ROW_GAPS + bodyPad * 2;
-
-  // Shrink cell until everything fits vertically (min cell = 18px)
-  while(totalH() > vh && cell > 18) cell -= 0.5;
-
-  // Also ensure pboxW * 2 fits in screen width (for 2 pboxes side by side)
-  while(pboxW() * 2 + 20 > vw && cell > 18) cell -= 0.5;
-
-  // 3P/4P: top row can have up to 2 pboxes on each side + board in middle.
-  // Board width + 2 * pboxW must fit horizontally.
-  // (board is centred with pboxes on sides — both pboxes + board in one row)
+  // For 3P/4P where pboxes sit beside the board horizontally, also check that
   const numP = (typeof NUM_PLAYERS !== 'undefined') ? NUM_PLAYERS : 4;
   if(numP >= 3){
-    while(boardPx() + pboxW() * 2 + 20 > vw && cell > 18) cell -= 0.5;
+    // board + 2×pboxW + 20px margins must fit in vw
+    // pboxW = cell×PBOX_H_R×PBOX_W_R, boardPx = 15×cell+24
+    // cell×(15 + PBOX_H_R×PBOX_W_R×2) + 24 + 20 ≤ vw
+    const cellFromSide = (vw - 44) / (15 + PBOX_H_R*PBOX_W_R*2);
+    cell = Math.min(cell, cellFromSide);
   }
 
-  cell = Math.max(cell, 18);
+  // Minimum: anything below 14px is unplayable — just let it clip rather than break layout
+  cell = Math.max(cell, 14);
+
+  // ── Derive ALL values from cell — no independent minimums ────────────────────
+  const pboxH   = Math.round(cell * PBOX_H_R);
+  const pboxW   = Math.round(pboxH * PBOX_W_R);
+  const diceSz  = Math.round(pboxH * DICE_R);
+  const cubeSz  = Math.round(diceSz * CUBE_R);
+  const tokW    = Math.round(pboxH * TOK_R);
+  const btnSz   = Math.round(cell * BTN_R);
+  const rowGap  = Math.max(1, Math.round(cell * GAP_R));
+  const labelSz = Math.max(7, Math.round(cell * LABEL_R));
 
   const r = document.documentElement;
-  r.style.setProperty('--pbox-w',  pboxW() + 'px');
-  r.style.setProperty('--pbox-h',  pboxH() + 'px');
-  r.style.setProperty('--pdice-sz', Math.round(pboxH() * 0.82) + 'px');
-  r.style.setProperty('--ptok-w',   Math.round(pboxH() * 0.62) + 'px');
-  r.style.setProperty('--row-gap',  rowGap() + 'px');
-  r.style.setProperty('--btn-sz',   btnSz() + 'px');
+  r.style.setProperty('--pbox-w',       pboxW   + 'px');
+  r.style.setProperty('--pbox-h',       pboxH   + 'px');
+  r.style.setProperty('--pdice-sz',     diceSz  + 'px');
+  r.style.setProperty('--dice-cube-sz', cubeSz  + 'px');
+  r.style.setProperty('--ptok-w',       tokW    + 'px');
+  r.style.setProperty('--row-gap',      rowGap  + 'px');
+  r.style.setProperty('--btn-sz',       btnSz   + 'px');
+  r.style.setProperty('--plabel-sz',    labelSz + 'px');
 
-  // Update board --cell CSS var and internal _cpx
   const board = document.getElementById('board');
   if(board) board.style.setProperty('--cell', cell + 'px');
   _cpx = cell;
-  _cacheValid = true; // cell is now authoritative — skip _refreshCache recompute
+  _cacheValid = true;
 }
 
 // rcToXY: converts board grid (r,c) → pixel position on tokens-layer.
@@ -3576,10 +3600,30 @@ function _doRenderTokens(){
       if(isMovable){
         let _touchHandled=false;
         els.movHandler=(e)=>{
-          if(e.type==='touchend'){ _touchHandled=true; }
-          else if(e.type==='click'&&_touchHandled){ _touchHandled=false; return; }
+          if(e.type==='touchend'){
+            _touchHandled=true;
+            // Hit-test: check if touch coords actually land on THIS token's visual bounds.
+            // Without this, the topmost DOM element absorbs all touches even if user
+            // tapped a visually different (offset) token underneath it.
+            const touch = e.changedTouches && e.changedTouches[0];
+            if(touch){
+              const rect = wrap.getBoundingClientRect();
+              const tx2 = touch.clientX, ty2 = touch.clientY;
+              // Expand hit area by 6px on each side for fat-finger tolerance
+              const HIT_PAD = 6;
+              if(tx2 < rect.left - HIT_PAD || tx2 > rect.right  + HIT_PAD ||
+                 ty2 < rect.top  - HIT_PAD || ty2 > rect.bottom + HIT_PAD){
+                // Touch landed outside this token's bounds — ignore, let it fall through
+                return;
+              }
+            }
+            // Pass touch coords so onTokClick can pick the nearest movable token
+            e.stopPropagation();
+            onTokClick(tok.pid, tok.tid, touch ? touch.clientX : null, touch ? touch.clientY : null);
+            return;
+          } else if(e.type==='click'&&_touchHandled){ _touchHandled=false; return; }
           e.stopPropagation();
-          onTokClick(tok.pid,tok.tid);
+          onTokClick(tok.pid,tok.tid,null,null);
         };
         wrap.addEventListener("touchend",els.movHandler,{passive:true});
         wrap.addEventListener("click",els.movHandler);
@@ -3740,7 +3784,10 @@ function startTurnTimer(seat){
     // Show the background track
     const track = bar.previousElementSibling;
     if(track) track.style.stroke = 'rgba(255,255,255,0.06)';
-    const PERIM = 2*(149+80) - 2*(11*2) + 2*Math.PI*11;
+    const _stW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pbox-w'))||145;
+    const _stH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pbox-h'))||76;
+    const _stR = 11;
+    const PERIM = 2*(_stW+_stH) - 2*(_stR*2) + 2*Math.PI*_stR;
     const P = Math.round(PERIM);
     bar.style.setProperty('--tda', P);
     bar.style.setProperty('--timer-color', color);
@@ -3785,7 +3832,7 @@ function stopTurnTimer(){
       const bar = _domCache.tbar[p.id] || document.getElementById(`tbar-${p.id}`);
       if(bar){
         bar.classList.remove('draining');
-        bar.style.strokeDashoffset = '0';
+        bar.style.setProperty('stroke-dashoffset', '0');
         bar.style.stroke = 'transparent';
         bar.style.filter = '';
         const track = bar.previousElementSibling;
@@ -3837,8 +3884,9 @@ async function _onTurnTimerExpired(seat){
 // ── BOT TURN LOGIC (host only) ────────────────────────────────────────────────
 async function _doBotTurn(seat){
   if(G.over || G.turn !== seat) return;
-  if(G.rolled || G.waiting) return;
-  // ✅ BUG4 FIX: guard _rolling to prevent double-fire race condition
+  // Clear potentially stale rolled/waiting state for bot (e.g. after reconnect)
+  if(G.waiting){ G.waiting=false; }
+  if(G.rolled){ G.rolled=false; G.diceVal=null; }
   if(_rolling) return;
   _rolling = true;
   const _botRollGuard = setTimeout(()=>{ _rolling = false; }, 2000);
@@ -3992,19 +4040,36 @@ function afterRoll(pid,v){
   syncUI();
 }
 
-async function onTokClick(pid,tid){
+async function onTokClick(pid, tid, touchClientX, touchClientY){
   // Triple guard: must be my token, my turn, and I must be waiting for a pick
-  if(pid !== MY_SEAT) return;           // Can only click MY tokens
-  if(G.turn !== MY_SEAT) return;        // Must be MY turn
-  if(!G.waiting || !G.rolled) return;   // Must have rolled and be waiting for pick
+  if(pid !== MY_SEAT) return;
+  if(G.turn !== MY_SEAT) return;
+  if(!G.waiting || !G.rolled) return;
   if(G.over || G_PAUSED) return;
-  if(G.diceVal == null) return;         // Safety: no dice value
-  const dv = G.diceVal;                 // Capture before any state change
+  if(G.diceVal == null) return;
+  const dv = G.diceVal;
   const mv = movable(MY_SEAT, dv);
   if(!mv.find(t=>t.tid===tid)) return;
+
+  // If touch coords provided AND multiple movable tokens exist, pick the visually closest one.
+  // This corrects wrong-token taps when tokens are stacked/offset on the same cell.
+  let finalTid = tid;
+  if(touchClientX != null && mv.length > 1){
+    let bestTid = tid, bestDist = Infinity;
+    for(const t of mv){
+      const el = (_tokEls[`${MY_SEAT}-${t.tid}`]||{}).wrap;
+      if(!el) continue;
+      const r = el.getBoundingClientRect();
+      const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+      const dist = Math.hypot(touchClientX - cx, touchClientY - cy);
+      if(dist < bestDist){ bestDist = dist; bestTid = t.tid; }
+    }
+    finalTid = bestTid;
+  }
+
   G.waiting = false;
   G.rolled  = false;
-  await doMove(pid, tid, dv);
+  await doMove(pid, finalTid, dv);
 }
 
 function rafDelay(ms){
@@ -4261,6 +4326,11 @@ async function doMove(pid,tid,v){
   let bonus=false;
   const diceWasSix=(v===6);
   let captured=false;
+  // Snapshot all token steps BEFORE any mutation — used for capture diff at payload time
+  const _preMovSteps = {};
+  G.tokens.forEach(t => { _preMovSteps[`${t.pid}-${t.tid}`] = t.step; });
+  // Capture prevStep BEFORE animateMove mutates tok.step
+  const prevStepBeforeMove = tok.step;
 
   async function checkAndPit(cellKey,movingPid,movingTid){
     const ownOnCell=G.tokens.filter(o=>{
@@ -4353,7 +4423,8 @@ async function doMove(pid,tid,v){
   }
 
   // 1. PREVIOUS CELL CHECK (jahan se token aayi — agar apni 1 token bachi + enemy hai => capture)
-  const prevStep = tok.step === 0 ? 0 : tok.step - v;
+  // prevStepBeforeMove was captured before animateMove so tok.step mutation doesn't affect it
+  const prevStep = prevStepBeforeMove;
   if(prevStep>=1&&prevStep<=STEP_MAIN_END){
     const prevCell=getCell(pid,prevStep);
     if(prevCell&&!SAFE.has(`${prevCell[0]}-${prevCell[1]}`)){
@@ -4387,10 +4458,13 @@ async function doMove(pid,tid,v){
     const moveType = (finalTok.step === 1 && v === 6) ? "open" : "move";
     movesPayload.push({ pid, tid, type: moveType, finalStep: finalTok.step });
   }
-  // Captured tokens: include all step=0 opponent tokens so joiner can reconcile
+  // Captured tokens: only those that were ACTUALLY sent home THIS move (step was >0 before)
   G.tokens.forEach(t => {
     if(t.pid !== pid && t.step === 0){
-      movesPayload.push({ pid: t.pid, tid: t.tid, type: "home", finalStep: 0 });
+      const wasStep = _preMovSteps[`${t.pid}-${t.tid}`];
+      if(wasStep > 0){
+        movesPayload.push({ pid: t.pid, tid: t.tid, type: "home", finalStep: 0 });
+      }
     }
   });
 
@@ -4559,10 +4633,14 @@ window.addEventListener("resize",()=>{
   clearTimeout(_resizeTimer);
   _cacheValid=false;
   _resizeTimer=setTimeout(()=>{
-    // Re-apply board rotation so _tokenRotationDeg stays in sync after resize
-    if(MY_SEAT !== null) applyBoardRotation();
-    else renderTokens();
-  },100);
+    // Recalculate all layout CSS vars for the new viewport
+    if(document.getElementById("game-wrap")?.style.display !== "none"){
+      fitLayout();
+      // Re-apply board rotation so _tokenRotationDeg stays in sync after resize
+      if(MY_SEAT !== null) applyBoardRotation();
+      else renderTokens();
+    }
+  },120);
 });
 
 document.addEventListener("contextmenu",e=>e.preventDefault());
