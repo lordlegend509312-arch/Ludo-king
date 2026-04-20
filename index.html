@@ -2627,9 +2627,8 @@ function doRoll(pid){
   const v=smartRng(pid);
   G.rolled=true;
   G.diceVal=v;
-  SFX.diceRoll();
-  navigator.vibrate && navigator.vibrate(28);
   animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
+  setTimeout(()=>{ SFX.diceRoll(); navigator.vibrate && navigator.vibrate(28); }, 0);
 }
 function shouldAutoMove(mv,v){
   if(mv.length===0) return false;
