@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v30</title>
+<title>Ludo King — Online Multiplayer v37</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -583,13 +583,7 @@ let G_PAUSED = false;
 let _rolling = false;
 let _animating = false;
 let _gameLoaded = false;
-function showToast(msg, dur=2500){
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  clearTimeout(t._tid);
-  t._tid = setTimeout(()=>t.classList.remove("show"), dur);
-}
+function showToast(msg, dur=2500){ /* toasts disabled */ }
 function setSyncStatus(status){
   const dot = document.getElementById("sync-dot");
   const txt = document.getElementById("sync-text");
@@ -879,9 +873,26 @@ function syncGameState(data){
   if(!_gameLoaded){ return; }
   if(data.actionBy === MY_SEAT) return;
   if(_syncAnimPlaying || _animating){
-    const idx = _syncAnimPending.findIndex(p => p.action === data.action || (!p.action && !data.action));
-    if(idx >= 0) _syncAnimPending[idx] = data;
-    else _syncAnimPending.push(data);
+    if(data.action === "move" || data.action === "skip"){
+      // move/skip supersedes any pending roll from same player
+      // prevents G.rolled getting stuck when roll+move arrive close together
+      const rollIdx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === data.actionBy);
+      if(rollIdx >= 0) _syncAnimPending.splice(rollIdx, 1);
+      const sameIdx = _syncAnimPending.findIndex(p => p.action === data.action && p.actionBy === data.actionBy);
+      if(sameIdx >= 0) _syncAnimPending[sameIdx] = data;
+      else _syncAnimPending.push(data);
+    } else if(data.action === "roll"){
+      // if move/skip already queued from same player, ignore this roll
+      const moveIdx = _syncAnimPending.findIndex(p => (p.action === "move" || p.action === "skip") && p.actionBy === data.actionBy);
+      if(moveIdx >= 0) return;
+      const idx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === data.actionBy);
+      if(idx >= 0) _syncAnimPending[idx] = data;
+      else _syncAnimPending.push(data);
+    } else {
+      const idx = _syncAnimPending.findIndex(p => p.action === data.action || (!p.action && !data.action));
+      if(idx >= 0) _syncAnimPending[idx] = data;
+      else _syncAnimPending.push(data);
+    }
     return;
   }
   _applySyncGameState(data);
@@ -1011,6 +1022,8 @@ function _applySyncGameState(data){
         data.tokens.forEach(ft => {
           if(ft.step === 0){
             const lt = tokOf(ft.pid, ft.tid);
+            // Use live token position (already set by animateMove above)
+            // but do NOT rely on ft data since applyFinalState hasn't run
             if(lt && lt.step > 0){
               capturePromises.push(sendHomeFast(lt));
             }
@@ -1042,7 +1055,7 @@ function _applySyncGameState(data){
     G.diceVal    = null;
     G.sixes      = data.sixes      || 0;
     _applyPlacements(data.placements);
-    if(dice != null && rolledBy != null){
+    if((dice != null && dice !== -1) && rolledBy != null){
       if(rolledBy === MY_SEAT){
         if(data.reason === "3sixes") SFX.threeSixesSkip();
         else if(data.reason === "noMove") SFX.noMove();
@@ -1061,7 +1074,13 @@ function _applySyncGameState(data){
         });
       }
     } else {
+      // timeout skip — player never rolled; show toast so others know
+      if(data.reason === "timeout" && rolledBy !== MY_SEAT && rolledBy != null){
+        const skippedName = PLAYERS[rolledBy]?.label || `P${rolledBy+1}`;
+        showToast(`⏱️ ${skippedName} timed out — turn skipped`);
+      }
       syncUI();
+      _flushSyncPending();
     }
     return;
   }
@@ -1203,6 +1222,7 @@ window.leaveToLobby = async function(){
   clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
   stopTurnTimer();
+  clearSession();
   if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
   _listeners.forEach(fn=>fn());
   _listeners = [];
@@ -1441,9 +1461,9 @@ const HOME_CORNER_BY_SEAT = [
 ];
 const CENTER_OFFSET_SEAT = [
   {dx:-1, dy: 0, sign:-1},
-  {dx: 0, dy: 1, sign: 1},
-  {dx: 1, dy: 0, sign: 1},
   {dx: 0, dy:-1, sign:-1},
+  {dx: 1, dy: 0, sign: 1},
+  {dx: 0, dy: 1, sign: 1},
 ];
 const SAFE=new Set([...GREY_STARS,...COLOR_STARS]);
 ENTRY_BY_SEAT.forEach(idx=>{ const [r,c]=MAIN_PATH[idx]; SAFE.add(`${r}-${c}`); });
@@ -1503,7 +1523,7 @@ function movable(pid,dv){
         if(o.pid===pid||o.step===0||o.step>=STEP_DONE) return;
         const oc=getCell(o.pid,o.step);
         if(!oc||`${oc[0]}-${oc[1]}`!==ck) return;
-        const col=PLAYERS[o.pid].color;
+        const col=getDisplayColorForSeat(o.pid);
         oppColorCounts[col]=(oppColorCounts[col]||0)+1;
       });
       const maxOppStack=Math.max(0,...Object.values(oppColorCounts));
@@ -1734,7 +1754,7 @@ function makePanel(pid,side,pos,isMe=false){
   timerSvg.setAttribute("id",`tsvg-${pid}`);
   timerSvg.setAttribute("viewBox","0 0 153 84");
   timerSvg.setAttribute("preserveAspectRatio","none");
-  const PERIM = 2*(145+76) - 2*(12*2) + 2*Math.PI*12;
+  const PERIM = 2*(149+80) - 2*(11*2) + 2*Math.PI*11;
   const P = Math.round(PERIM);
   timerSvg.innerHTML=`
     <rect class="turn-timer-bar" id="tbar-${pid}" x="2" y="2" width="149" height="80" rx="11" ry="11"
@@ -2112,6 +2132,7 @@ function spawnTrailDot(x,y,color,layer){
   });
 }
 let _cpx=0,_cacheValid=false;
+let _trailSkip=0;
 function _refreshCache(){
   if(_cacheValid) return;
   _cacheValid=true;
@@ -2302,7 +2323,7 @@ function _doRenderTokens(){
           const ck2=`${rc2[0]}-${rc2[1]}`;
           if(!SAFE.has(ck2)){
             const grp2=groups[ck2]||[];
-            const sameColor=grp2.filter(o=>PLAYERS[o.pid].color===color);
+            const sameColor=grp2.filter(o=>getDisplayColorForSeat(o.pid)===color);
             if(sameColor.length>=3) blockType='super';
             else if(sameColor.length===2) blockType='normal';
           }
@@ -2470,7 +2491,6 @@ function stopTurnTimer(){
       if(bar){
         bar.classList.remove('draining');
         bar.style.strokeDashoffset = '0';
-        bar.style.stroke = getDisplayColorForSeat(seat);
         bar.style.filter = '';
       }
     }
@@ -2491,7 +2511,7 @@ async function _onTurnTimerExpired(seat){
     return;
   }
   if(seat === MY_SEAT && G.waiting && G.rolled && G.diceVal != null){
-    if(_animating) return;
+    if(_animating || _rolling) return;
     const savedDice = G.diceVal;
     const mv = movable(seat, savedDice);
     if(mv.length > 0){
@@ -2513,6 +2533,19 @@ async function _onTurnTimerExpired(seat){
   }
   if(IS_HOST && seat !== MY_SEAT){
     _doBotTurn(seat);
+    return;
+  }
+  // NON-HOST: remote player's turn expired on our client — could mean we missed their move event.
+  // If G.rolled is stuck true (we saw their roll but not their move), pull fresh state from Firebase.
+  if(!IS_HOST && seat !== MY_SEAT && G.rolled && G.diceVal != null && ROOM_CODE && gameRef){
+    gameRef.once('value').then(snap => {
+      if(!snap || !snap.exists()) return;
+      const fresh = snap.val();
+      // Only apply if the turn has actually moved on (host already processed it)
+      if(fresh && fresh.turn !== seat){
+        syncGameState(fresh);
+      }
+    }).catch(()=>{});
   }
 }
 async function _doBotTurn(seat){
@@ -2540,7 +2573,7 @@ async function _doBotTurn(seat){
   let best = mv[0];
   for(const tok of mv){
     const toStep = tok.step === 0 ? 1 : tok.step + v;
-    if(toStep >= 58){ best = tok; break; }
+    if(toStep >= STEP_DONE){ best = tok; break; }
     if(best.step < tok.step) best = tok;
   }
   G.rolled = false; G.waiting = false;
@@ -2558,7 +2591,7 @@ function resetTurnTimeout(){
     if(G.over || G.turn === MY_SEAT) return;
     if(PLAYERS[G.turn]?.isBot) return;
     const skippedTurn = G.turn;
-    const savedDice = G.diceVal;
+    const savedDice = G.diceVal ?? -1; // -1 = never rolled; remote clients handle null-dice skip visually
     G.rolled=false; G.diceVal=null; G.waiting=false;
     nextTurn(false);
     await pushGameState({ action:"skip", dice:savedDice, reason:"timeout", skippedSeat:skippedTurn });
@@ -2642,7 +2675,7 @@ function afterRoll(pid,v){
   }
   G.waiting=true;
   const selectable=mv.map(t=>t.tid);
-  pushGameState({ action:"roll", dice:v, selectable });
+  pushGameState({ action:"roll", dice:v, selectable }).catch(e=>console.warn("roll push failed",e));
   syncUI();
 }
 async function onTokClick(pid,tid){
@@ -2675,7 +2708,7 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
     const h=cp*0.65;
     let t0=null;
     let _soundFired=false;
-    if(layer && !PERF_MODE && ((_trailSkip=(_trailSkip||0)+1)%2===0))spawnTrailDot(startX,startY,color,layer);
+    if(layer && !PERF_MODE && (++_trailSkip%2===0))spawnTrailDot(startX,startY,color,layer);
     function tick(now){
       if(!t0) t0=now;
       let t=(now-t0)/JUMP_MS;
@@ -2956,13 +2989,6 @@ async function doMove(pid,tid,v){
       bonus=false;
     }
   }
-  const prevStep = tok.step === 0 ? 0 : tok.step - v;
-  if(prevStep>=1&&prevStep<=STEP_MAIN_END){
-    const prevCell=getCell(pid,prevStep);
-    if(prevCell&&!SAFE.has(`${prevCell[0]}-${prevCell[1]}`)){
-      await checkAndPit(`${prevCell[0]}-${prevCell[1]}`,pid,tok.tid);
-    }
-  }
   if(tok.step>=1&&tok.step<=STEP_MAIN_END){
     const cell=getCell(pid,tok.step);
     if(cell){
@@ -2992,11 +3018,14 @@ async function doMove(pid,tid,v){
     movedPid: pid,
     movedTid: tid
   }).catch(e => { _animating=false; console.error("doMove pushGameState failed:",e); });
-  nextTurn(bonus);
+  nextTurn(bonus, diceWasSix);
 }
-function nextTurn(same){
+function nextTurn(same, wasSix){
   G.rolled=false;_rolling=false;G.diceVal=null;G.waiting=false;
   if(!same){
+    G.sixes=0;
+  } else if(!wasSix){
+    // capture bonus from a non-six roll — sixes streak is broken
     G.sixes=0;
     const layout = SEAT_LAYOUT_ACTIVE;
     const curIdx = layout.indexOf(G.turn);
@@ -3252,11 +3281,10 @@ function appendChatMessage(msg, isHistory){
       }
     }
   }
-  if(!isHistory && !isMine && !_chatOpen && msg.type !== "system"){
+  if(!isHistory && MY_SEAT !== null && !isMine && !_chatOpen && msg.type !== "system"){
     _unreadCount++;
     updateChatBadge();
     SFX.chatPing();
-    showToast(`${escapeHtml(msg.name||"Someone")}: ${escapeHtml(msg.text)}`, 3000);
   }
 }
 window.sendChat = function(){
