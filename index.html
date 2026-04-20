@@ -1511,14 +1511,31 @@ async function loadAndStartGame(){
   SFX.gameStart();
   _gameLoaded = true;
 }
-let _syncAnimPending = null; // FIX 3: buffer for state arriving during dice anim
+function _flushSyncPending(){
+  if(_syncAnimPending.length === 0) return;
+  // Drain queue one-by-one; each syncGameState call may re-buffer if anim starts again
+  const next = _syncAnimPending.shift();
+  syncGameState(next);
+}
+let _syncAnimPending = []; // FIX: queue instead of single slot — prevents dropped rapid updates
 function syncGameState(data){
   if(!_gameLoaded){ console.warn("⏳ syncGameState: game not loaded yet, skipping update"); return; }
+  // FIX B5: Only skip own-seat updates when we're actively animating (which means
+  // the push is still in-flight and we'd just be re-applying our own state mid-move).
+  // If _animating is false, allow it through — this handles the reconnect case where
+  // Firebase re-delivers our own last action and we need to re-sync from it.
+  // FIX LAG-5: Always skip our own Firebase echoes — we already applied state+animations
+  // locally in doRoll/doMove. Processing the echo causes double dice spin + token re-anim = lag.
   if(data.actionBy === MY_SEAT) return;
   // FIX 3: If a dice animation is currently playing, buffer this update and
   // apply it as soon as the animation callback fires. Prevents dropped syncs.
+  // FIX: Keep only the latest non-roll action (move/skip) and always keep the last entry.
+  // For rapid 6-roll sequences, we only need the final state.
   if(_syncAnimPlaying){
-    _syncAnimPending = data;
+    // Replace any existing pending of same action type, otherwise push
+    const idx = _syncAnimPending.findIndex(p => p.action === data.action || (!p.action && !data.action));
+    if(idx >= 0) _syncAnimPending[idx] = data;
+    else _syncAnimPending.push(data);
     return;
   }
   _applySyncGameState(data);
@@ -1559,13 +1576,23 @@ function _applySyncGameState(data){
     G.sixes   = data.sixes || 0;
     G.waiting = false;
     if(G.turn === MY_SEAT){ G.rolled = false; G.diceVal = null; }
+    // FIX LAG-1: If this is our own roll echoing back from Firebase, skip the
+    // dice animation entirely — we already played it locally in doRoll().
+    // Playing it again causes the visible "double roll" lag stutter.
+    if(rolledBy === MY_SEAT){
+      syncUI();
+      _flushSyncPending();
+      return;
+    }
     if(dice != null && rolledBy != null){
       SFX.diceRoll();
       _syncAnimPlaying = true;
+      const _syncPlayGuard1 = setTimeout(()=>{ _syncAnimPlaying=false; syncUI(); _flushSyncPending(); }, DICE_DUR_MS+500);
       animDice(rolledBy, dice, ()=>{
+        clearTimeout(_syncPlayGuard1);
         _syncAnimPlaying = false;
         syncUI();
-        if(_syncAnimPending){ const p=_syncAnimPending; _syncAnimPending=null; syncGameState(p); }
+        _flushSyncPending();
       });
     } else {
       syncUI();
@@ -1591,37 +1618,54 @@ function _applySyncGameState(data){
         endGame(); return;
       }
       syncUI();
-      if(_syncAnimPending){ const p=_syncAnimPending; _syncAnimPending=null; syncGameState(p); }
+      _flushSyncPending();
     };
     const runMoveAnim = async () => {
       const moves = data.moves || [];
       const primaryMove = moves.find(m => m.type === "open" || m.type === "move");
+      // FIX LAG-4: If this is our own move echoing back from Firebase, skip ALL
+      // token animations — doMove() already ran them locally. Just apply final state.
+      if(rolledBy === MY_SEAT){
+        applyFinalState();
+        return;
+      }
       if(primaryMove && dice != null){
         const { pid, tid, type, finalStep } = primaryMove;
         const tok = tokOf(pid, tid);
         if(tok && !_animating){
           _animating = true;
-          if(type === "open" && tok.step === 0){
-            SFX.tokenSpawn();
-            const spawnKey = `${pid}-${tid}`;
-            const [spawnHr, spawnHc] = getHomeCornerBySeat(pid);
-            const spawnStart = baseCirclePx(spawnHr, spawnHc, tid);
-            tok.step = 1;
-            renderTokens(); await rafDelay(20);
-            const entryRC = getRenderCell(pid, 1);
-            if(entryRC && _tokEls[spawnKey]){
-              const entryXY = rcToXY(entryRC[0], entryRC[1]);
-              const cp2 = cellPx(), BASE_W2 = Math.round(cp2 * 1.15);
-              const oppColor = getDisplayColorForSeat(pid);
-              const oppLayer = document.getElementById('tokens-layer');
-              await jumpStep(_tokEls[spawnKey].wrap, _tokEls[spawnKey].shadow, spawnStart.x, spawnStart.y, entryXY.x, entryXY.y, BASE_W2, oppColor, cp2, oppLayer);
+          try {
+            if(type === "open" && tok.step === 0){
+              SFX.tokenSpawn();
+              const spawnKey = `${pid}-${tid}`;
+              const [spawnHr, spawnHc] = getHomeCornerBySeat(pid);
+              const spawnStart = baseCirclePx(spawnHr, spawnHc, tid);
+              tok.step = 1;
+              renderTokens(); await rafDelay(20);
+              const entryRC = getRenderCell(pid, 1);
+              if(entryRC && _tokEls[spawnKey]){
+                const entryXY = rcToXY(entryRC[0], entryRC[1]);
+                const cp2 = cellPx(), BASE_W2 = Math.round(cp2 * 1.15);
+                const oppColor = getDisplayColorForSeat(pid);
+                const oppLayer = document.getElementById('tokens-layer');
+                await jumpStep(_tokEls[spawnKey].wrap, _tokEls[spawnKey].shadow, spawnStart.x, spawnStart.y, entryXY.x, entryXY.y, BASE_W2, oppColor, cp2, oppLayer);
+              }
+            } else if(type === "move" && tok.step > 0){
+              const steps = finalStep - tok.step;
+              if(steps > 0 && steps <= 6){
+                await animateMove(tok, steps);
+                if(tok.step >= STEP_DONE) SFX.tokenDone();
+              }
+              // FIX: if steps==0 or out-of-range, animation skipped but _animating was true —
+              // applyFinalState() below always clears it, so no leak, but snap-set step for correctness
+              else if(steps !== 0){ tok.step = finalStep; renderTokens(); }
             }
-          } else if(type === "move" && tok.step > 0){
-            const steps = finalStep - tok.step;
-            if(steps > 0 && steps <= 6){
-              await animateMove(tok, steps);
-              if(tok.step >= STEP_DONE) SFX.tokenDone();
-            }
+          } catch(e) {
+            console.warn("runMoveAnim animation error:", e);
+          } finally {
+            // FIX: ensure _animating never leaks true if animation throws or is skipped
+            // applyFinalState() also sets _animating=false, but this guards any early-return path
+            _animating = false;
           }
         }
       }
@@ -1641,9 +1685,17 @@ function _applySyncGameState(data){
       applyFinalState();
     };
     if(dice != null && rolledBy != null){
-      SFX.diceRoll();
-      _syncAnimPlaying = true;
-      animDice(rolledBy, dice, () => { _syncAnimPlaying = false; runMoveAnim(); });
+      // FIX LAG-2: If this is our own move echoing back from Firebase, skip the
+      // dice re-animation — we already played it in doRoll() locally.
+      // Replaying it causes a visible double-stutter after every move.
+      if(rolledBy === MY_SEAT){
+        runMoveAnim();
+      } else {
+        SFX.diceRoll();
+        _syncAnimPlaying = true;
+        const _syncPlayGuard2 = setTimeout(()=>{ _syncAnimPlaying=false; runMoveAnim(); }, DICE_DUR_MS+500);
+        animDice(rolledBy, dice, () => { clearTimeout(_syncPlayGuard2); _syncAnimPlaying = false; runMoveAnim(); });
+      }
     } else {
       runMoveAnim();
     }
@@ -1657,15 +1709,24 @@ function _applySyncGameState(data){
     G.sixes      = data.sixes      || 0;
     _applyPlacements(data.placements);
     if(dice != null && rolledBy != null){
-      SFX.diceRoll();
-      _syncAnimPlaying = true;
-      animDice(rolledBy, dice, ()=>{
-        _syncAnimPlaying = false;
+      // FIX LAG-3: Skip dice re-animation for our own skip echoing back from Firebase.
+      if(rolledBy === MY_SEAT){
         if(data.reason === "3sixes") SFX.threeSixesSkip();
         else if(data.reason === "noMove") SFX.noMove();
-        syncUI();
-        if(_syncAnimPending){ const p=_syncAnimPending; _syncAnimPending=null; syncGameState(p); }
-      });
+        syncUI(); _flushSyncPending();
+      } else {
+        SFX.diceRoll();
+        _syncAnimPlaying = true;
+        const _syncPlayGuard3 = setTimeout(()=>{ _syncAnimPlaying=false; if(data.reason==="3sixes") SFX.threeSixesSkip(); else if(data.reason==="noMove") SFX.noMove(); syncUI(); _flushSyncPending(); }, DICE_DUR_MS+500);
+        animDice(rolledBy, dice, ()=>{
+          clearTimeout(_syncPlayGuard3);
+          _syncAnimPlaying = false;
+          if(data.reason === "3sixes") SFX.threeSixesSkip();
+          else if(data.reason === "noMove") SFX.noMove();
+          syncUI();
+          _flushSyncPending();
+        });
+      }
     } else {
       syncUI();
     }
@@ -1743,9 +1804,18 @@ window.tryRejoin = async function(){
   await _presenceRef.set(true);
   _presenceRef.onDisconnect().set(false);
   _gameStarted=false;
+  // FIX B2: Pre-set the lock so that when listenRoom() attaches cb2 (status) and
+  // cb3 (gameRef), the first snapshot delivered by either one can't race with the
+  // other. We're doing a deliberate rejoin load, so _doLoadAndStartGame must fire
+  // exactly once — controlled below via cb3's immediate token check.
+  _gameStartLock=true;
   closeModals();
   showToast('🔄 Rejoining...');
   listenRoom();
+  // Directly load from the already-running game state.
+  // cb3 won't fire _doLoadAndStartGame (lock is set), so we do it manually.
+  _gameStarted=true;
+  _doLoadAndStartGame();
 };
 let _hostOfflineTimer = null;
 let _hostLeaveOverlay = null;
@@ -3091,6 +3161,10 @@ async function _onTurnTimerExpired(seat){
     return;
   }
   if(seat === MY_SEAT && G.waiting && G.rolled && G.diceVal != null){
+    // FIX B3: Don't force-move if a remote sync animation is still playing —
+    // _animating is set by runMoveAnim in syncGameState. Calling doMove while
+    // _animating is true would corrupt G.tokens and push a bad state.
+    if(_animating) return;
     const mv = movable(seat, G.diceVal);
     if(mv.length > 0){
       G.waiting = false;
@@ -3145,8 +3219,14 @@ function resetTurnTimeout(){
   _turnTimeoutTimer = null;
   if(!IS_HOST || !ROOM_CODE || G.over) return;
   if(G.turn === MY_SEAT) return;
+  // FIX B6: Don't arm the timeout for a bot seat — _doBotTurn handles its own
+  // execution. If we arm the timer here, it races with the bot's doMove and can
+  // push a skip action while the bot's pushGameState is still in-flight.
+  if(PLAYERS[G.turn]?.isBot) return;
   _turnTimeoutTimer = setTimeout(async()=>{
     if(G.over || G.rolled || G.waiting || G.turn === MY_SEAT) return;
+    // Also abort if the seat became a bot while we were waiting
+    if(PLAYERS[G.turn]?.isBot) return;
     const skippedTurn = G.turn;
     G.rolled=false; G.diceVal=null; G.waiting=false;
     nextTurn(false);
@@ -3161,7 +3241,7 @@ function onHumanRoll(){
 function doRoll(pid){
   if(_rolling) return;
   _rolling=true;
-  const rollSafety=setTimeout(()=>{_rolling=false;},1500);
+  const rollSafety=setTimeout(()=>{_rolling=false;},DICE_DUR_MS+300);
   const d3d=document.getElementById(`d3d-${pid}`);
   if(d3d) d3d.classList.add("off");
   const v=smartRng(pid);
@@ -3575,8 +3655,13 @@ async function doMove(pid,tid,v){
     const moveType = (finalTok.step === 1 && v === 6) ? "open" : "move";
     movesPayload.push({ pid, tid, type: moveType, finalStep: finalTok.step });
   }
+  // FIX B4: Previously only checked t.pid !== pid, so self-captures were missed.
+  // Also, sendHomeFast already mutated tok.step=0 above, so checking step===0
+  // now correctly captures ALL tokens sent home (opponent AND edge-case self).
+  // We exclude the token that was just moved (pid+tid) to avoid a false entry.
   G.tokens.forEach(t => {
-    if(t.pid !== pid && t.step === 0){
+    if(t.pid === pid && t.tid === tid) return; // the token we just moved
+    if(t.step === 0){
       movesPayload.push({ pid: t.pid, tid: t.tid, type: "home", finalStep: 0 });
     }
   });
@@ -3710,7 +3795,10 @@ function restartGame(){
   if(canvas){const c=canvas.getContext("2d");c.clearRect(0,0,canvas.width,canvas.height);}
   document.querySelectorAll(".win-ring").forEach(r=>r.remove());
   document.getElementById("win").classList.remove("show");
-  window.leaveRoom();
+  // FIX B1: Use leaveToLobby instead of leaveRoom so the session is preserved
+  // and the rejoin card appears, letting the player re-enter via tryRejoin or
+  // create/join a new room. leaveRoom() was wiping the session unnecessarily.
+  window.leaveToLobby();
 }
 window.togglePause=function(){
   if(G.over) return;
@@ -4021,6 +4109,9 @@ async function _doLoadAndStartGame(){
   await loadAndStartGame();
   listenChat();
   listenPlayerPresence();
+  // FIX B7: listenHostOnline was defined but never called, so non-host players
+  // never saw the "Host Disconnected" overlay. Wire it up here.
+  listenHostOnline();
   if(_pendingSync){
     const pending = _pendingSync;
     _pendingSync = null;
