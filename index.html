@@ -206,6 +206,33 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script>
+// If Firebase CDN failed (e.g. offline), install a stub so game still runs
+if(!window.firebase){
+  (function(){
+    var noopRef = {
+      on:function(){return this;}, off:function(){},
+      once:function(){return Promise.resolve({val:function(){return null;}});},
+      set:function(){return Promise.resolve();},
+      update:function(){return Promise.resolve();},
+      push:function(){return {key:'offline_'+Date.now()};},
+      remove:function(){return Promise.resolve();},
+      child:function(){return this;},
+      transaction:function(fn){try{fn(null);}catch(e){}return Promise.resolve();}
+    };
+    window.firebase = {
+      initializeApp:function(){}, _stub:true,
+      database:function(){ return { ref:function(){return noopRef;}, goOffline:function(){}, goOnline:function(){} }; },
+      auth:function(){ return {
+        onAuthStateChanged:function(cb){setTimeout(function(){cb(null);},0);},
+        signInAnonymously:function(){return Promise.resolve();}
+      }; }
+    };
+    firebase.database.ServerValue = {TIMESTAMP:{".sv":"timestamp"}};
+    console.warn('Firebase unavailable — offline stub active');
+  })();
+}
+</script>
 <script>const SFX=(() => {
   let _muted=false;
   let _ctx=null;
@@ -1798,6 +1825,7 @@ function makePlaceholder(side){
 function makePanel(pid,side,pos,isMe=false){
   const p=PLAYERS[pid];
   if(!p) return makePlaceholder(side);
+  const displayColor = p.color || getDisplayColorForSeat(pid) || "#888";
   const col=document.createElement("div");
   col.className=`pcol ${side}`;
   col.dataset.pid=pid;
@@ -3775,7 +3803,8 @@ if(_rcDisplay){
 bindBtn("btn-mute", ()=>SFX.toggleMute());
 bindBtn("btn-perf", ()=>togglePerfMode());
 applyPerfMode();
-});</script>
+}); // end DOMContentLoaded
+</script>
 
 </body>
 </html>
