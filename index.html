@@ -248,10 +248,12 @@
     o.connect(g);g.connect(dest);o.start(start);o.stop(start+dur+0.05);
   }
   let _noiseBuf=null;
+  let _noiseBufCtx=null;
   function getNoiseBuf(ctx){
-    if(_noiseBuf)return _noiseBuf;
+    if(_noiseBuf && _noiseBufCtx===ctx)return _noiseBuf;
     const len=ctx.sampleRate;
     _noiseBuf=ctx.createBuffer(1,len,ctx.sampleRate);
+    _noiseBufCtx=ctx;
     const d=_noiseBuf.getChannelData(0);
     for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
     return _noiseBuf;
@@ -2307,12 +2309,26 @@ function _doRenderTokens(){
         const _ringKey=`${Math.round(rx)},${Math.round(ry)},${Math.round(ringSz)}`;
         if(els.ring._lastKey!==_ringKey){
           els.ring._lastKey=_ringKey;
-          els.ring.style.cssText=`position:absolute;left:0;top:0;width:${ringSz}px;height:${ringSz}px;border-radius:50%;pointer-events:none;--tr-base:translate(${rx}px,${ry}px);transform:translate(${rx}px,${ry}px);border:2px solid rgba(255,255,255,0.75);animation:tokRingPulse 0.8s ease-in-out infinite;display:block;`;
+          const trBase=`translate(${rx}px,${ry}px)`;
+          if(els.ring.style.display==='none'||!els.ring._initialized){
+            // First show: set full styles and start animation
+            els.ring._initialized=true;
+            els.ring.style.cssText=`position:absolute;left:0;top:0;width:${ringSz}px;height:${ringSz}px;border-radius:50%;pointer-events:none;--tr-base:${trBase};transform:${trBase};border:2px solid rgba(255,255,255,0.75);animation:tokRingPulse 0.8s ease-in-out infinite;display:block;`;
+          } else {
+            // Position-only update — no animation restart
+            els.ring.style.setProperty('--tr-base', trBase);
+            els.ring.style.transform = trBase;
+            els.ring.style.width = `${ringSz}px`;
+            els.ring.style.height = `${ringSz}px`;
+          }
         } else {
           els.ring.style.display='block';
         }
       } else {
-        els.ring.style.display="none";
+        if(els.ring.style.display!=='none'){
+          els.ring.style.display="none";
+          els.ring._initialized=false;
+        }
       }
     }
     if(els.shield){
@@ -3011,6 +3027,7 @@ async function doMove(pid,tid,v){
       movesPayload.push({ pid: t.pid, tid: t.tid, type: "home", finalStep: 0 });
     }
   });
+  nextTurn(bonus, diceWasSix);
   pushGameState({
     action: "move",
     dice: v,
@@ -3018,14 +3035,29 @@ async function doMove(pid,tid,v){
     movedPid: pid,
     movedTid: tid
   }).catch(e => { _animating=false; console.error("doMove pushGameState failed:",e); });
-  nextTurn(bonus, diceWasSix);
 }
 function nextTurn(same, wasSix){
   G.rolled=false;_rolling=false;G.diceVal=null;G.waiting=false;
   if(!same){
+    // normal turn advance — move to next active player
     G.sixes=0;
+    const layout = SEAT_LAYOUT_ACTIVE;
+    const curIdx = layout.indexOf(G.turn);
+    let tries = 0;
+    let nextIdx = (curIdx + 1) % layout.length;
+    while(tries < layout.length){
+      const nextSeat = layout[nextIdx];
+      const p = PLAYERS[nextSeat];
+      if(p && p.active && !toksOf(nextSeat).every(t=>t.step>=STEP_DONE)){
+        G.turn = nextSeat;
+        break;
+      }
+      nextIdx = (nextIdx + 1) % layout.length;
+      tries++;
+    }
+    if(tries >= layout.length) return;
   } else if(!wasSix){
-    // capture bonus from a non-six roll — sixes streak is broken
+    // capture bonus from a non-six roll — sixes streak is broken, and turn advances
     G.sixes=0;
     const layout = SEAT_LAYOUT_ACTIVE;
     const curIdx = layout.indexOf(G.turn);
