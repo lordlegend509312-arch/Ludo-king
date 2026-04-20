@@ -2678,9 +2678,9 @@ function afterRoll(pid,v){
   const mv=movable(pid,v);
   if(mv.length===0){
     SFX.noMove();
-    syncUI();
     setTimeout(async()=>{
       nextTurn(false);
+      syncUI();
       await pushGameState({ action:"skip", dice:v, reason:"noMove" });
     },300);
     return;
