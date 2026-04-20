@@ -154,6 +154,14 @@
       </div>
       <div id="sdp-force-grid" style="display:flex;flex-direction:column;gap:4px;width:100%;"></div>
     </div>
+    <div style="width:100%;background:#1a1a35;border-radius:10px;padding:7px 8px;border:1px solid #2a2a55;">
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+        <span style="font-size:11px;">👑</span>
+        <span style="color:#FFD600;font-size:.62rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:1px;">ELDER CONTROL</span>
+      </div>
+      <div id="sdp-elder-status" style="font-size:.52rem;font-family:'Nunito',sans-serif;color:rgba(240,240,255,0.4);text-align:center;margin-bottom:6px;min-height:12px;"></div>
+      <div id="sdp-elder-grid" style="display:flex;gap:4px;justify-content:center;width:100%;flex-wrap:wrap;"></div>
+    </div>
   </div>
   <button id="sdp-close-btn" style="margin-top:0;padding:10px 28px;border-radius:8px;border:1.5px solid #333366;background:#1a1a35;color:#f0f0ff;font-size:.62rem;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;cursor:pointer;position:relative;z-index:10;">CLOSE</button>
 </div>
@@ -576,18 +584,32 @@ let IS_HOST = false; // Only used for lobby UI (Start Game button)
 // Returns true if this client is the "eldest" online player —
 // i.e. the first seat in SEAT_LAYOUT_ACTIVE that is currently online.
 // This replaces IS_HOST for all game logic (timeout, bot, skip).
+let _forcedElderSeat = null; // null = auto, number = manual override from Firebase
+let _cachedElderResult = null;
+let _cachedElderOnlineSet = '';
 function amIElderPlayer(){
   if(!ROOM_CODE || MY_SEAT === null) return false;
+  // Manual override — someone explicitly assigned elder via panel
+  if(_forcedElderSeat !== null){
+    return MY_SEAT === _forcedElderSeat;
+  }
+  // Memoize — only recompute when _onlineSeats changes
+  const onlineKey = [..._onlineSeats].sort().join(',');
+  if(_cachedElderOnlineSet === onlineKey && _cachedElderResult !== null){
+    return _cachedElderResult;
+  }
+  _cachedElderOnlineSet = onlineKey;
   for(const seat of SEAT_LAYOUT_ACTIVE){
     if(!PLAYERS[seat]?.active) continue;
-    // Check online status from presence data
     if(_onlineSeats.has(seat)){
-      return seat === MY_SEAT;
+      _cachedElderResult = (seat === MY_SEAT);
+      return _cachedElderResult;
     }
   }
   // fallback: if no presence data yet, assume first active seat
   const first = SEAT_LAYOUT_ACTIVE.find(s => PLAYERS[s]?.active);
-  return first === MY_SEAT;
+  _cachedElderResult = (first === MY_SEAT);
+  return _cachedElderResult;
 }
 let _onlineSeats = new Set(); // tracks which seats are currently online
 let NUM_PLAYERS = 4;
@@ -744,6 +766,7 @@ function listenRoom(){
   };
   gameStatusRef.on('value', cb2);
   _listeners.push(()=>gameStatusRef.off('value', cb2));
+  let _lastProcessedTs = 0;
   const cb3 = snap=>{
     if(!snap.exists()) return;
     const data = snap.val();
@@ -758,10 +781,36 @@ function listenRoom(){
       _pendingSync = data;
       return;
     }
-    if(data && G.over === false) syncGameState(data);
+    if(data && G.over === false){
+      // Deduplicate by timestamp — if we already processed this exact push, skip
+      const ts = data.timestamp || 0;
+      if(ts && ts === _lastProcessedTs) return;
+      if(ts) _lastProcessedTs = ts;
+      syncGameState(data);
+    }
   };
   gameRef.on('value', cb3);
   _listeners.push(()=>gameRef.off('value', cb3));
+
+  // Elder override listener — syncs _forcedElderSeat across all clients
+  const elderRef = db.ref(`rooms/${ROOM_CODE}/elderSeat`);
+  const cbElder = snap=>{
+    const val = snap.val();
+    _forcedElderSeat = (val !== null && val !== undefined) ? Number(val) : null;
+    _cachedElderResult = null; // force amIElderPlayer recompute
+    // Clear any pending timeout from old elder — prevents double-skip race condition
+    clearTimeout(_turnTimeoutTimer);
+    _turnTimeoutTimer = null;
+    // If I'm now the elder, start a fresh timeout for current turn
+    if(amIElderPlayer() && _gameLoaded && !G.over && G.turn !== MY_SEAT){
+      resetTurnTimeout();
+    }
+    if(document.getElementById('smart-dice-panel')?.style.display !== 'none'){
+      _renderSmartDicePanel();
+    }
+  };
+  elderRef.on('value', cbElder);
+  _listeners.push(()=>elderRef.off('value', cbElder));
 }
 function updatePlayerList(players){
   const container = document.getElementById("player-list");
@@ -890,9 +939,12 @@ function _flushSyncPending(){
   syncGameState(next);
 }
 let _syncAnimPending = []; // FIX: queue instead of single slot — prevents dropped rapid updates
-function syncGameState(data){
+function syncGameState(data, _forceApply){
   if(!_gameLoaded){ return; }
-  if(data.actionBy === MY_SEAT) return;
+  // Block our own actions to prevent self-triggering Firebase listener loop.
+  // Exception: _forceApply=true is used by the fresh-pull on timer expiry to
+  // unconditionally catch up with server state regardless of who pushed last.
+  if(!_forceApply && data.actionBy === MY_SEAT) return;
   if(_syncAnimPlaying || _animating){
     if(data.action === "move"){
       // move events must NEVER be dropped — always queue them
@@ -986,6 +1038,7 @@ function _applySyncGameState(data){
       _updateOfflineBadge(rolledBy, false);
     }
     const applyFinalState = () => {
+      const prevTurn = G.turn;
       if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
       G.turn       = data.turn;
       G.rolled     = false;
@@ -995,6 +1048,8 @@ function _applySyncGameState(data){
       _applyPlacements(data.placements);
       G.over       = data.over       || false;
       _animating   = false;
+      // Force timer restart if turn changed
+      if(G.turn !== prevTurn) _lastTimerTurn = -1;
       if(G.over && !document.getElementById("win").classList.contains("show")){
         endGame(); return;
       }
@@ -1080,12 +1135,15 @@ function _applySyncGameState(data){
     return;
   }
   if(action === "skip" || action === "noMove" || action === "skip3six"){
+    const prevTurn = G.turn;
     G.turn       = data.turn;
     G.rolled     = false;
     G.waiting    = false;
     G.diceVal    = null;
     G.sixes      = data.sixes      || 0;
     _applyPlacements(data.placements);
+    // Force timer restart if turn changed (skip always advances turn)
+    if(G.turn !== prevTurn) _lastTimerTurn = -1;
     if((dice != null && dice !== -1) && rolledBy != null){
       if(rolledBy === MY_SEAT){
         if(data.reason === "3sixes") SFX.threeSixesSkip();
@@ -1241,6 +1299,9 @@ window.leaveToLobby = async function(){
   const _savedName = MY_NAME;
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
   _rolling = false; _animating = false; _onlineSeats = new Set();
+  _lastTimerTurn = -1;
+  _cachedElderResult = null; _cachedElderOnlineSet = '';
+  _forcedElderSeat = null;
   SEAT_LAYOUT_ACTIVE = [0,1,2,3];
   _gameLoaded = false;
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
@@ -1275,6 +1336,9 @@ window.leaveRoom = async function(){
   }
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
   _rolling = false; _animating = false; _onlineSeats = new Set();
+  _lastTimerTurn = -1;
+  _cachedElderResult = null; _cachedElderOnlineSet = '';
+  _forcedElderSeat = null;
   const chatPanel = document.getElementById("chat-panel");
   if(chatPanel) chatPanel.classList.remove("open");
   const rc=document.getElementById("rejoin-card"); if(rc) rc.style.display="none";
@@ -1296,6 +1360,7 @@ function listenPlayerPresence(){
       const online = snap.val() === true;
       // Track online seats for amIElderPlayer()
       if(online){ _onlineSeats.add(seat); } else { _onlineSeats.delete(seat); }
+      _cachedElderResult = null; // invalidate elder cache on presence change
       if(online && PLAYERS[seat]?.isBot){
         _deactivateBot(seat);
       }
@@ -1926,6 +1991,84 @@ function _renderSmartDicePanel(){
     if(current!==null){const clr=document.createElement('div');clr.style.cssText='font-size:.6rem;color:rgba(255,80,80,.7);cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;padding:2px 4px;border-radius:4px;border:1px solid rgba(255,80,80,.3);';clr.textContent='✕';clr.title='Clear';clr.onclick=()=>{forceDice[p.id]=null;_renderSmartDicePanel();};row.appendChild(clr);}
     forceGrid.appendChild(row);
   });
+
+  // ── ELDER CONTROL PANEL ──
+  const elderGrid = document.getElementById('sdp-elder-grid');
+  const elderStatus = document.getElementById('sdp-elder-status');
+  if(!elderGrid) return;
+  elderGrid.innerHTML = '';
+
+  // Determine current elder seat
+  const currentElder = (_forcedElderSeat !== null)
+    ? _forcedElderSeat
+    : (()=>{
+        for(const seat of SEAT_LAYOUT_ACTIVE){
+          if(!PLAYERS[seat]?.active) continue;
+          if(_onlineSeats.has(seat)) return seat;
+        }
+        return SEAT_LAYOUT_ACTIVE.find(s => PLAYERS[s]?.active) ?? -1;
+      })();
+
+  if(elderStatus){
+    const isManual = _forcedElderSeat !== null;
+    const eName = PLAYERS[currentElder]?.label || `P${currentElder+1}`;
+    const eColor = getDisplayColorForSeat(currentElder);
+    elderStatus.style.color = eColor;
+    elderStatus.textContent = isManual
+      ? `👑 ${eName} (manual)`
+      : `👑 ${eName} (auto)`;
+  }
+
+  const activePlayers2 = PLAYERS.filter(p => p.active);
+  activePlayers2.forEach(p => {
+    const isElder = p.id === currentElder;
+    const btn = document.createElement('div');
+    btn.style.cssText = `
+      width:36px;height:36px;border-radius:8px;
+      border:2px solid ${isElder ? p.color : '#2a2a55'};
+      background:${isElder ? p.color+'33' : '#13132a'};
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;position:relative;transition:all 0.15s;
+      box-shadow:${isElder ? `0 0 8px ${p.color}88` : 'none'};
+    `;
+    btn.innerHTML = `<div style="width:22px;height:22px;">${tokSVG(p.color,22)}</div>`;
+    if(isElder){
+      const crown = document.createElement('div');
+      crown.style.cssText = 'position:absolute;top:-7px;left:50%;transform:translateX(-50%);font-size:10px;line-height:1;';
+      crown.textContent = '👑';
+      btn.appendChild(crown);
+    }
+    btn.onclick = async () => {
+      if(!ROOM_CODE || !gameRef) return;
+      // Toggle: if already elder, remove override (go back to auto)
+      const newVal = (p.id === _forcedElderSeat) ? null : p.id;
+      try {
+        await db.ref(`rooms/${ROOM_CODE}/elderSeat`).set(newVal);
+      } catch(e) {
+        console.error('Elder set failed:', e);
+      }
+    };
+    elderGrid.appendChild(btn);
+  });
+
+  // "Auto" reset button
+  if(_forcedElderSeat !== null){
+    const autoBtn = document.createElement('div');
+    autoBtn.style.cssText = `
+      width:36px;height:36px;border-radius:8px;
+      border:1.5px solid #444466;background:#13132a;
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;font-size:9px;color:rgba(240,240,255,0.45);
+      font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:.5px;
+    `;
+    autoBtn.textContent = 'AUTO';
+    autoBtn.title = 'Reset to automatic elder selection';
+    autoBtn.onclick = async () => {
+      if(!ROOM_CODE) return;
+      try { await db.ref(`rooms/${ROOM_CODE}/elderSeat`).set(null); } catch(e){}
+    };
+    elderGrid.appendChild(autoBtn);
+  }
 }
 function smartRng(pid){
   if(forceDice[pid]!=null){const forced=forceDice[pid];forceDice[pid]=null;if(document.getElementById('smart-dice-panel').style.display!=='none') _renderSmartDicePanel();return forced;}
@@ -2444,9 +2587,16 @@ function refreshUI(){
     }
   });
 }
+let _lastTimerTurn = -1;
 function updateTurnBanner(){
-  resetTurnTimeout();
-  startTurnTimer(G.turn);
+  // Only restart the visual timer AND the timeout when the turn actually changes.
+  // Calling resetTurnTimeout() on every syncUI() was resetting the opponent's
+  // timeout on every roll/move event — causing it to never fire.
+  if(G.turn !== _lastTimerTurn){
+    _lastTimerTurn = G.turn;
+    resetTurnTimeout(); // restart timeout only on actual turn change
+    startTurnTimer(G.turn);
+  }
 }
 const TURN_TIMER_SEC = 43; // FIX 6: aligned with TURN_TIMEOUT_MS (45s) so bar empties just before host skips
 let _timerInterval = null;
@@ -2472,7 +2622,9 @@ function startTurnTimer(seat){
     bar.classList.add('draining');
   }
   const _capturedSeat = seat;
-  let _timerPhase = 0; // PERF FIX 2: track phase so we only write DOM when color changes
+  let _timerPhase = 0;
+  // Use 1000ms interval — CSS animation handles visual draining smoothly.
+  // JS only needs to fire for phase color changes (at 25s and 10s) and expiry.
   _timerInterval = setInterval(()=>{
     const elapsed = (Date.now() - _timerStart) / 1000;
     const remaining = TURN_TIMER_SEC - elapsed;
@@ -2497,7 +2649,7 @@ function startTurnTimer(seat){
         }
       }
     }
-  }, 500);
+  }, 1000);
 }
 function stopTurnTimer(){
   if(_timerInterval){ clearInterval(_timerInterval); _timerInterval = null; }
@@ -2523,13 +2675,17 @@ async function _onTurnTimerExpired(seat){
       _updateOfflineBadge(seat, true);
     }
   }
+  // MY turn: auto-roll if haven't rolled yet
   if(seat === MY_SEAT && !G.rolled){
-    if(_rolling) return;
+    if(_rolling || _animating) return;
     doRoll(seat);
     return;
   }
+  // MY turn: auto-move if rolled and waiting for token pick
   if(seat === MY_SEAT && G.waiting && G.rolled && G.diceVal != null){
     if(_animating || _rolling) return;
+    // Re-check state is still valid
+    if(G.turn !== MY_SEAT || !G.rolled || !G.waiting) return;
     const savedDice = G.diceVal;
     const mv = movable(seat, savedDice);
     if(mv.length > 0){
@@ -2550,18 +2706,21 @@ async function _onTurnTimerExpired(seat){
     return;
   }
   if(amIElderPlayer() && seat !== MY_SEAT){
+    // Only skip if the turn hasn't already moved on (e.g. opponent was fast)
+    if(G.turn !== seat) return;
     _doBotTurn(seat);
     return;
   }
-  // Non-elder: remote player's turn expired — check if we missed their move
-  if(!amIElderPlayer() && seat !== MY_SEAT && G.rolled && G.diceVal != null && ROOM_CODE && gameRef){
+  // Non-elder: remote player's turn expired — pull fresh state from Firebase.
+  // Apply unconditionally to fix desync — the elder will have already pushed
+  // the skip/timeout state, we just need to catch up.
+  if(!amIElderPlayer() && seat !== MY_SEAT && ROOM_CODE && gameRef){
     gameRef.once('value').then(snap => {
       if(!snap || !snap.exists()) return;
       const fresh = snap.val();
-      // Only apply if the turn has actually moved on (host already processed it)
-      if(fresh && fresh.turn !== seat){
-        syncGameState(fresh);
-      }
+      if(!fresh || G.over) return;
+      // Always sync — we timed out locally, something happened we missed
+      syncGameState(fresh, true);
     }).catch(()=>{});
   }
 }
@@ -2604,9 +2763,15 @@ function resetTurnTimeout(){
   if(!amIElderPlayer() || !ROOM_CODE || G.over) return;
   if(G.turn === MY_SEAT) return;
   if(PLAYERS[G.turn]?.isBot) return;
+  // If the opponent has already rolled and is waiting to pick a token,
+  // give them extra time (they're actively engaged) — use full timeout again.
+  // The timer tracks from when the turn started, not from roll.
   _turnTimeoutTimer = setTimeout(()=>{
     if(G.over || G.turn === MY_SEAT) return;
     if(PLAYERS[G.turn]?.isBot) return;
+    // If opponent already rolled but hasn't moved yet, give them one more chance
+    // by just letting the visual timer handle it — don't force-skip mid-selection.
+    if(G.rolled && G.waiting && G.diceVal != null) return;
     const skippedTurn = G.turn;
     const savedDice = G.diceVal ?? -1;
     G.rolled=false; G.diceVal=null; G.waiting=false;
