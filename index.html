@@ -572,7 +572,24 @@ const STEP_DONE = 57;
 let ROOM_CODE = null;
 let MY_SEAT = null;
 let MY_NAME = "Player";
-let IS_HOST = false;
+let IS_HOST = false; // Only used for lobby UI (Start Game button)
+// Returns true if this client is the "eldest" online player —
+// i.e. the first seat in SEAT_LAYOUT_ACTIVE that is currently online.
+// This replaces IS_HOST for all game logic (timeout, bot, skip).
+function amIElderPlayer(){
+  if(!ROOM_CODE || MY_SEAT === null) return false;
+  for(const seat of SEAT_LAYOUT_ACTIVE){
+    if(!PLAYERS[seat]?.active) continue;
+    // Check online status from presence data
+    if(_onlineSeats.has(seat)){
+      return seat === MY_SEAT;
+    }
+  }
+  // fallback: if no presence data yet, assume first active seat
+  const first = SEAT_LAYOUT_ACTIVE.find(s => PLAYERS[s]?.active);
+  return first === MY_SEAT;
+}
+let _onlineSeats = new Set(); // tracks which seats are currently online
 let NUM_PLAYERS = 4;
 let roomRef = null;
 let gameRef = null;
@@ -801,8 +818,10 @@ window.hostStartGame = async function(){
     timestamp: firebase.database.ServerValue.TIMESTAMP
   };
   try {
-    await gameRef.set(initGame);
-    await roomRef.update({ status: "playing" });
+    await Promise.all([
+      gameRef.set(initGame),
+      roomRef.update({ status: "playing" })
+    ]);
   } catch(e) {
     console.error("❌ Game start failed:", e);
     showToast("❌ Failed to start game — check connection");
@@ -875,12 +894,18 @@ function syncGameState(data){
   if(!_gameLoaded){ return; }
   if(data.actionBy === MY_SEAT) return;
   if(_syncAnimPlaying || _animating){
-    if(data.action === "move" || data.action === "skip"){
-      // move/skip supersedes any pending roll from same player
-      // prevents G.rolled getting stuck when roll+move arrive close together
+    if(data.action === "move"){
+      // move events must NEVER be dropped — always queue them
+      // remove any pending roll from same player (move supersedes roll)
       const rollIdx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === data.actionBy);
       if(rollIdx >= 0) _syncAnimPending.splice(rollIdx, 1);
-      const sameIdx = _syncAnimPending.findIndex(p => p.action === data.action && p.actionBy === data.actionBy);
+      _syncAnimPending.push(data);
+    } else if(data.action === "skip"){
+      // skip supersedes pending roll from same player
+      const rollIdx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === data.actionBy);
+      if(rollIdx >= 0) _syncAnimPending.splice(rollIdx, 1);
+      // skip can replace another skip from same player (only latest matters)
+      const sameIdx = _syncAnimPending.findIndex(p => p.action === "skip" && p.actionBy === data.actionBy);
       if(sameIdx >= 0) _syncAnimPending[sameIdx] = data;
       else _syncAnimPending.push(data);
     } else if(data.action === "roll"){
@@ -1009,8 +1034,12 @@ function _applySyncGameState(data){
               if(steps > 0 && steps <= 6){
                 await animateMove(tok, steps);
                 if(tok.step >= STEP_DONE) SFX.tokenDone();
+              } else {
+                // steps out of expected range — snap to finalStep directly, no animation
+                tok.step = finalStep;
+                renderTokens();
+                await rafDelay(60);
               }
-              else if(steps !== 0){ tok.step = finalStep; renderTokens(); }
             }
           } catch(e) {
             console.warn("runMoveAnim animation error:", e);
@@ -1096,7 +1125,7 @@ function _applySyncGameState(data){
   syncUI();
 }
 let _pushDebounce = null;
-async function pushGameState(extra={}){
+function pushGameState(extra={}){
   setSyncStatus("warn");
   const payload = {
     turn: G.turn,
@@ -1112,13 +1141,13 @@ async function pushGameState(extra={}){
     timestamp: firebase.database.ServerValue.TIMESTAMP,
     ...extra
   };
-  try{
-    await gameRef.update(payload);
+  // Non-blocking: fire and forget — UI never waits for Firebase round-trip
+  return gameRef.update(payload).then(()=>{
     setSyncStatus("ok");
-  } catch(e){
+  }).catch(e=>{
     setSyncStatus("err");
     showToast("Sync error - reconnecting...");
-  }
+  });
 }
 function saveSession(){
   if(!ROOM_CODE || MY_SEAT === null || !MY_NAME) return;
@@ -1197,29 +1226,7 @@ function hideHostLeaveOverlay(){
   _hostOfflineTimer = null;
   showToast("🟢 Host reconnected — game resuming!");
 }
-function listenHostOnline(){
-  if(IS_HOST || !ROOM_CODE) return;
-  db.ref(`rooms/${ROOM_CODE}/host`).once('value').then(snap=>{
-    const hostSeat = snap.val();
-    if(hostSeat === null || hostSeat === undefined) return;
-    const hostOnlineRef = db.ref(`rooms/${ROOM_CODE}/players/${hostSeat}/online`);
-    const cbHost = snapH=>{
-      const online = snapH.val() === true;
-      if(!online){
-        if(!_hostOfflineTimer && !_hostLeaveOverlay){
-          _hostOfflineTimer = setTimeout(()=>{
-            if(!G.over) showHostLeaveOverlay();
-          }, 8000);
-        }
-      } else {
-        if(_hostOfflineTimer){ clearTimeout(_hostOfflineTimer); _hostOfflineTimer=null; }
-        if(_hostLeaveOverlay) hideHostLeaveOverlay();
-      }
-    };
-    hostOnlineRef.on('value', cbHost);
-    _listeners.push(()=>hostOnlineRef.off('value', cbHost));
-  }).catch(()=>{});
-}
+function listenHostOnline(){ /* Removed — no host concept in game logic */ }
 window.leaveToLobby = async function(){
   clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
@@ -1233,7 +1240,7 @@ window.leaveToLobby = async function(){
   _pendingSync = null;
   const _savedName = MY_NAME;
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
-  _rolling = false; _animating = false;
+  _rolling = false; _animating = false; _onlineSeats = new Set();
   SEAT_LAYOUT_ACTIVE = [0,1,2,3];
   _gameLoaded = false;
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
@@ -1267,16 +1274,7 @@ window.leaveRoom = async function(){
     await db.ref(`rooms/${ROOM_CODE}/players/${MY_SEAT}/online`).set(false);
   }
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
-  _rolling = false; _animating = false;
-  SEAT_LAYOUT_ACTIVE = [0,1,2,3];
-  _gameLoaded = false;
-  Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
-  document.getElementById("game-wrap").style.display = "none";
-  document.getElementById("top-bar").style.display = "none";
-  document.getElementById("win").classList.remove("show");
-  document.getElementById("pause-overlay").classList.remove("show");
-  _chatOpen = false; _unreadCount = 0; _chatListening = false; _lastChatKey = null;
-  _replyTarget = null;
+  _rolling = false; _animating = false; _onlineSeats = new Set();
   const chatPanel = document.getElementById("chat-panel");
   if(chatPanel) chatPanel.classList.remove("open");
   const rc=document.getElementById("rejoin-card"); if(rc) rc.style.display="none";
@@ -1288,12 +1286,16 @@ const _timerExpireCount = {};
 const EXPIRE_COUNT_FOR_VOTE = 2;
 function listenPlayerPresence(){
   if(!ROOM_CODE) return;
+  // Add self to online set immediately
+  if(MY_SEAT !== null) _onlineSeats.add(MY_SEAT);
   SEAT_LAYOUT_ACTIVE.forEach(seat=>{
     if(!PLAYERS[seat]?.active) return;
     _timerExpireCount[seat] = 0;
     const ref = db.ref(`rooms/${ROOM_CODE}/players/${seat}/online`);
     const cb = snap=>{
       const online = snap.val() === true;
+      // Track online seats for amIElderPlayer()
+      if(online){ _onlineSeats.add(seat); } else { _onlineSeats.delete(seat); }
       if(online && PLAYERS[seat]?.isBot){
         _deactivateBot(seat);
       }
@@ -1381,7 +1383,7 @@ function _activateBot(seat){
   const offBadge = document.getElementById(`offbadge-${seat}`);
   if(offBadge){ offBadge.classList.remove('show'); offBadge.classList.remove('voted'); }
   showToast(`🤖 ${PLAYERS[seat].label} is now a bot`);
-  if(IS_HOST && G.turn === seat && !G.rolled && !G.over){
+  if(amIElderPlayer() && G.turn === seat && !G.rolled && !G.over){
     clearTimeout(_turnTimeoutTimer);
     setTimeout(()=>_doBotTurn(seat), 400);
   }
@@ -1391,7 +1393,7 @@ function _deactivateBot(seat){
   PLAYERS[seat].isBot = false;
   const lbl = document.getElementById(`lbl-${seat}`);
   if(lbl){ const bl = lbl.querySelector('.bot-label'); if(bl) bl.remove(); }
-  if(IS_HOST && ROOM_CODE){
+  if(amIElderPlayer() && ROOM_CODE){
     db.ref(`rooms/${ROOM_CODE}/botVotes/${seat}`).remove().catch(()=>{});
   }
   showToast(`✅ ${PLAYERS[seat].label} reconnected — bot removed`);
@@ -2543,17 +2545,16 @@ async function _onTurnTimerExpired(seat){
     }
     return;
   }
-  if(IS_HOST && PLAYERS[seat]?.isBot){
+  if(amIElderPlayer() && PLAYERS[seat]?.isBot){
     _doBotTurn(seat);
     return;
   }
-  if(IS_HOST && seat !== MY_SEAT){
+  if(amIElderPlayer() && seat !== MY_SEAT){
     _doBotTurn(seat);
     return;
   }
-  // NON-HOST: remote player's turn expired on our client — could mean we missed their move event.
-  // If G.rolled is stuck true (we saw their roll but not their move), pull fresh state from Firebase.
-  if(!IS_HOST && seat !== MY_SEAT && G.rolled && G.diceVal != null && ROOM_CODE && gameRef){
+  // Non-elder: remote player's turn expired — check if we missed their move
+  if(!amIElderPlayer() && seat !== MY_SEAT && G.rolled && G.diceVal != null && ROOM_CODE && gameRef){
     gameRef.once('value').then(snap => {
       if(!snap || !snap.exists()) return;
       const fresh = snap.val();
@@ -2577,13 +2578,13 @@ async function _doBotTurn(seat){
   clearTimeout(_botRollGuard); _rolling = false;
   if(v === 6){ G.sixes = (G.sixes||0)+1;
     if(G.sixes >= 3){ G.sixes=0; G.rolled=false; G.diceVal=null; nextTurn(false);
-      await pushGameState({action:"skip",dice:v,reason:"3sixes"}); return; }
+      pushGameState({action:"skip",dice:v,reason:"3sixes"}); return; }
   } else { G.sixes = 0; }
   const mv = movable(seat, v);
   if(mv.length === 0){
     SFX.noMove();
     nextTurn(false);
-    await pushGameState({action:"skip",dice:v,reason:"noMove"});
+    pushGameState({action:"skip",dice:v,reason:"noMove"});
     return;
   }
   let best = mv[0];
@@ -2600,17 +2601,17 @@ const TURN_TIMEOUT_MS = 45000;
 function resetTurnTimeout(){
   clearTimeout(_turnTimeoutTimer);
   _turnTimeoutTimer = null;
-  if(!IS_HOST || !ROOM_CODE || G.over) return;
+  if(!amIElderPlayer() || !ROOM_CODE || G.over) return;
   if(G.turn === MY_SEAT) return;
   if(PLAYERS[G.turn]?.isBot) return;
-  _turnTimeoutTimer = setTimeout(async()=>{
+  _turnTimeoutTimer = setTimeout(()=>{
     if(G.over || G.turn === MY_SEAT) return;
     if(PLAYERS[G.turn]?.isBot) return;
     const skippedTurn = G.turn;
-    const savedDice = G.diceVal ?? -1; // -1 = never rolled; remote clients handle null-dice skip visually
+    const savedDice = G.diceVal ?? -1;
     G.rolled=false; G.diceVal=null; G.waiting=false;
     nextTurn(false);
-    await pushGameState({ action:"skip", dice:savedDice, reason:"timeout", skippedSeat:skippedTurn });
+    pushGameState({ action:"skip", dice:savedDice, reason:"timeout", skippedSeat:skippedTurn });
   }, TURN_TIMEOUT_MS);
 }
 function onHumanRoll(){
@@ -2627,8 +2628,9 @@ function doRoll(pid){
   const v=smartRng(pid);
   G.rolled=true;
   G.diceVal=v;
+  SFX.diceRoll();
+  navigator.vibrate && navigator.vibrate(28);
   animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
-  setTimeout(()=>{ SFX.diceRoll(); navigator.vibrate && navigator.vibrate(28); }, 0);
 }
 function shouldAutoMove(mv,v){
   if(mv.length===0) return false;
@@ -2666,9 +2668,9 @@ function afterRoll(pid,v){
       G.sixes=0;G.rolled=false;G.diceVal=null;G.waiting=false;_rolling=false;
       SFX.threeSixesSkip();
       renderTokens();
-      setTimeout(async()=>{
+      setTimeout(()=>{
         nextTurn(false);
-        await pushGameState({ action:"skip", dice:v, reason:"3sixes" });
+        pushGameState({ action:"skip", dice:v, reason:"3sixes" });
       },300);
       return;
     }
@@ -2677,21 +2679,21 @@ function afterRoll(pid,v){
   const mv=movable(pid,v);
   if(mv.length===0){
     SFX.noMove();
-    setTimeout(async()=>{
+    setTimeout(()=>{
       nextTurn(false);
       syncUI();
-      await pushGameState({ action:"skip", dice:v, reason:"noMove" });
+      pushGameState({ action:"skip", dice:v, reason:"noMove" });
     },300);
     return;
   }
   if(shouldAutoMove(mv,v)){
-    setTimeout(async()=>await doMove(pid,mv[0].tid,v),80);
+    setTimeout(()=>doMove(pid,mv[0].tid,v),80);
     return;
   }
   G.waiting=true;
   const selectable=mv.map(t=>t.tid);
-  pushGameState({ action:"roll", dice:v, selectable }).catch(e=>console.warn("roll push failed",e));
   syncUI();
+  pushGameState({ action:"roll", dice:v, selectable });
 }
 async function onTokClick(pid,tid){
   if(pid !== MY_SEAT) return;
