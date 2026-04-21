@@ -653,6 +653,21 @@ let G_PAUSED = false;
 let _rolling = false;
 let _precomputedRoll = null; // smartRng result cached at turn-start so click has zero compute cost
 let _animating = false;
+let _animatingSetAt = 0; // timestamp when _animating was last set true
+// Watchdog: agar _animating ya _syncAnimPlaying 8 second se zyada stuck rahe
+// (unhandled error / missed callback) toh force-reset karo taaki game freeze na ho
+setInterval(()=>{
+  const MAX_ANIM_MS = 8000;
+  if(_animating && _animatingSetAt > 0 && (Date.now() - _animatingSetAt) > MAX_ANIM_MS){
+    console.warn("[watchdog] _animating stuck — force resetting");
+    _animating = false; _animatingSetAt = 0;
+    if(_syncAnimPending && _syncAnimPending.length > 0) _flushSyncPending();
+  }
+  if(_syncAnimPlaying){
+    // _syncAnimPlaying has its own guards (DICE_DUR_MS+100 timeout) but belt-and-suspenders
+    if(!_animating) { _syncAnimPlaying = false; }
+  }
+}, 3000);
 
 // ── FIX 6: smartRng Web Worker ─────────────────────────────────────────────
 // Inline Blob Worker — alag file ki zaroorat nahi.
@@ -1316,9 +1331,7 @@ function _applySyncGameState(data){
         const { pid, tid, type, finalStep } = primaryMove;
         const tok = tokOf(pid, tid);
         if(tok && !_animating){
-          _animating = true;
-          try {
-            if(type === "open" && tok.step === 0){
+          _animating = true; _animatingSetAt = Date.now();
               SFX.tokenSpawn();
               const spawnKey = `${pid}-${tid}`;
               const [spawnHr, spawnHc] = getHomeCornerBySeat(pid);
@@ -1375,23 +1388,29 @@ function _applySyncGameState(data){
       await rafDelay(80);
       applyFinalState();
     };
+    const _safeRunMoveAnim = () => runMoveAnim().catch(e => {
+      console.error("runMoveAnim failed:", e);
+      _animating = false;
+      _syncAnimPlaying = false;
+      applyFinalState();
+    });
     if(dice != null && rolledBy != null){
       if(rolledBy === MY_SEAT){
-        runMoveAnim();
+        _safeRunMoveAnim();
       } else if(_lastRollAnimBy === rolledBy){
         // Roll dice anim already played for this player — skip re-animation, go straight to move
         _lastRollAnimBy = -1;
-        runMoveAnim();
+        _safeRunMoveAnim();
       } else {
         // Roll event missed/skipped — play dice anim before move
         const _dsk2 = `${rolledBy}-${dice}-${data.seq||data.ts||''}`;
         if(_lastDiceSoundKey !== _dsk2){ _lastDiceSoundKey=_dsk2; SFX.diceRoll(); }
         _syncAnimPlaying = true;
-        const _syncPlayGuard2 = setTimeout(()=>{ _syncAnimPlaying=false; runMoveAnim(); }, DICE_DUR_MS+100);
-        animDice(rolledBy, dice, () => { clearTimeout(_syncPlayGuard2); _syncAnimPlaying = false; runMoveAnim(); });
+        const _syncPlayGuard2 = setTimeout(()=>{ _syncAnimPlaying=false; _safeRunMoveAnim(); }, DICE_DUR_MS+100);
+        animDice(rolledBy, dice, () => { clearTimeout(_syncPlayGuard2); _syncAnimPlaying = false; _safeRunMoveAnim(); });
       }
     } else {
-      runMoveAnim();
+      _safeRunMoveAnim();
     }
     return;
   }
@@ -3446,8 +3465,7 @@ function flashStarCell(r,c){
   setTimeout(()=>cell.classList.remove('star-land-glow'),750);
 }
 async function doMove(pid,tid,v){
-  _animating=true;
-  const tok=tokOf(pid,tid);
+  _animating=true; _animatingSetAt = Date.now();
   if(!tok){ _animating=false; return; }
   const allowed=movable(pid,v);
   if(!allowed.find(t=>t.tid===tid)){ _animating=false; return; }
