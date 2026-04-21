@@ -649,14 +649,200 @@ let G_PAUSED = false;
 let _rolling = false;
 let _precomputedRoll = null; // smartRng result cached at turn-start so click has zero compute cost
 let _animating = false;
+
+// ── FIX 6: smartRng Web Worker ─────────────────────────────────────────────
+// Inline Blob Worker — alag file ki zaroorat nahi.
+// Main thread se game state serialize karke bhejo, Worker background mein
+// smartRng compute kare, result postMessage se wapas aaye.
+// Roll tap pe _precomputedRoll already ready hoga — zero blocking.
+const _workerSrc = `
+const STEP_MAIN_END=51,STEP_STRETCH_START=52,STEP_DONE=57;
+const MAIN_PATH=[[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],[8,14],[8,13],[8,12],[8,11],[8,10],[8,9],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[14,7],[14,6],[13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0],[6,0]];
+const ENTRY_BY_SEAT=[MAIN_PATH.findIndex(([r,c])=>r===6&&c===1),MAIN_PATH.findIndex(([r,c])=>r===1&&c===8),MAIN_PATH.findIndex(([r,c])=>r===8&&c===13),MAIN_PATH.findIndex(([r,c])=>r===13&&c===6)];
+const STRETCH_BY_SEAT=[[[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],[[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],[[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]]];
+const GREY_STARS=new Set(["2-6","8-2","6-12","12-8"]);
+const COLOR_STARS=new Set(["6-1","1-8","8-13","13-6"]);
+const SAFE=new Set([...GREY_STARS,...COLOR_STARS]);
+ENTRY_BY_SEAT.forEach(idx=>{const[r,c]=MAIN_PATH[idx];SAFE.add(r+"-"+c);});
+const STRETCH_CELL_SET=new Set(STRETCH_BY_SEAT.flatMap(arr=>arr.map(([r,c])=>r+"-"+c)));
+const SEAT_COLOR=["#FF2D78","#FFD600","#00C853","#00AEEF"];
+
+function getCell(pid,step){
+  if(step<=0||step>=STEP_DONE) return null;
+  const entry=ENTRY_BY_SEAT[pid];
+  if(entry===undefined||entry<0) return null;
+  if(step<=STEP_MAIN_END){const idx=(entry+step-1)%MAIN_PATH.length;return MAIN_PATH[idx];}
+  const si=step-STEP_STRETCH_START;
+  const lane=STRETCH_BY_SEAT[pid];
+  return(lane&&si>=0&&si<lane.length)?lane[si]:null;
+}
+function movable(pid,dv,tokens,activePids){
+  return tokens.filter(t=>t.pid===pid).filter(t=>{
+    if(t.step===0) return dv===6;
+    if(t.step>=STEP_DONE) return false;
+    if(t.step>=STEP_STRETCH_START){return(t.step+dv)<=STEP_DONE;}
+    const targetStep=t.step+dv;
+    if(targetStep>STEP_DONE) return false;
+    for(let s=t.step+1;s<=targetStep&&s<=STEP_MAIN_END;s++){
+      const rc=getCell(pid,s); if(!rc) continue;
+      const ck=rc[0]+"-"+rc[1];
+      if(SAFE.has(ck)||STRETCH_CELL_SET.has(ck)) continue;
+      const isDestination=(s===targetStep);
+      const oppColorCounts={};
+      tokens.forEach(o=>{
+        if(o.pid===pid||o.step===0||o.step>=STEP_DONE) return;
+        const oc=getCell(o.pid,o.step);
+        if(!oc||oc[0]+"-"+oc[1]!==ck) return;
+        const col=SEAT_COLOR[o.pid];
+        oppColorCounts[col]=(oppColorCounts[col]||0)+1;
+      });
+      const maxOppStack=Math.max(0,...Object.values(oppColorCounts));
+      if(maxOppStack>=3) return false;
+      if(maxOppStack>=2&&isDestination) return false;
+    }
+    return true;
+  });
+}
+function rng(){return(Math.random()*6|0)+1;}
+function _rbBiasedRoll(n,d){return Math.random()<n/d?6:(Math.random()*5|0)+1;}
+function rubberbandRng(pid,tokens,players,rb){
+  const myToks=tokens.filter(t=>t.pid===pid);
+  const activePids=players.filter(p=>p.active).map(p=>p.id);
+  if(!players[pid]||!players[pid].human) return null;
+  const homeCount=(p)=>tokens.filter(t=>t.pid===p&&t.step===0).length;
+  const boardCount=(p)=>tokens.filter(t=>t.pid===p&&t.step>0&&t.step<STEP_STRETCH_START).length;
+  const stretchCount=(p)=>tokens.filter(t=>t.pid===p&&t.step>=STEP_STRETCH_START&&t.step<STEP_DONE).length;
+  const doneCount=(p)=>tokens.filter(t=>t.pid===p&&t.step>=STEP_DONE).length;
+  const myHome=homeCount(pid),myBoard=boardCount(pid),myStretch=stretchCount(pid),myDone=doneCount(pid);
+  if((rb.totalAssists[pid]||0)>=8) return null;
+  if(myDone>=2) return null;
+  const opponents=activePids.filter(p=>p!==pid);
+  const maxOppDone=opponents.length>0?Math.max(...opponents.map(doneCount)):0;
+  const myOnBoard=myBoard+myStretch;
+  const isRoughlyEqual=maxOppDone===myDone&&myHome<=2&&myOnBoard>=1;
+  if(maxOppDone>=3&&myDone===0){if((rb.consecutiveAssisted[pid]||0)>=2) return null;return{sixChanceNum:1,sixChanceDen:4,maxConsec:2};}
+  if((rb.lastCutRoll[pid]||0)>0) return{sixChanceNum:2,sixChanceDen:8,maxConsec:99};
+  if(myHome===4){
+    if((rb.consecutiveAssisted[pid]||0)>=4) return null;
+    const oppsWithTwoInStretch=opponents.filter(p=>stretchCount(p)>=2).length;
+    if(opponents.length>=2&&oppsWithTwoInStretch>=opponents.length) return{sixChanceNum:4,sixChanceDen:9,maxConsec:4};
+    return{sixChanceNum:2,sixChanceDen:9,maxConsec:4};
+  }
+  if(myHome===3&&(myBoard===1||myStretch===1)){
+    const boardTok=myToks.find(t=>t.step>0&&t.step<STEP_STRETCH_START);
+    const stretchTok=myToks.find(t=>t.step>=STEP_STRETCH_START&&t.step<STEP_DONE);
+    const activeTok=boardTok||stretchTok;
+    if(activeTok&&activeTok.step<10){if((rb.consecutiveAssisted[pid]||0)>=3) return null;return{sixChanceNum:2,sixChanceDen:8,maxConsec:3};}
+  }
+  return null;
+}
+function smartRngWorker(pid,tokens,players,sixes,smartTargetPids,forceDiceVal,rb){
+  if(forceDiceVal!=null) return forceDiceVal;
+  const blockSix=(sixes||0)>=2;
+  if(!smartTargetPids.includes(pid)){
+    // rubberbandRng path
+    const config=rubberbandRng(pid,tokens,players,rb);
+    if(!config){let v=rng();if(blockSix){let a=0;while(v===6&&a<20){v=rng();a++;}}return v;}
+    let val=_rbBiasedRoll(config.sixChanceNum,config.sixChanceDen);
+    if(blockSix){let a=0;while(val===6&&a<20){val=_rbBiasedRoll(config.sixChanceNum,config.sixChanceDen);a++;}}
+    return val;
+  }
+  const enemyCkSet=new Set();
+  tokens.forEach(o=>{if(o.pid===pid||o.step===0||o.step>=STEP_DONE) return;if(!players[o.pid]||!players[o.pid].active) return;const rc=getCell(o.pid,o.step);if(rc) enemyCkSet.add(rc[0]+"-"+rc[1]);});
+  for(let v=1;v<=6;v++){if(blockSix&&v===6) continue;const mv=movable(pid,v,tokens);if(mv.some(t=>(t.step===0?1:t.step+v)>=STEP_DONE)) return v;}
+  for(let v=1;v<=6;v++){if(blockSix&&v===6) continue;const mv=movable(pid,v,tokens);for(const tok of mv){const toStep=tok.step===0?1:tok.step+v;if(toStep>STEP_MAIN_END) continue;const rc=getCell(pid,toStep);if(!rc) continue;const ck=rc[0]+"-"+rc[1];if(!SAFE.has(ck)&&enemyCkSet.has(ck)) return v;}}
+  let bestVal=null,bestToStep=-1;
+  for(let v=1;v<=6;v++){if(blockSix&&v===6) continue;const mv=movable(pid,v,tokens);if(!mv.length) continue;for(const tok of mv){const toStep=tok.step===0?1:tok.step+v;if(toStep>bestToStep){bestToStep=toStep;bestVal=v;}}}
+  if(bestVal!==null) return bestVal;
+  let fb=rng();if(blockSix){let a=0;while(fb===6&&a<20){fb=rng();a++;}}return fb;
+}
+self.onmessage=function(e){
+  const{pid,tokens,players,sixes,smartTargetPids,forceDiceVal,rb}=e.data;
+  const result=smartRngWorker(pid,tokens,players,sixes,smartTargetPids,forceDiceVal,rb);
+  self.postMessage({pid,result});
+};
+`;
+let _rngWorker = null;
+let _rngWorkerBusy = false;
+let _rngWorkerCb = null;
+function _initRngWorker(){
+  if(_rngWorker) return;
+  try {
+    const blob = new Blob([_workerSrc], {type:'application/javascript'});
+    const url = URL.createObjectURL(blob);
+    _rngWorker = new Worker(url);
+    _rngWorker.onmessage = function(e){
+      _rngWorkerBusy = false;
+      if(_rngWorkerCb){ const cb=_rngWorkerCb; _rngWorkerCb=null; cb(e.data.result); }
+    };
+    _rngWorker.onerror = function(err){
+      console.warn('RNG Worker error — falling back to main thread', err);
+      _rngWorkerBusy = false;
+      _rngWorker = null; // disable worker, fallback to direct smartRng
+      if(_rngWorkerCb){ const cb=_rngWorkerCb; _rngWorkerCb=null; cb(null); }
+    };
+  } catch(e){ _rngWorker = null; }
+}
+// Worker ko game state bhejo aur background compute karwao
+// cb(result) jab ready ho — agar Worker unavailable toh main thread pe directly compute
+function _smartRngAsync(pid, cb){
+  _initRngWorker();
+  if(!_rngWorker || _rngWorkerBusy){
+    // Worker busy ya unavailable — direct compute (safe fallback)
+    cb(smartRng(pid));
+    return;
+  }
+  _rngWorkerBusy = true;
+  _rngWorkerCb = cb;
+  // Sirf zaroori state serialize karo — no DOM refs, no functions
+  _rngWorker.postMessage({
+    pid,
+    tokens: G.tokens.map(t=>({pid:t.pid,tid:t.tid,step:t.step})),
+    players: PLAYERS.map(p=>p ? {id:p.id,active:!!p.active,human:!!p.human} : null),
+    sixes: G.sixes || 0,
+    smartTargetPids: [...smartDice.targetPids],
+    forceDiceVal: (forceDice[pid] != null) ? forceDice[pid] : null,
+    rb: {
+      consecutiveAssisted: {..._rb.consecutiveAssisted},
+      totalAssists: {..._rb.totalAssists},
+      lastCutRoll: {..._rb.lastCutRoll}
+    }
+  });
+}
+// Precompute trigger — turn start pe Worker ko immediately kaam pe lagao
+function _triggerPrecompute(seat){
+  if(seat !== MY_SEAT || G.over || G.rolled) return;
+  _precomputedRoll = null;
+  _smartRngAsync(seat, (val) => {
+    // Result aaya — sirf tab store karo jab turn abhi bhi same hai
+    if(G.turn === seat && !G.rolled && !G.over) _precomputedRoll = val;
+  });
+}
+// ── END FIX 6 ──────────────────────────────────────────────────────────────
 let _lastDiceSoundKey = null; // dedup guard: prevent duplicate diceRoll SFX on rapid Firebase snapshots
 let _gameLoaded = false;
 function showToast(msg, dur=2500){ /* toasts disabled */ }
+let _syncWarnTimer = null;
 function setSyncStatus(status){
+  // "warn" state ko 300ms delay ke baad dikhao — dice/token animation ke dauraan
+  // DOM className flicker se layout recalc aur jank hoti thi, especially host ke liye
+  // jo har action pe pushGameState karta hai (joiner sirf receive karta hai).
+  if(status === "warn"){
+    clearTimeout(_syncWarnTimer);
+    _syncWarnTimer = setTimeout(()=>{
+      const dot = document.getElementById("sync-dot");
+      const txt = document.getElementById("sync-text");
+      if(dot){ dot.className = "warn"; }
+      if(txt){ txt.textContent = "Syncing..."; }
+    }, 300);
+    return;
+  }
+  clearTimeout(_syncWarnTimer);
   const dot = document.getElementById("sync-dot");
   const txt = document.getElementById("sync-text");
+  if(!dot) return;
   dot.className = status;
-  txt.textContent = status==="ok"?"Synced":status==="warn"?"Syncing...":"Disconnected";
+  txt.textContent = status==="ok"?"Synced":"Disconnected";
 }
 function closeModals(){
   document.querySelectorAll(".modal-overlay").forEach(m=>m.classList.remove("show"));
@@ -1028,6 +1214,13 @@ function _applySyncGameState(data){
   G.over       = data.over || false;
   G.sixes      = data.sixes   || 0;
   _applyPlacements(data.placements);
+  // FIX 1: tokenDiff support — sirf changed tokens update karo in-place
+  if(data.tokenDiff && Array.isArray(data.tokenDiff)){
+    data.tokenDiff.forEach(dt=>{
+      const lt = G.tokens.find(t=>t.pid===dt.pid&&t.tid===dt.tid);
+      if(lt) lt.step = dt.step;
+    });
+  }
   if(G.over && !document.getElementById("win").classList.contains("show")){
     if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
     endGame();
@@ -1048,7 +1241,7 @@ function _applySyncGameState(data){
     G.waiting = false;
     if(G.turn === MY_SEAT){ G.rolled = false; G.diceVal = null; }
     if(rolledBy === MY_SEAT){
-      syncUI();
+      syncUI(true); // roll pe tokens change nahi — renderTokens skip
       _flushSyncPending();
       return;
     }
@@ -1056,16 +1249,16 @@ function _applySyncGameState(data){
       const _dsk = `${rolledBy}-${dice}-${data.seq||data.ts||''}`;
       if(_lastDiceSoundKey !== _dsk){ _lastDiceSoundKey=_dsk; SFX.diceRoll(); }
       _syncAnimPlaying = true;
-      const _syncPlayGuard1 = setTimeout(()=>{ _lastRollAnimBy=rolledBy; _syncAnimPlaying=false; syncUI(); _flushSyncPending(); }, DICE_DUR_MS+100);
+      const _syncPlayGuard1 = setTimeout(()=>{ _lastRollAnimBy=rolledBy; _syncAnimPlaying=false; syncUI(true); _flushSyncPending(); }, DICE_DUR_MS+100);
       animDice(rolledBy, dice, ()=>{
         clearTimeout(_syncPlayGuard1);
         _lastRollAnimBy = rolledBy;
         _syncAnimPlaying = false;
-        syncUI();
+        syncUI(true); // roll ke baad bhi tokens nahi badle
         _flushSyncPending();
       });
     } else {
-      syncUI();
+      syncUI(true);
     }
     return;
   }
@@ -1077,6 +1270,12 @@ function _applySyncGameState(data){
     const applyFinalState = () => {
       const prevTurn = G.turn;
       if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
+      else if(data.tokenDiff && Array.isArray(data.tokenDiff)){
+        data.tokenDiff.forEach(dt=>{
+          const lt=G.tokens.find(t=>t.pid===dt.pid&&t.tid===dt.tid);
+          if(lt) lt.step=dt.step;
+        });
+      }
       G.turn       = data.turn;
       G.rolled     = false;
       G.waiting    = false;
@@ -1240,12 +1439,46 @@ function _applySyncGameState(data){
   syncUI();
 }
 let _pushDebounce = null;
+// Last pushed token snapshot — used to compute diff payload
+let _lastPushedTokens = null;
+function _buildTokensDiff(){
+  // Roll pe tokens change nahi hote — tokens field skip karo entirely
+  // Move pe sirf changed tokens bhejo (1-2 tokens max vs full 16-token array)
+  if(!_lastPushedTokens || _lastPushedTokens.length !== G.tokens.length){
+    // First push ya length mismatch — full array bhejo aur snapshot lo
+    _lastPushedTokens = G.tokens.map(t=>({pid:t.pid,tid:t.tid,step:t.step}));
+    return { tokens: G.tokens };
+  }
+  const diff = [];
+  for(let i=0;i<G.tokens.length;i++){
+    const cur=G.tokens[i], prev=_lastPushedTokens[i];
+    if(!prev || cur.pid!==prev.pid || cur.tid!==prev.tid || cur.step!==prev.step){
+      diff.push({pid:cur.pid,tid:cur.tid,step:cur.step});
+    }
+  }
+  if(diff.length===0){
+    // Koi change nahi — tokens field hi mat bhejo (roll case)
+    return {};
+  }
+  // Sirf changed tokens bhejo — receiving side merge karega
+  // Full snapshot bhi bhejo taaki late joiners/resync theek ho
+  // Actually for safety: agar diff chhota hai toh diff, warna full
+  if(diff.length <= 3){
+    _lastPushedTokens = G.tokens.map(t=>({pid:t.pid,tid:t.tid,step:t.step}));
+    return { tokenDiff: diff };
+  }
+  _lastPushedTokens = G.tokens.map(t=>({pid:t.pid,tid:t.tid,step:t.step}));
+  return { tokens: G.tokens };
+}
 function pushGameState(extra={}){
   setSyncStatus("warn");
   // turnStartedAt is only written on turn-change actions so the timer can sync.
   // Roll/move within same turn must NOT overwrite it (opponents use it to offset their timer).
   const isTurnChange = extra.action === "skip" || extra.action === "noMove" || extra.action === "skip3six" || extra.lastAction === "win" || extra.action === "move";
   const turnStartedAtField = isTurnChange ? { turnStartedAt: firebase.database.ServerValue.TIMESTAMP } : {};
+  // FIX 1: tokens diff bhejo — roll pe skip, move pe sirf changed tokens
+  // Win case pe hamesha full tokens bhejo (final state important hai)
+  const tokensPayload = (extra.lastAction === "win") ? { tokens: G.tokens } : _buildTokensDiff();
   const payload = {
     turn: G.turn,
     diceVal: G.diceVal,
@@ -1253,7 +1486,7 @@ function pushGameState(extra={}){
     waiting: G.waiting,
     over: G.over,
     sixes: G.sixes,
-    tokens: G.tokens,
+    ...tokensPayload,
     placements: G.placements,
     seatLayout: SEAT_LAYOUT_ACTIVE,
     actionBy: MY_SEAT,
@@ -2596,8 +2829,16 @@ function _doRenderTokens(){
   });
   for(const key of Object.keys(_tokEls)){if(!alive.has(key))_removeTokEl(key);}
 }
-function syncUI(){ refreshUI(); renderTokens(); updateTurnBanner(); }
+// FIX 3: syncUI ko split karo — roll ke baad renderTokens() skip karo
+// Roll pe tokens change nahi hote, sirf dice state + borders update chahiye
+function syncUI(skipTokenRender){ refreshUI(); if(!skipTokenRender) renderTokens(); updateTurnBanner(); }
+// FIX 5: refreshUI mein early return — agar G.turn aur G.rolled same hai toh skip
+let _lastRefreshTurn = -1, _lastRefreshRolled = null, _lastRefreshWaiting = null, _lastRefreshOver = null;
 function refreshUI(){
+    const _curTurn=G.turn, _curRolled=G.rolled, _curWaiting=G.waiting, _curOver=G.over;
+    // Koi visual change nahi — early return
+    if(_curTurn===_lastRefreshTurn && _curRolled===_lastRefreshRolled && _curWaiting===_lastRefreshWaiting && _curOver===_lastRefreshOver) return;
+    _lastRefreshTurn=_curTurn; _lastRefreshRolled=_curRolled; _lastRefreshWaiting=_curWaiting; _lastRefreshOver=_curOver;
     PLAYERS.forEach(p=>{
     if(!p.active) return;
     renderSeatVisuals(p.id);
@@ -2679,9 +2920,12 @@ function startTurnTimer(seat, elapsedMs){
     bar.style.stroke = color;
     bar.style.filter = `drop-shadow(0 0 4px ${color})`;
     bar.classList.remove('draining');
-    void bar.getBoundingClientRect();
-    bar.style.setProperty('--timer-dur', `${remainingSec.toFixed(2)}s`);
-    bar.classList.add('draining');
+    // FIX 2: getBoundingClientRect() forced layout reflow tha — CSS animation restart
+    // ke liye sirf ek rAF yield kaafi hai, synchronous layout flush zarori nahi
+    setTimeout(()=>{
+      bar.style.setProperty('--timer-dur', `${remainingSec.toFixed(2)}s`);
+      bar.classList.add('draining');
+    }, 0);
   }
   const _capturedSeat = seat;
   // CSS animation handles the visual drain. JS only needs 2 phase color changes
@@ -2844,14 +3088,26 @@ function doRoll(pid){
   const rollSafety=setTimeout(()=>{_rolling=false;},DICE_DUR_MS+300);
   const d3d=document.getElementById(`d3d-${pid}`);
   if(d3d) d3d.classList.add("off");
-  // Use pre-computed value if available (avoids smartRng game-tree scan on click)
-  const v = (pid === MY_SEAT && _precomputedRoll != null) ? _precomputedRoll : smartRng(pid);
-  _precomputedRoll = null;
-  G.rolled=true;
-  G.diceVal=v;
-  navigator.vibrate && navigator.vibrate(28);
-  animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
-  SFX.diceRoll();
+  // Pre-computed value use karo — agar miss hua toh rAF ke baad compute karo
+  // taki tap ke frame mein koi heavy scan na chale (host ke liye sabse zaroori)
+  const _doActualRoll = (v) => {
+    G.rolled=true;
+    G.diceVal=v;
+    navigator.vibrate && navigator.vibrate(28);
+    animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
+    SFX.diceRoll();
+    // Agla turn MY_SEAT ka ho sakta hai (six pe) — Worker se background compute
+    setTimeout(()=>{ _triggerPrecompute(MY_SEAT); }, DICE_DUR_MS + 50);
+  };
+  if(pid === MY_SEAT && _precomputedRoll != null){
+    const v = _precomputedRoll;
+    _precomputedRoll = null;
+    _doActualRoll(v);
+  } else {
+    _precomputedRoll = null;
+    // Worker se async compute — agar Worker miss ho toh main thread fallback
+    _smartRngAsync(pid, (val) => { _doActualRoll(val !== null ? val : smartRng(pid)); });
+  }
 }
 function shouldAutoMove(mv,v){
   if(mv.length===0) return false;
@@ -2914,7 +3170,9 @@ function afterRoll(pid,v){
   G.waiting=true;
   const selectable=mv.map(t=>t.tid);
   syncUI();
-  pushGameState({ action:"roll", dice:v, selectable });
+  // pushGameState ko ek rAF yield ke baad karo — UI syncUI pehle paint ho,
+  // Firebase serialize+write baad mein. Host ke liye yeh sabse bada jank source tha.
+  requestAnimationFrame(()=>{ pushGameState({ action:"roll", dice:v, selectable }); });
 }
 async function onTokClick(pid,tid){
   if(pid !== MY_SEAT) return;
@@ -3268,36 +3526,20 @@ function nextTurn(same, wasSix){
       tries++;
     }
     if(tries >= layout.length) return;
-  } else if(!wasSix){
-    // capture bonus from a non-six roll — sixes streak is broken, and turn advances
-    G.sixes=0;
-    const layout = SEAT_LAYOUT_ACTIVE;
-    const curIdx = layout.indexOf(G.turn);
-    let tries = 0;
-    let nextIdx = (curIdx + 1) % layout.length;
-    while(tries < layout.length){
-      const nextSeat = layout[nextIdx];
-      const p = PLAYERS[nextSeat];
-      if(p && p.active && !toksOf(nextSeat).every(t=>t.step>=STEP_DONE)){
-        G.turn = nextSeat;
-        break;
-      }
-      nextIdx = (nextIdx + 1) % layout.length;
-      tries++;
-    }
-    if(tries >= layout.length) return;
   }
+  // same=true → bonus turn, turn nahi badlega
+  // non-six capture/finish bonus pe bhi sixes streak reset hoti hai
+  if(same && !wasSix){ G.sixes=0; }
   if(same){
     const pid=G.turn;
     if(dAcc.busy[pid]) dAcc.busy[pid]=false;
   }
   syncUI();
-  // Pre-compute MY_SEAT's dice roll in background so click has zero compute cost
+  // Pre-compute MY_SEAT's dice roll — animation khatam hone ke BAAD compute karo
+  // taki smartRng ka heavy scan animation frame ke saath compete na kare.
+  // Worker ko turn-start pe immediately precompute pe lagao
   if(G.turn === MY_SEAT && !G.over){
-    _precomputedRoll = null;
-    setTimeout(()=>{
-      if(G.turn === MY_SEAT && !G.rolled && !G.over) _precomputedRoll = smartRng(MY_SEAT);
-    }, 0);
+    setTimeout(()=>{ _triggerPrecompute(MY_SEAT); }, DICE_DUR_MS + 80);
   }
 }
 function endGame(){
