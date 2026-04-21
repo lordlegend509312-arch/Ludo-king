@@ -1164,10 +1164,16 @@ function _flushSyncPending(){
 let _syncAnimPending = []; // FIX: queue instead of single slot — prevents dropped rapid updates
 function syncGameState(data, _forceApply){
   if(!_gameLoaded){ return; }
-  // Block our own actions to prevent self-triggering Firebase listener loop.
-  // Exception: _forceApply=true is used by the fresh-pull on timer expiry to
-  // unconditionally catch up with server state regardless of who pushed last.
   if(!_forceApply && data.actionBy === MY_SEAT) return;
+  // Force-apply (e.g. timer expiry fresh pull) bypasses the animation queue entirely.
+  // It clears any stale pending events first, then applies immediately.
+  if(_forceApply){
+    _syncAnimPending = [];
+    _syncAnimPlaying = false;
+    _animating = false;
+    _applySyncGameState(data);
+    return;
+  }
   if(_syncAnimPlaying || _animating){
     if(data.action === "move"){
       // move events must NEVER be dropped — always queue them
@@ -3011,10 +3017,34 @@ async function _onTurnTimerExpired(seat){
     return;
   }
   if(amIElderPlayer() && seat !== MY_SEAT){
-    // Only skip if the turn hasn't already moved on (e.g. opponent was fast)
+    // Pull fresh state first — opponent may have already moved but event was delayed locally.
+    // Only do bot turn if Firebase confirms it's still their turn.
+    if(ROOM_CODE && gameRef){
+      gameRef.once('value').then(snap => {
+        if(!snap || !snap.exists() || G.over) return;
+        const fresh = snap.val();
+        if(!fresh || G.over) return;
+        // If server already advanced the turn, just sync — don't override
+        if(fresh.turn !== seat){
+          syncGameState(fresh, true);
+          return;
+        }
+        // Server confirms it's still their turn — proceed with bot/skip
+        if(G.turn !== seat) return;
+        if(PLAYERS[seat] && !PLAYERS[seat].isBot){
+          PLAYERS[seat].isBot = true;
+        }
+        _doBotTurn(seat);
+      }).catch(()=>{
+        // Firebase unavailable — fall back to local state
+        if(G.turn !== seat || G.over) return;
+        if(PLAYERS[seat] && !PLAYERS[seat].isBot) PLAYERS[seat].isBot = true;
+        _doBotTurn(seat);
+      });
+      return;
+    }
+    // No Firebase (test mode) — act on local state directly
     if(G.turn !== seat) return;
-    // If the player isn't already marked as a bot, activate them as one now
-    // so future turns will also auto-play without needing another timeout.
     if(PLAYERS[seat] && !PLAYERS[seat].isBot){
       PLAYERS[seat].isBot = true;
     }
