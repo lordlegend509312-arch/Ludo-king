@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v37</title>
+<title>Ludo King — Online Multiplayer v52</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -524,7 +524,7 @@ auth.signInAnonymously().catch((err) => {
   console.warn("⚠️ Auth failed (continuing):", err.code);
 });
 const _connRef = db.ref(".info/connected");
-let _wasConnected = false;
+let _wasConnected = null; // null = never connected yet, false = was connected but dropped, true = connected
 _connRef.on("value", snap => {
   const connected = snap.val() === true;
   const lobbyDot = document.getElementById("lobby-conn-dot");
@@ -532,11 +532,13 @@ _connRef.on("value", snap => {
   if(connected){
     if(lobbyDot){ lobbyDot.style.background = "#00C853"; }
     if(lobbyTxt){ lobbyTxt.textContent = "Server connected ✓"; lobbyTxt.style.color = "#00C853"; }
-    if(!_wasConnected){
+    if(_wasConnected === false){
       setSyncStatus("ok");
-      if(_wasConnected === false && document.getElementById("game-wrap").style.display !== "none"){
+      if(document.getElementById("game-wrap").style.display !== "none"){
         showToast("🟢 Reconnected!");
       }
+    } else if(_wasConnected === null){
+      setSyncStatus("ok");
     }
     _wasConnected = true;
   } else {
@@ -606,6 +608,8 @@ function applyBoardRotation(){
   if(bw) bw.style.transform = `rotate(${deg}deg)`;
   _tokenRotationDeg = -deg;
   _cacheValid = false;
+  // Invalidate slot pixel cache — home circle positions are rotation-dependent
+  for(const k in _slotPxCache) delete _slotPxCache[k];
   document.querySelectorAll(".lc-inner").forEach(el=>{
     el.style.transform = `rotate(${-deg}deg)`;
   });
@@ -1158,7 +1162,6 @@ function _flushSyncPending(){
   syncGameState(next);
 }
 let _syncAnimPending = []; // FIX: queue instead of single slot — prevents dropped rapid updates
-let _lastProcessedTs = 0; // tracks last Firebase timestamp to prevent stale re-processing
 function syncGameState(data, _forceApply){
   if(!_gameLoaded){ return; }
   // Block our own actions to prevent self-triggering Firebase listener loop.
@@ -1345,11 +1348,17 @@ function _applySyncGameState(data){
       }
       if(data.tokens){
         const capturePromises=[];
+        // Use server-authoritative moves[] to identify sent-home tokens,
+        // NOT live G.tokens which may already be patched by tokenDiff above.
+        const homeMovePids = new Set(
+          (data.moves || [])
+            .filter(m => m.type === "home" && m.finalStep === 0)
+            .map(m => `${m.pid}-${m.tid}`)
+        );
         data.tokens.forEach(ft => {
-          if(ft.step === 0){
+          if(ft.step === 0 && homeMovePids.has(`${ft.pid}-${ft.tid}`)){
             const lt = tokOf(ft.pid, ft.tid);
-            // Use live token position (already set by animateMove above)
-            // but do NOT rely on ft data since applyFinalState hasn't run
+            // Only animate sendHome if token is still on the board locally
             if(lt && lt.step > 0){
               capturePromises.push(sendHomeFast(lt));
             }
@@ -2958,7 +2967,9 @@ function stopTurnTimer(){
       const bar = _domCache.tbar[seat] || document.getElementById(`tbar-${seat}`);
       if(bar){
         bar.classList.remove('draining');
-        bar.style.strokeDashoffset = '0';
+        // Set to fully-drained state (circumference) so bar doesn't flicker full before next timer
+        const r = parseFloat(bar.getAttribute('r') || 18);
+        bar.style.strokeDashoffset = String(2 * Math.PI * r);
         bar.style.filter = '';
       }
     }
@@ -2999,13 +3010,14 @@ async function _onTurnTimerExpired(seat){
     }
     return;
   }
-  if(amIElderPlayer() && PLAYERS[seat]?.isBot){
-    _doBotTurn(seat);
-    return;
-  }
   if(amIElderPlayer() && seat !== MY_SEAT){
     // Only skip if the turn hasn't already moved on (e.g. opponent was fast)
     if(G.turn !== seat) return;
+    // If the player isn't already marked as a bot, activate them as one now
+    // so future turns will also auto-play without needing another timeout.
+    if(PLAYERS[seat] && !PLAYERS[seat].isBot){
+      PLAYERS[seat].isBot = true;
+    }
     _doBotTurn(seat);
     return;
   }
@@ -3164,6 +3176,8 @@ function afterRoll(pid,v){
     return;
   }
   if(shouldAutoMove(mv,v)){
+    // Push roll event first so opponents see the dice value even if move arrives quickly
+    pushGameState({ action:"roll", dice:v, selectable:[] });
     setTimeout(()=>doMove(pid,mv[0].tid,v),80);
     return;
   }
@@ -3518,7 +3532,8 @@ function nextTurn(same, wasSix){
     while(tries < layout.length){
       const nextSeat = layout[nextIdx];
       const p = PLAYERS[nextSeat];
-      if(p && p.active && !toksOf(nextSeat).every(t=>t.step>=STEP_DONE)){
+      const pid = p?.id ?? nextSeat;
+      if(p && p.active && !G.placements.includes(pid) && !toksOf(nextSeat).every(t=>t.step>=STEP_DONE)){
         G.turn = nextSeat;
         break;
       }
@@ -3687,7 +3702,9 @@ window.toggleChat = function(){
   const inp = document.getElementById("chat-input");
   if(_chatOpen){
     panel.classList.add("open");
-    if(topBar) topBar.style.display = "none";
+    // Don't hide top-bar if win screen is showing — home button must stay accessible
+    const winVisible = document.getElementById("win")?.classList.contains("show");
+    if(topBar && !winVisible) topBar.style.display = "none";
     _unreadCount = 0;
     updateChatBadge();
     setTimeout(()=>{ scrollChatBottom(); }, 300);
@@ -3966,7 +3983,7 @@ window.launchTestMode = function(){
   PLAYERS = [];
   const names = ["P1","P2","P3","YOU"];
   for(let seat=0;seat<4;seat++){
-    PLAYERS.push({id:seat,seat,color:SEAT_COLOR[seat],label:names[seat],active:true,human:seat===3});
+    PLAYERS.push({id:seat,seat,color:SEAT_COLOR[seat],label:names[seat],active:true,human:seat===3,isBot:seat!==3});
   }
   G = {
     turn: 3,
@@ -3994,6 +4011,16 @@ window.launchTestMode = function(){
   renderTokens();
   updateTurnBanner();
   showToast("Test Mode — You are Blue (seat 3)");
+  // In test mode ROOM_CODE is null so amIElderPlayer() always returns false.
+  // Run a local bot scheduler that polls and drives non-human turns directly.
+  (function _testBotLoop(){
+    if(G.over) return;
+    if(G.turn !== MY_SEAT && !G.rolled && !G.waiting && !_rolling && !_animating){
+      const seat = G.turn;
+      if(PLAYERS[seat]?.isBot) _doBotTurn(seat);
+    }
+    setTimeout(_testBotLoop, 600);
+  })();
 };
 bindBtn("btn-resume",       ()=>window.togglePause());
 bindBtn("btn-leave-pause",  ()=>window.leaveToLobby());
