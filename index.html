@@ -243,11 +243,18 @@ if(!window.firebase){
     const ctx=getCtx();if(!ctx)return;
     try{fn(ctx);}catch(e){}
   }
+  let _compressor=null;
+  function _getCompressor(ctx){
+    if(_compressor && _compressor.context===ctx) return _compressor;
+    _compressor=ctx.createDynamicsCompressor();
+    _compressor.threshold.value=-8;_compressor.knee.value=8;
+    _compressor.ratio.value=4;_compressor.attack.value=0.002;_compressor.release.value=0.15;
+    _compressor.connect(ctx.destination);
+    return _compressor;
+  }
   function mkOut(ctx,vol=0.7){
     const g=ctx.createGain();g.gain.value=vol;
-    const c=ctx.createDynamicsCompressor();
-    c.threshold.value=-8;c.knee.value=8;c.ratio.value=4;c.attack.value=0.002;c.release.value=0.15;
-    g.connect(c);c.connect(ctx.destination);return g;
+    g.connect(_getCompressor(ctx));return g;
   }
   const _rvBufCache={};
   function mkReverbBuf(ctx,secs=1.2,decay=2.5){
@@ -2187,8 +2194,10 @@ function animDice(pid,finalVal,cb){
   if(!cube){dAcc.busy[pid]=false;if(cb)cb();return;}
   if(dAcc.busy[pid]){setTimeout(()=>animDice(pid,finalVal,cb),50);return;}
   dAcc.busy[pid]=true;
+  // zIndex ek baar set karo — har frame pe change karna layout recalc trigger karta hai (jank)
+  if(wrap) wrap.style.zIndex='9999';
   const _busyGuard=setTimeout(()=>{
-    if(dAcc.busy[pid]){dAcc.busy[pid]=false;if(cb)cb();}
+    if(dAcc.busy[pid]){if(wrap)wrap.style.zIndex='';dAcc.busy[pid]=false;if(cb)cb();}
   },900);
   const tg=LAND[finalVal];
   const curRx=dAcc.rx[pid]||0,curRy=dAcc.ry[pid]||0;
@@ -2230,13 +2239,12 @@ function animDice(pid,finalVal,cb){
     const csy=sqY(t);
     if(wrap){
       wrap.style.transform=`translateY(${wy}px) scale(${sc})`;
-      wrap.style.zIndex = t < 0.85 ? '9999' : '';
     }
     cube.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg) scaleX(${csx}) scaleY(${csy})`;
     if(t<1){
       requestAnimationFrame(tick);
     } else {
-      if(wrap)wrap.style.transform='';
+      if(wrap){wrap.style.transform='';wrap.style.zIndex='';}
       cube.style.transform=`rotateX(${eRx}deg) rotateY(${eRy}deg)`;
       dAcc.rx[pid]=eRx;dAcc.ry[pid]=eRy;dAcc.last[pid]=finalVal;
       dAcc.busy[pid]=false;
