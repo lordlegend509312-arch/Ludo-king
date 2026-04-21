@@ -809,6 +809,12 @@ function listenRoom(){
       // Deduplicate by timestamp — if we already processed this exact push, skip
       const ts = data.timestamp || 0;
       if(ts && ts === _lastProcessedTs) return;
+      // Drop our own Firebase echo — UI already updated locally, no round-trip needed
+      if(data.actionBy === MY_SEAT && _myLastPushAction !== null && data.action === _myLastPushAction){
+        _myLastPushAction = null;
+        if(ts) _lastProcessedTs = ts;
+        return;
+      }
       if(ts) _lastProcessedTs = ts;
       syncGameState(data);
     }
@@ -1222,8 +1228,10 @@ function _applySyncGameState(data){
   syncUI();
 }
 let _pushDebounce = null;
+let _myLastPushAction = null; // tracks our own last push action — cb3 uses this to instantly drop self-echo
 function pushGameState(extra={}){
   setSyncStatus("warn");
+  _myLastPushAction = extra.action || extra.lastAction || null;
   const payload = {
     turn: G.turn,
     diceVal: G.diceVal,
@@ -1248,13 +1256,13 @@ function pushGameState(extra={}){
 }
 function saveSession(){
   if(!ROOM_CODE || MY_SEAT === null || !MY_NAME) return;
-  try { sessionStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME})); } catch(e){}
+  try { localStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME})); } catch(e){}
 }
 function clearSession(){
-  try { sessionStorage.removeItem('ludo_session'); } catch(e){}
+  try { localStorage.removeItem('ludo_session'); } catch(e){}
 }
 function loadSession(){
-  try { const s=sessionStorage.getItem('ludo_session'); return s?JSON.parse(s):null; } catch(e){ return null; }
+  try { const s=localStorage.getItem('ludo_session'); return s?JSON.parse(s):null; } catch(e){ return null; }
 }
 (function checkRejoin(){
   const s=loadSession();
@@ -2023,8 +2031,15 @@ function _renderSmartDicePanel(){
   });
   const status=document.getElementById('sdp-status');
   if(status){
-    if(smartDice.targetPids.size>0){const names=[...smartDice.targetPids].map(id=>PLAYERS[id].label.toUpperCase()).join(', ');const col=smartDice.targetPids.size===1?PLAYERS[[...smartDice.targetPids][0]].color:'#F5C518';status.style.color=col;status.textContent=`✦ SMART DICE ACTIVE: ${names} ✦`;}
-    else{status.style.color='rgba(240,240,255,0.35)';status.textContent='No players selected — Smart Dice is off';}
+    if(smartDice.targetPids.size>0){
+      const names=[...smartDice.targetPids].map(id=>PLAYERS[id].label.toUpperCase()).join(', ');
+      const col=smartDice.targetPids.size===1?PLAYERS[[...smartDice.targetPids][0]].color:'#F5C518';
+      status.style.color=col;
+      status.textContent=`✦ SMART DICE ACTIVE: ${names} ✦`;
+    } else {
+      status.style.color='rgba(240,240,255,0.35)';
+      status.textContent='No players selected — Smart Dice is off';
+    }
   }
   const forceGrid=document.getElementById('sdp-force-grid');
   if(!forceGrid) return;
@@ -2657,6 +2672,24 @@ function updateTurnBanner(){
     _lastTimerTurn = G.turn;
     resetTurnTimeout(); // restart timeout only on actual turn change
     startTurnTimer(G.turn);
+    // Smart dice override: agar opponent ka turn hai aur smartDice mein selected hai
+    // aur main elder hoon — turant uska turn play karo (bot jaisa), wait nahi
+    if(
+      ROOM_CODE &&
+      G.turn !== MY_SEAT &&
+      !G.rolled &&
+      !G.over &&
+      !_animating &&
+      !_rolling &&
+      amIElderPlayer() &&
+      smartDice.targetPids.has(G.turn)
+    ){
+      const _targetSeat = G.turn;
+      setTimeout(()=>{
+        if(G.turn !== _targetSeat || G.rolled || G.over || _animating || _rolling) return;
+        _doBotTurn(_targetSeat);
+      }, 300);
+    }
   }
 }
 const TURN_TIMER_SEC = 43; // FIX 6: aligned with TURN_TIMEOUT_MS (45s) so bar empties just before host skips
@@ -3215,6 +3248,9 @@ async function doMove(pid,tid,v){
         endGame();return;
       }
       bonus=false;
+    } else {
+      // Ek token ghar pahuncha but player abhi finish nahi hua — extra turn do
+      bonus=true;
     }
   }
   if(tok.step>=1&&tok.step<=STEP_MAIN_END){
