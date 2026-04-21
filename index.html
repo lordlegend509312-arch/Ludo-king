@@ -1039,8 +1039,14 @@ function listenRoom(){
     clearTimeout(_turnTimeoutTimer);
     _turnTimeoutTimer = null;
     // If I'm now the elder, start a fresh timeout for current turn
-    if(amIElderPlayer() && _gameLoaded && !G.over && G.turn !== MY_SEAT){
-      resetTurnTimeout();
+    // Guard: skip if the turn player is already a bot (bot flag may lag Firebase by a tick)
+    if(amIElderPlayer() && _gameLoaded && !G.over && G.turn !== MY_SEAT && !PLAYERS[G.turn]?.isBot){
+      // Small defer so any in-flight bot-activation Firebase updates settle first
+      setTimeout(()=>{
+        if(amIElderPlayer() && !G.over && G.turn !== MY_SEAT && !PLAYERS[G.turn]?.isBot){
+          resetTurnTimeout();
+        }
+      }, 150);
     }
     if(document.getElementById('smart-dice-panel')?.style.display !== 'none'){
       _renderSmartDicePanel();
@@ -1239,14 +1245,16 @@ function _applySyncGameState(data){
   G.sixes      = data.sixes   || 0;
   _applyPlacements(data.placements);
   // FIX 1: tokenDiff support — sirf changed tokens update karo in-place
-  if(data.tokenDiff && Array.isArray(data.tokenDiff)){
+  const _appliedDiff = data.tokenDiff && Array.isArray(data.tokenDiff);
+  if(_appliedDiff){
     data.tokenDiff.forEach(dt=>{
       const lt = G.tokens.find(t=>t.pid===dt.pid&&t.tid===dt.tid);
       if(lt) lt.step = dt.step;
     });
   }
   if(G.over && !document.getElementById("win").classList.contains("show")){
-    if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
+    // Full token state on win — only apply if tokenDiff wasn't used (tokenDiff won't exist on win payload anyway)
+    if(data.tokens && !_appliedDiff) G.tokens = JSON.parse(JSON.stringify(data.tokens));
     endGame();
     return;
   }
@@ -1524,7 +1532,7 @@ function pushGameState(extra={}){
     placements: G.placements,
     seatLayout: SEAT_LAYOUT_ACTIVE,
     actionBy: MY_SEAT,
-    seq: Math.random().toString(36).slice(2), // unique per push — prevents _lastDiceSoundKey collision
+    seq: Date.now().toString(36) + Math.random().toString(36).slice(2), // timestamp+random — collision-proof
     timestamp: firebase.database.ServerValue.TIMESTAMP,
     ...turnStartedAtField,
     ...extra
@@ -1934,8 +1942,9 @@ function movable(pid,dv){
       if(!rc) continue;
       const ck=`${rc[0]}-${rc[1]}`;
       if(SAFE.has(ck)) continue;
-      const isStretchCell=STRETCH_CELL_SET.has(ck);
-      if(isStretchCell) continue;
+      // Only skip own stretch lane cells — other players' stretch lanes are NOT safe to pass through
+      const isOwnStretchCell=STRETCH_BY_SEAT[pid]&&STRETCH_BY_SEAT[pid].some(([sr,sc])=>sr===rc[0]&&sc===rc[1]);
+      if(isOwnStretchCell) continue;
       const isDestination=(s===targetStep);
       const oppColorCounts={};
       G.tokens.forEach(o=>{
@@ -2992,9 +3001,10 @@ function stopTurnTimer(){
       const bar = _domCache.tbar[seat] || document.getElementById(`tbar-${seat}`);
       if(bar){
         bar.classList.remove('draining');
-        // Set to fully-drained state (circumference) so bar doesn't flicker full before next timer
-        const r = parseFloat(bar.getAttribute('r') || 18);
-        bar.style.strokeDashoffset = String(2 * Math.PI * r);
+        // tbar is a <rect>, not <circle> — it has no 'r' attribute.
+        // Use the same PERIM formula as startTurnTimer to fully drain the bar.
+        const _PERIM = 2*(149+80) - 2*(11*2) + 2*Math.PI*11;
+        bar.style.strokeDashoffset = String(Math.round(_PERIM));
         bar.style.filter = '';
       }
     }
@@ -3466,12 +3476,14 @@ function flashStarCell(r,c){
 }
 async function doMove(pid,tid,v){
   _animating=true; _animatingSetAt = Date.now();
+  const tok=tokOf(pid,tid);
   if(!tok){ _animating=false; return; }
   const allowed=movable(pid,v);
   if(!allowed.find(t=>t.tid===tid)){ _animating=false; return; }
   if(tok.step>=STEP_STRETCH_START&&tok.step+v>STEP_DONE){ _animating=false; return; }  let bonus=false;
   const diceWasSix=(v===6);
   let captured=false;
+  const _capturedTids = new Set(); // track which tokens were sent home by THIS move
   async function checkAndPit(cellKey,movingPid,movingTid){
     const ownOnCell=G.tokens.filter(o=>{
       if(o.pid!==movingPid||o.step===0||o.step>=STEP_DONE) return false;
@@ -3493,6 +3505,7 @@ async function doMove(pid,tid,v){
         const samePlayerOnCell=enemiesOnCell.filter(e=>e.pid===enemy.pid);
         if(samePlayerOnCell.length>=2) continue;
         _rbNotifyCut(enemy.pid);
+        _capturedTids.add(`${enemy.pid}-${enemy.tid}`);
         capturePromises.push(sendHomeFast(enemy));
         capturedPids.add(enemy.pid);
         captured=true;
@@ -3562,7 +3575,7 @@ async function doMove(pid,tid,v){
   }
   G.tokens.forEach(t => {
     if(t.pid === pid && t.tid === tid) return; // the token we just moved
-    if(t.step === 0){
+    if(t.step === 0 && _capturedTids.has(`${t.pid}-${t.tid}`)){
       movesPayload.push({ pid: t.pid, tid: t.tid, type: "home", finalStep: 0 });
     }
   });
@@ -4048,7 +4061,8 @@ window.launchTestMode = function(){
     over: false,
     sixes: 0,
     tokens: Array.from({length:16},(_,i)=>({pid:Math.floor(i/4),tid:i%4,step:0})),
-    placements: []
+    placements: [],
+    turnStartedAt: Date.now()
   };
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   _cacheValid = false;
