@@ -474,6 +474,8 @@ if(!window.firebase){
     [[1.4,2.5],[0.7,2.5],[2.0,2.5],[2.2,2.5],[1.6,2.5],[2.8,2.5],[1.2,2.5]].forEach(([s,d])=>{
       setTimeout(()=>mkReverbBuf(ctx,s,d), 0); // offload each to separate task — won't block main thread
     });
+    // Pre-generate dice noise buffer so first roll has no allocation jank
+    setTimeout(()=>{ const c=getCtx(); if(c) getDiceNoiseBuf(c, DICE_DUR_MS/1000); }, 50);
   }
   return{
     diceRoll,tokenStep:tokenStepThrottled,tokenSpawn,tokenCapture,
@@ -642,9 +644,10 @@ let playersRef = null;
 let _listeners = [];
 let _presenceRef = null;
 let PLAYERS = [];
-let G = { turn:0, diceVal:null, rolled:false, waiting:false, over:false, sixes:0, tokens:[], placements:[] };
+let G = { turn:0, diceVal:null, rolled:false, waiting:false, over:false, sixes:0, tokens:[], placements:[], turnStartedAt:0 };
 let G_PAUSED = false;
 let _rolling = false;
+let _precomputedRoll = null; // smartRng result cached at turn-start so click has zero compute cost
 let _animating = false;
 let _lastDiceSoundKey = null; // dedup guard: prevent duplicate diceRoll SFX on rapid Firebase snapshots
 let _gameLoaded = false;
@@ -1083,7 +1086,10 @@ function _applySyncGameState(data){
       G.over       = data.over       || false;
       _animating   = false;
       // Force timer restart if turn changed
-      if(G.turn !== prevTurn) _lastTimerTurn = -1;
+      if(G.turn !== prevTurn){
+        _lastTimerTurn = -1;
+        G.turnStartedAt = data.turnStartedAt || 0;
+      }
       if(G.over && !document.getElementById("win").classList.contains("show")){
         endGame(); return;
       }
@@ -1184,7 +1190,10 @@ function _applySyncGameState(data){
     G.sixes      = data.sixes      || 0;
     _applyPlacements(data.placements);
     // Force timer restart if turn changed (skip always advances turn)
-    if(G.turn !== prevTurn) _lastTimerTurn = -1;
+    if(G.turn !== prevTurn){
+      _lastTimerTurn = -1;
+      G.turnStartedAt = data.turnStartedAt || 0;
+    }
     if((dice != null && dice !== -1) && rolledBy != null){
       if(rolledBy === MY_SEAT){
         if(data.reason === "3sixes") SFX.threeSixesSkip();
@@ -1233,6 +1242,10 @@ function _applySyncGameState(data){
 let _pushDebounce = null;
 function pushGameState(extra={}){
   setSyncStatus("warn");
+  // turnStartedAt is only written on turn-change actions so the timer can sync.
+  // Roll/move within same turn must NOT overwrite it (opponents use it to offset their timer).
+  const isTurnChange = extra.action === "skip" || extra.action === "noMove" || extra.action === "skip3six" || extra.lastAction === "win" || extra.action === "move";
+  const turnStartedAtField = isTurnChange ? { turnStartedAt: firebase.database.ServerValue.TIMESTAMP } : {};
   const payload = {
     turn: G.turn,
     diceVal: G.diceVal,
@@ -1245,6 +1258,7 @@ function pushGameState(extra={}){
     seatLayout: SEAT_LAYOUT_ACTIVE,
     actionBy: MY_SEAT,
     timestamp: firebase.database.ServerValue.TIMESTAMP,
+    ...turnStartedAtField,
     ...extra
   };
   // Non-blocking: fire and forget — UI never waits for Firebase round-trip
@@ -1346,6 +1360,7 @@ function _resetClientState(){
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
   _rolling = false; _animating = false; _onlineSeats = new Set();
   _lastTimerTurn = -1;
+  G.turnStartedAt = 0;
   _forcedElderSeat = null;
   const chatPanel = document.getElementById("chat-panel");
   if(chatPanel) chatPanel.classList.remove("open");
@@ -2615,7 +2630,10 @@ function updateTurnBanner(){
   if(G.turn !== _lastTimerTurn){
     _lastTimerTurn = G.turn;
     resetTurnTimeout(); // restart timeout only on actual turn change
-    startTurnTimer(G.turn);
+    // Calculate elapsed ms from server timestamp so all players sync their timer
+    // G.turnStartedAt is the Firebase server timestamp of when this turn began.
+    const elapsedMs = (G.turnStartedAt && G.turnStartedAt > 0) ? Math.max(0, Date.now() - G.turnStartedAt) : 0;
+    startTurnTimer(G.turn, elapsedMs);
     // Smart dice override: agar opponent ka turn hai aur smartDice mein selected hai
     // aur main elder hoon — turant uska turn play karo (bot jaisa), wait nahi
     if(
@@ -2640,11 +2658,16 @@ const TURN_TIMER_SEC = 43; // FIX 6: aligned with TURN_TIMEOUT_MS (45s) so bar e
 let _timerInterval = null;
 let _timerSeat = -1;
 let _timerStart = 0;
-function startTurnTimer(seat){
+function startTurnTimer(seat, elapsedMs){
   stopTurnTimer();
   if(G.over || !_gameLoaded || !PLAYERS[seat]?.active) return;
   _timerSeat = seat;
   _timerStart = Date.now();
+  // elapsedMs: how many ms have already elapsed since turn started on server.
+  // Clamp so we never start a negative or already-expired timer.
+  const elapsed = Math.max(0, Math.min(elapsedMs || 0, (TURN_TIMER_SEC - 1) * 1000));
+  const remainingMs = TURN_TIMER_SEC * 1000 - elapsed;
+  const remainingSec = remainingMs / 1000;
   const color = getDisplayColorForSeat(seat);
   const bar = _domCache.tbar[seat] || document.getElementById(`tbar-${seat}`);
   if(bar){
@@ -2656,7 +2679,7 @@ function startTurnTimer(seat){
     bar.style.filter = `drop-shadow(0 0 4px ${color})`;
     bar.classList.remove('draining');
     void bar.getBoundingClientRect();
-    bar.style.setProperty('--timer-dur', `${TURN_TIMER_SEC}s`);
+    bar.style.setProperty('--timer-dur', `${remainingSec.toFixed(2)}s`);
     bar.classList.add('draining');
   }
   const _capturedSeat = seat;
@@ -2666,14 +2689,18 @@ function startTurnTimer(seat){
     const bar2 = _domCache.tbar[_capturedSeat] || document.getElementById(`tbar-${_capturedSeat}`);
     if(bar2){ bar2.style.stroke=stroke; bar2.style.setProperty('--timer-color',stroke); bar2.style.filter=`drop-shadow(0 0 ${shadow})`; }
   }
-  const msLeft25 = (TURN_TIMER_SEC - 25) * 1000;
-  const msLeft10 = (TURN_TIMER_SEC - 10) * 1000;
-  // Phase 1 → yellow (fires when 25s remain)
+  // Phase thresholds in ms-remaining, offset by how much has already elapsed
+  const msLeft25 = (TURN_TIMER_SEC - 25) * 1000 - elapsed;
+  const msLeft10 = (TURN_TIMER_SEC - 10) * 1000 - elapsed;
+  // Apply phase colors immediately if we're already past those thresholds
+  if(msLeft10 <= 0) _setTimerColor('#FF2D78','7px #FF2D78');
+  else if(msLeft25 <= 0) _setTimerColor('#FFD600','5px #FFD600');
+  // Phase 1 -> yellow (fires when 25s remain)
   const _t1 = msLeft25 > 0 ? setTimeout(()=>_setTimerColor('#FFD600','5px #FFD600'), msLeft25) : null;
-  // Phase 2 → red (fires when 10s remain)
+  // Phase 2 -> red (fires when 10s remain)
   const _t2 = msLeft10 > 0 ? setTimeout(()=>_setTimerColor('#FF2D78','7px #FF2D78'), msLeft10) : null;
-  // Expiry
-  const _t3 = setTimeout(()=>{ stopTurnTimer(); _onTurnTimerExpired(_capturedSeat); }, TURN_TIMER_SEC * 1000);
+  // Expiry fires after remaining time only (not full TURN_TIMER_SEC)
+  const _t3 = setTimeout(()=>{ stopTurnTimer(); _onTurnTimerExpired(_capturedSeat); }, remainingMs);
   // Store all handles so stopTurnTimer can cancel them
   _timerInterval = { _t1, _t2, _t3 };
 }
@@ -2816,15 +2843,18 @@ function doRoll(pid){
   const rollSafety=setTimeout(()=>{_rolling=false;},DICE_DUR_MS+300);
   const d3d=document.getElementById(`d3d-${pid}`);
   if(d3d) d3d.classList.add("off");
-  // Compute dice value and start animation immediately — defer SFX to next frame
-  // so the 3D animation gets the first frame uncontested (no AudioContext/network jank)
-  const v=smartRng(pid);
+  // Use pre-computed value if available (avoids smartRng game-tree scan on click)
+  const v = (pid === MY_SEAT && _precomputedRoll != null) ? _precomputedRoll : smartRng(pid);
+  _precomputedRoll = null;
   G.rolled=true;
   G.diceVal=v;
   navigator.vibrate && navigator.vibrate(28);
-  animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
-  // Defer SFX to after animDice has started its first rAF tick
-  setTimeout(()=>SFX.diceRoll(), 0);
+  // Yield one rAF so browser paints the click/off state before animation starts.
+  // This makes host feel as snappy as joiners (who receive via Firebase async).
+  requestAnimationFrame(()=>{
+    animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
+    setTimeout(()=>SFX.diceRoll(), 0);
+  });
 }
 function shouldAutoMove(mv,v){
   if(mv.length===0) return false;
@@ -3265,6 +3295,13 @@ function nextTurn(same, wasSix){
     if(dAcc.busy[pid]) dAcc.busy[pid]=false;
   }
   syncUI();
+  // Pre-compute MY_SEAT's dice roll in background so click has zero compute cost
+  if(G.turn === MY_SEAT && !G.over){
+    _precomputedRoll = null;
+    setTimeout(()=>{
+      if(G.turn === MY_SEAT && !G.rolled && !G.over) _precomputedRoll = smartRng(MY_SEAT);
+    }, 0);
+  }
 }
 function endGame(){
   G.over=true;
