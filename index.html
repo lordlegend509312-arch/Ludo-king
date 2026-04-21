@@ -460,10 +460,18 @@ if(!window.firebase){
     if(btn){btn.textContent=_muted?'🔇':'🔊';btn.title=_muted?'Unmute':'Mute';btn.classList.toggle('muted',_muted);}
     return _muted;
   }
+  // Pre-generate all reverb buffers so first dice tap has zero computation lag
+  function prewarm(){
+    const ctx=getCtx(); if(!ctx) return;
+    // All unique (secs,decay) combos used in this SFX module
+    [[1.4,2.5],[0.7,2.5],[2.0,2.5],[2.2,2.5],[1.6,2.5],[2.8,2.5],[1.2,2.5]].forEach(([s,d])=>{
+      setTimeout(()=>mkReverbBuf(ctx,s,d), 0); // offload each to separate task — won't block main thread
+    });
+  }
   return{
     diceRoll,tokenStep:tokenStepThrottled,tokenSpawn,tokenCapture,
     reverseWalk,safeStar,homeStretch,tokenDone,rolledSix,noMove,
-    threeSixesSkip,win,lose,gameStart,chatPing,toggleMute,isMuted:()=>_muted,
+    threeSixesSkip,win,lose,gameStart,chatPing,toggleMute,isMuted:()=>_muted,prewarm,
   };
 })();</script>
 <script>document.addEventListener("DOMContentLoaded", function(){
@@ -809,9 +817,9 @@ function listenRoom(){
       // Deduplicate by timestamp — if we already processed this exact push, skip
       const ts = data.timestamp || 0;
       if(ts && ts === _lastProcessedTs) return;
-      // Drop our own Firebase echo — UI already updated locally, no round-trip needed
-      if(data.actionBy === MY_SEAT && _myLastPushAction !== null && data.action === _myLastPushAction){
-        _myLastPushAction = null;
+      // Drop self-echo — we already applied state locally before pushing.
+      // actionBy check is sufficient; no time-based mute needed (avoids opponent desync).
+      if(data.actionBy === MY_SEAT && MY_SEAT !== null){
         if(ts) _lastProcessedTs = ts;
         return;
       }
@@ -961,6 +969,7 @@ async function loadAndStartGame(){
   showToast("Game started! You are "+(_myColorNames[SEAT_COLOR[MY_SEAT]]||""));
   saveSession();
   SFX.gameStart();
+  SFX.prewarm(); // pre-generate all reverb buffers — eliminates first-dice-tap lag
   _gameLoaded = true;
 }
 function _flushSyncPending(){
@@ -1228,10 +1237,8 @@ function _applySyncGameState(data){
   syncUI();
 }
 let _pushDebounce = null;
-let _myLastPushAction = null; // tracks our own last push action — cb3 uses this to instantly drop self-echo
 function pushGameState(extra={}){
   setSyncStatus("warn");
-  _myLastPushAction = extra.action || extra.lastAction || null;
   const payload = {
     turn: G.turn,
     diceVal: G.diceVal,
@@ -2884,12 +2891,15 @@ function doRoll(pid){
   const rollSafety=setTimeout(()=>{_rolling=false;},DICE_DUR_MS+300);
   const d3d=document.getElementById(`d3d-${pid}`);
   if(d3d) d3d.classList.add("off");
+  // Compute dice value and start animation immediately — defer SFX to next frame
+  // so the 3D animation gets the first frame uncontested (no AudioContext/network jank)
   const v=smartRng(pid);
   G.rolled=true;
   G.diceVal=v;
-  SFX.diceRoll();
   navigator.vibrate && navigator.vibrate(28);
   animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
+  // Defer SFX to after animDice has started its first rAF tick
+  setTimeout(()=>SFX.diceRoll(), 0);
 }
 function shouldAutoMove(mv,v){
   if(mv.length===0) return false;
