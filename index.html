@@ -3105,6 +3105,10 @@ function doRoll(pid){
   const _doActualRoll = (v) => {
     G.rolled=true;
     G.diceVal=v;
+    // Invalidate refreshUI cache so bonus-turn syncUI forces a full re-render.
+    // Without this, if shouldAutoMove skips syncUI during roll, the cache sees
+    // rolled:false→false (unchanged) after nextTurn and skips dice re-enable.
+    _lastRefreshRolled = null;
     navigator.vibrate && navigator.vibrate(28);
     animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
     SFX.diceRoll();
@@ -3176,8 +3180,6 @@ function afterRoll(pid,v){
     return;
   }
   if(shouldAutoMove(mv,v)){
-    // Push roll event first so opponents see the dice value even if move arrives quickly
-    pushGameState({ action:"roll", dice:v, selectable:[] });
     setTimeout(()=>doMove(pid,mv[0].tid,v),80);
     return;
   }
@@ -3450,6 +3452,7 @@ async function doMove(pid,tid,v){
       if(capturePromises.length>0) await Promise.all(capturePromises);
     }
   }
+  try {
   if(tok.step===0&&v===6){
     const spawnKey=`${tok.pid}-${tok.tid}`;
     const [spawnHr,spawnHc]=getHomeCornerBySeat(tok.pid);
@@ -3498,7 +3501,11 @@ async function doMove(pid,tid,v){
   }
   if(captured) bonus=true;
   renderTokens();await rafDelay(60);
-  _animating=false;
+  } catch(e) {
+    console.warn("doMove animation error:", e);
+  } finally {
+    _animating=false;
+  }
   const movesPayload = [];
   const finalTok = tokOf(pid, tid);
   if(finalTok){
@@ -3518,7 +3525,7 @@ async function doMove(pid,tid,v){
     moves: movesPayload,
     movedPid: pid,
     movedTid: tid
-  }).catch(e => { _animating=false; console.error("doMove pushGameState failed:",e); });
+  }).catch(e => { console.error("doMove pushGameState failed:",e); });
 }
 function nextTurn(same, wasSix){
   G.rolled=false;_rolling=false;G.diceVal=null;G.waiting=false;
