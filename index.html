@@ -809,16 +809,16 @@ function listenRoom(){
       return;
     }
     if(data && G.over === false){
-      // Deduplicate by timestamp — if we already processed this exact push, skip
-      const ts = data.timestamp || 0;
-      if(ts && ts === _lastProcessedTs) return;
+      // Deduplicate by seq (unique per push) — timestamp can collide when roll+move
+      // happen within the same millisecond, silently dropping the move event.
+      const dedupeKey = data.seq || data.timestamp || 0;
+      if(dedupeKey && dedupeKey === _lastProcessedTs) return;
       // Drop self-echo — we already applied state locally before pushing.
-      // actionBy check is sufficient; no time-based mute needed (avoids opponent desync).
       if(data.actionBy === MY_SEAT && MY_SEAT !== null){
-        if(ts) _lastProcessedTs = ts;
+        if(dedupeKey) _lastProcessedTs = dedupeKey;
         return;
       }
-      if(ts) _lastProcessedTs = ts;
+      if(dedupeKey) _lastProcessedTs = dedupeKey;
       syncGameState(data);
     }
   };
@@ -1257,6 +1257,7 @@ function pushGameState(extra={}){
     placements: G.placements,
     seatLayout: SEAT_LAYOUT_ACTIVE,
     actionBy: MY_SEAT,
+    seq: Math.random().toString(36).slice(2), // unique per push — prevents _lastDiceSoundKey collision
     timestamp: firebase.database.ServerValue.TIMESTAMP,
     ...turnStartedAtField,
     ...extra
@@ -2849,12 +2850,8 @@ function doRoll(pid){
   G.rolled=true;
   G.diceVal=v;
   navigator.vibrate && navigator.vibrate(28);
-  // Yield one rAF so browser paints the click/off state before animation starts.
-  // This makes host feel as snappy as joiners (who receive via Firebase async).
-  requestAnimationFrame(()=>{
-    animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
-    setTimeout(()=>SFX.diceRoll(), 0);
-  });
+  animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
+  SFX.diceRoll();
 }
 function shouldAutoMove(mv,v){
   if(mv.length===0) return false;
