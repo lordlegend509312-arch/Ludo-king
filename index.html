@@ -903,6 +903,24 @@ function _applySyncGameState(data){
               if(steps > 0 && steps <= 6){
                 await animateMove(tok, steps);
                 if(tok.step >= STEP_DONE) SFX.tokenDone();
+              } else if(steps > 6 && dice != null && dice >= 1 && dice <= 6){
+                // Intermediate move(s) were missed (e.g. app-switch during 6+next bonus).
+                // Snap token to the correct pre-last-move position, then animate last dice.
+                const snapStep = finalStep - dice;
+                if(snapStep > 0 && snapStep < finalStep){
+                  tok.step = snapStep;
+                  renderTokens();
+                  await rafDelay(40);
+                }
+                const animSteps = finalStep - tok.step;
+                if(animSteps > 0 && animSteps <= 6){
+                  await animateMove(tok, animSteps);
+                  if(tok.step >= STEP_DONE) SFX.tokenDone();
+                } else {
+                  tok.step = finalStep;
+                  renderTokens();
+                  await rafDelay(60);
+                }
               } else {
                 // steps out of expected range — snap to finalStep directly, no animation
                 tok.step = finalStep;
@@ -1774,7 +1792,7 @@ function _sdePlayerScore(pid){
   const toks=toksOf(pid);
   let score=0;
   toks.forEach(t=>{
-    const prog = t.step>=STEP_DONE ? 58 : (t.step===0 ? 0 : Math.min(t.step,58));
+    const prog = t.step>=STEP_DONE ? STEP_DONE : (t.step===0 ? 0 : Math.min(t.step,STEP_DONE));
     const rc=t.step>0&&t.step<STEP_DONE?getCell(pid,t.step):null;
     const isSafe=rc?SAFE.has(`${rc[0]}-${rc[1]}`):false;
     const finished=t.step>=STEP_DONE;
@@ -1856,7 +1874,7 @@ function rubberbandRng(pid){
   // Max 2 major + 1 minor applied per roll
   // Priority: Kill > Escape > NearHome > AllLocked > Behind > StreakFix > RepControl
   // ─────────────────────────────────────────────
-  let majorsApplied=0, minorsApplied=1; // minors start at 1 (repetition always applies)
+  let majorsApplied=0, minorsApplied=0;
   const blockSix=(G.sixes||0)>=2;
 
   // ── CONDITION I: Early Game Boost (first 2 rounds = first ~8 turns total) ──
@@ -1901,8 +1919,10 @@ function rubberbandRng(pid){
   }
 
   // ── CONDITION E: Kill Opportunity (highest priority major) ──
-  // Find dice value that would land on an enemy (non-safe) cell
+  // Find dice value that would land on an enemy (non-safe) cell.
+  // Prefer the kill that eliminates the most-advanced enemy token.
   let killVal=null;
+  let killBestProgress=-1;
   if(_sde.cooldowns.kill[pid]<=0){
     for(let v=1;v<=6;v++){
       if(blockSix&&v===6) continue;
@@ -1914,18 +1934,20 @@ function rubberbandRng(pid){
         if(!rc) continue;
         const ck=`${rc[0]}-${rc[1]}`;
         if(SAFE.has(ck)) continue;
-        // Check if any enemy is here
-        let hasEnemy=false;
+        // Find highest-progress enemy on this cell
         opponents.forEach(op=>{
           toksOf(op).forEach(ot=>{
             if(ot.step<=0||ot.step>=STEP_DONE) return;
             const orc=getCell(op,ot.step);
-            if(orc&&orc[0]===rc[0]&&orc[1]===rc[1]) hasEnemy=true;
+            if(orc&&orc[0]===rc[0]&&orc[1]===rc[1]){
+              if(ot.step>killBestProgress){
+                killBestProgress=ot.step;
+                killVal=v;
+              }
+            }
           });
         });
-        if(hasEnemy){killVal=v;break;}
       }
-      if(killVal!==null) break;
     }
   }
   if(killVal!==null && majorsApplied<2){
@@ -1938,7 +1960,8 @@ function rubberbandRng(pid){
   // ── CONDITION F: Danger Escape ──
   let escapeVal=null;
   if(_sde.cooldowns.escape[pid]<=0 && majorsApplied<2){
-    // Check if any of my tokens is unsafe and enemy is within 1-6 behind
+    // Check if any of my tokens is unsafe and enemy is within 1-6 steps behind on board
+    outer:
     for(let v=1;v<=6;v++){
       if(blockSix&&v===6) continue;
       const mv=movable(pid,v);
@@ -1948,18 +1971,21 @@ function rubberbandRng(pid){
         if(!rc) continue;
         const ck=`${rc[0]}-${rc[1]}`;
         if(SAFE.has(ck)) continue; // already safe, no need to escape
-        // Check enemy within 1-6 behind this token
+        // Check if any enemy token could reach THIS cell in 1-6 moves
         let danger=false;
         opponents.forEach(op=>{
           toksOf(op).forEach(ot=>{
-            if(ot.step<=0||ot.step>=STEP_DONE) return;
-            // rough: check if enemy progress is within 6 of mine (simplified)
-            if(Math.abs(ot.step-tok.step)<=6&&ot.step<tok.step) danger=true;
+            if(danger||ot.step<=0||ot.step>=STEP_DONE) return;
+            for(let ev=1;ev<=6;ev++){
+              const eTargetStep=ot.step+ev;
+              if(eTargetStep>STEP_MAIN_END) continue;
+              const erc=getCell(op,eTargetStep);
+              if(erc&&erc[0]===rc[0]&&erc[1]===rc[1]){ danger=true; break; }
+            }
           });
         });
-        if(danger){escapeVal=v;break;}
+        if(danger){ escapeVal=v; break outer; }
       }
-      if(escapeVal!==null) break;
     }
   }
   if(escapeVal!==null && killVal===null && majorsApplied<2){
@@ -2012,27 +2038,28 @@ function rubberbandRng(pid){
   if(band>0 && majorsApplied<2){
     // Apply only 70% of turns (anti-detection)
     if(Math.random()<0.70){
-      if(band===1){dist[3]+=4/100;dist[4]+=4/100;dist[5]+=4/100;dist[0]-=3/100;dist[1]-=3/100;}
-      else if(band===2){if(!blockSix)dist[5]+=10/100;dist[4]+=7/100;dist[3]+=5/100;dist[0]-=5/100;dist[1]-=5/100;dist[2]-=6/100;}
-      else if(band===3){if(!blockSix)dist[5]+=16/100;dist[4]+=10/100;dist[3]+=6/100;dist[0]-=5/100;dist[1]-=5/100;dist[2]-=7/100;dist[3]-=4/100;}
-      else if(band===4){if(!blockSix)dist[5]+=22/100;dist[4]+=12/100;// exact useful +15% spread
-        dist[3]+=5/100;dist[0]-=7/100;dist[1]-=7/100;dist[2]-=8/100;dist[3]-=5/100;}
+      if(band===1){
+        dist[3]+=4/100;dist[4]+=4/100;dist[5]+=4/100;
+        dist[0]-=4/100;dist[1]-=4/100;dist[2]-=4/100;
+      } else if(band===2){
+        if(!blockSix)dist[5]+=10/100;dist[4]+=7/100;dist[3]+=5/100;
+        dist[0]-=5/100;dist[1]-=5/100;dist[2]-=6/100;dist[4]-=1/100;
+      } else if(band===3){
+        if(!blockSix)dist[5]+=16/100;dist[4]+=10/100;dist[3]+=6/100;
+        dist[0]-=6/100;dist[1]-=6/100;dist[2]-=8/100;dist[4]-=2/100;
+      } else if(band===4){
+        if(!blockSix)dist[5]+=22/100;dist[4]+=12/100;dist[3]+=8/100;
+        dist[0]-=8/100;dist[1]-=8/100;dist[2]-=10/100;dist[4]-=4/100;
+      }
       majorsApplied++;
     }
   }
 
   // ── CONDITION D: Leading Player Nerf ──
-  const myGapFromSecond=myScore-Math.max(0,...oppScores.filter((_,i)=>oppScores[i]<myScore));
-  if(gap<0&&Math.abs(gap)>=15){// I am leader
+  // gap = leaderScore - myScore; negative means I AM the leader
+  if(gap < 0 && Math.abs(gap) >= 15){
     dist[5]-=8/100; dist[4]-=5/100;
-    dist[0]+=3/100; dist[1]+=2/100;
-  }
-
-  // ── Chaos Rule: 10% chance flip expected result ──
-  if(Math.random()<0.10){
-    // Rotate distribution by 3 (flip high/low)
-    const tmp=[...dist];
-    for(let i=0;i<6;i++) dist[i]=tmp[5-i];
+    dist[0]+=4/100; dist[1]+=3/100; dist[2]+=3/100; dist[3]+=3/100;
   }
 
   // ── Pattern Break: 3rd consecutive helpful bias disabled ──
@@ -2052,6 +2079,14 @@ function rubberbandRng(pid){
     const s=finalDist.reduce((a,b)=>a+b,0);
     for(let i=0;i<5;i++) finalDist[i]/=s;
     finalDist[5]=0;
+  }
+
+  // ── Chaos Rule: 10% chance flip expected result (after clamp, before sample) ──
+  if(Math.random()<0.10){
+    const tmp=[...finalDist];
+    for(let i=0;i<6;i++) finalDist[i]=tmp[5-i];
+    // Re-zero 6 if blockSix after flip
+    if(blockSix){ finalDist[5]=0; const s2=finalDist.reduce((a,b)=>a+b,0); for(let i=0;i<5;i++) finalDist[i]/=s2; }
   }
 
   const result=_sdeSampleDist(finalDist);
