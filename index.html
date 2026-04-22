@@ -1069,12 +1069,11 @@ window.tryRejoin = async function(){
   _presenceRef=db.ref(`rooms/${s.code}/players/${s.seat}/online`);
   await _presenceRef.set(true);
   _presenceRef.onDisconnect().set(false);
-  _gameStarted=false;
-  _gameStartLock=true;
+  _gameStarted=true;   // must be set BEFORE listenRoom() so its Firebase
+  _gameStartLock=true; // callbacks never observe _gameStarted=false
   closeModals();
   showToast('🔄 Rejoining...');
   listenRoom();
-  _gameStarted=true;
   _doLoadAndStartGame();
 };
 let _hostOfflineTimer = null;
@@ -1114,14 +1113,15 @@ window.leaveToLobby = async function(){
   clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
   stopTurnTimer();
-  clearSession();
+  // Do NOT clearSession here — we want the rejoin card to show.
+  // Session is only cleared when the player explicitly starts a new room/joins,
+  // or when tryRejoin fails (room gone / seat taken).
   if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
   _listeners.forEach(fn=>fn());
   _listeners = [];
   _gameStarted = false;
   _gameStartLock = false;
   _pendingSync = null;
-  const _savedName = MY_NAME;
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
   _rolling = false; _animating = false; _onlineSeats = new Set();
   _lastTimerTurn = -1;
@@ -2558,6 +2558,7 @@ function stopTurnTimer(){
 }
 async function _onTurnTimerExpired(seat){
   if(G.over || G.turn !== seat) return;
+  if(G.rolled && !G.waiting) return; // stale fire — already rolled, not waiting for token pick
   if(seat !== MY_SEAT && !PLAYERS[seat]?.isBot){
     _timerExpireCount[seat] = (_timerExpireCount[seat] || 0) + 1;
     if(_timerExpireCount[seat] >= EXPIRE_COUNT_FOR_VOTE){
@@ -2617,6 +2618,11 @@ async function _doBotTurn(seat){
   if(G.over || G.turn !== seat) return;
   if(G.rolled || G.waiting) return;
   if(_rolling) return;
+  if(_botActing) return; // another caller already handling this bot turn
+  _botActing = true;
+  // Re-check after acquiring — turn may have changed in the tick between the
+  // guard above and the flag being set.
+  if(G.over || G.turn !== seat || G.rolled){ _botActing = false; return; }
   _rolling = true;
   const _botRollGuard = setTimeout(()=>{ _rolling = false; }, 2000);
   const v = smartRng(seat);
@@ -2626,13 +2632,14 @@ async function _doBotTurn(seat){
   clearTimeout(_botRollGuard); _rolling = false;
   if(v === 6){ G.sixes = (G.sixes||0)+1;
     if(G.sixes >= 3){ G.sixes=0; G.rolled=false; G.diceVal=null; _rolling=false; nextTurn(false);
-      pushGameState({action:"skip",dice:v,reason:"3sixes"}); return; }
+      pushGameState({action:"skip",dice:v,reason:"3sixes"}); _botActing=false; return; }
   } else { G.sixes = 0; }
   const mv = movable(seat, v);
   if(mv.length === 0){
     SFX.noMove();
     nextTurn(false);
     pushGameState({action:"skip",dice:v,reason:"noMove"});
+    _botActing=false;
     return;
   }
   let best = mv[0];
@@ -2643,8 +2650,10 @@ async function _doBotTurn(seat){
   }
   G.rolled = false; G.waiting = false;
   await doMove(seat, best.tid, v);
+  _botActing=false;
 }
 let _turnTimeoutTimer = null;
+let _botActing = false; // mutex — prevents duplicate bot turns from two simultaneous callers
 const TURN_TIMEOUT_MS = 45000;
 function resetTurnTimeout(){
   clearTimeout(_turnTimeoutTimer);
@@ -2661,6 +2670,7 @@ function resetTurnTimeout(){
     // If opponent already rolled but hasn't moved yet, give them one more chance
     // by just letting the visual timer handle it — don't force-skip mid-selection.
     if(G.rolled && G.waiting && G.diceVal != null) return;
+    if(G.rolled) return; // race condition guard — opponent already rolled, don't skip
     const skippedTurn = G.turn;
     const savedDice = G.diceVal ?? -1;
     G.rolled=false; G.diceVal=null; G.waiting=false;
@@ -3066,7 +3076,9 @@ async function doMove(pid,tid,v){
         await pushGameState({lastAction:"win"});
         endGame();return;
       }
-      bonus=false;
+      // All tokens finished — no bonus, UNLESS a capture also happened on
+      // this same move (edge case: finishing step passes through an enemy).
+      bonus = captured ? true : false;
     } else {
       // Ek token ghar pahuncha but player abhi finish nahi hua — extra turn do
       bonus=true;
@@ -3079,6 +3091,8 @@ async function doMove(pid,tid,v){
       if(!SAFE.has(cellKey)) await checkAndPit(cellKey,pid,tok.tid);
     }
   }
+  // Capture bonus — runs after finish check so it can upgrade bonus to true,
+  // but can't override the win-condition early-return above.
   if(captured) bonus=true;
   renderTokens();await rafDelay(60);
   _animating=false;
@@ -3125,28 +3139,14 @@ function nextTurn(same, wasSix){
       tries++;
     }
     if(tries >= layout.length) return;
-  } else if(!same && !wasSix){
-    // normal non-six, no capture bonus — sixes streak broken, turn advances
+  } else if(same && !wasSix){
+    // capture bonus without a six — player gets another turn but sixes streak resets
     G.sixes=0;
-    const layout = SEAT_LAYOUT_ACTIVE;
-    const curIdx = layout.indexOf(G.turn);
-    let tries = 0;
-    let nextIdx = (curIdx + 1) % layout.length;
-    while(tries < layout.length){
-      const nextSeat = layout[nextIdx];
-      const p = PLAYERS[nextSeat];
-      if(p && p.active && !toksOf(nextSeat).every(t=>t.step>=STEP_DONE)){
-        G.turn = nextSeat;
-        break;
-      }
-      nextIdx = (nextIdx + 1) % layout.length;
-      tries++;
-    }
-    if(tries >= layout.length) return;
   }
   if(same){
     const pid=G.turn;
     if(dAcc.busy[pid]) dAcc.busy[pid]=false;
+    _lastTimerTurn = -1; // force timer restart on bonus turn (six/capture)
   }
   syncUI();
 }
@@ -3502,7 +3502,14 @@ function listenChat(){
   _chatListening = true;
   addChatBadgeToButton();
   const chatRef = db.ref(`rooms/${ROOM_CODE}/chat`);
+  // Shared handle object so the cleanup fn in _listeners always calls the
+  // most up-to-date unsubscribe, even if once() fires after leaveToLobby.
+  const handle = { cancel: ()=>{} };
+  _listeners.push(()=> handle.cancel());
   chatRef.once('value', snap=>{
+    // If handle.cancel was already swapped out to a real off() by the time
+    // this fires AND leaveToLobby already ran, don't register a new listener.
+    if(!ROOM_CODE) return;
     const el = document.getElementById("chat-messages");
     if(!el) return;
     if(snap.exists()){
@@ -3527,7 +3534,8 @@ function listenChat(){
       _lastChatKey = snap2.key;
     };
     newRef.on('child_added', childCb);
-    _listeners.push(()=>newRef.off('child_added', childCb));
+    // Upgrade the handle so the already-registered _listeners cleanup works
+    handle.cancel = ()=> newRef.off('child_added', childCb);
   });
 }
 function addChatBadgeToButton(){
