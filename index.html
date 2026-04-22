@@ -3483,4 +3483,639 @@ async function doMove(pid,tid,v){
   if(_wasEntry||_wasMajor){_sde.noProgressTurns[pid]=0;}else{_sde.noProgressTurns[pid]=(_sde.noProgressTurns[pid]||0)+1;}}
 
   if(tok.step===0&&v===6){
-    const [spawnHr,spawnHc
+    const [spawnHr,spawnHc]=getHomeCornerBySeat(tok.pid);
+    const spawnStart=baseCirclePx(spawnHr,spawnHc,tok.tid);
+    tok.step=1;bonus=diceWasSix;
+    SFX.tokenSpawn();
+    renderTokens();
+    // Animate token jumping from home circle to entry cell first
+    const entryCell=getCell(pid,1);
+    if(entryCell){
+      const entryXY=rcToXY(entryCell[0],entryCell[1]);
+      const cp=cellPx(),BASE_W=Math.round(cp*1.15);
+      const layer=document.getElementById('tokens-layer');
+      const key=`${tok.pid}-${tok.tid}`;
+      const els=_tokEls[key];
+      const color=getDisplayColorForSeat(tok.pid);
+      if(els) await jumpStep(els.wrap,els.shadow,spawnStart.x,spawnStart.y,entryXY.x,entryXY.y,BASE_W,color,cp,layer);
+      renderTokens();await rafDelay(20);
+      // Capture check after animation — token is now visually at entry cell
+      const eck=`${entryCell[0]}-${entryCell[1]}`;
+      if(!SAFE.has(eck)) await checkAndPit(eck,pid,tok.tid);
+    } else {
+      await rafDelay(20);
+    }
+  } else {
+    await animateMove(tok,v);
+    bonus=diceWasSix;
+  }
+  if(tok.step>=STEP_DONE){
+    SFX.tokenDone();
+    renderTokens();await rafDelay(100);
+    if(toksOf(pid).every(t=>t.step>=STEP_DONE)){
+      if(!G.placements.includes(pid)){ G.placements.push(pid); stampRank(pid); }
+      renderTokens();
+      const remaining=PLAYERS.filter(p=>p.active&&!G.placements.includes(p.id));
+      if(remaining.length<=1){
+        if(remaining.length===1&&!G.placements.includes(remaining[0].id)){
+          G.placements.push(remaining[0].id);
+          stampRank(remaining[0].id);
+        }
+        G.over=true;
+        _animating=false;
+        await pushGameState({lastAction:"win"});
+        endGame();return;
+      }
+      // All tokens finished — no bonus, UNLESS a capture also happened on
+      // this same move (edge case: finishing step passes through an enemy).
+      bonus = captured ? true : false;
+    } else {
+      // Ek token ghar pahuncha but player abhi finish nahi hua — extra turn do
+      bonus=true;
+    }
+  }
+  if(tok.step>=1&&tok.step<=STEP_MAIN_END){
+    const cell=getCell(pid,tok.step);
+    if(cell){
+      const cellKey=`${cell[0]}-${cell[1]}`;
+      if(!SAFE.has(cellKey)) await checkAndPit(cellKey,pid,tok.tid);
+    }
+  }
+  // Capture bonus — runs after finish check so it can upgrade bonus to true,
+  // but can't override the win-condition early-return above.
+  if(captured) bonus=true;
+  renderTokens();await rafDelay(60);
+  _animating=false;
+  const movesPayload = [];
+  const finalTok = tokOf(pid, tid);
+  if(finalTok){
+    const moveType = (finalTok.step === 1 && v === 6) ? "open" : "move";
+    movesPayload.push({ pid, tid, type: moveType, finalStep: finalTok.step });
+  }
+  // Only include tokens that were captured (sent home) during THIS move.
+  // capturedPids was collected during the capture phase above.
+  G.tokens.forEach(t => {
+    if(t.pid === pid && t.tid === tid) return; // the token we just moved
+    if(t.step === 0 && capturedPids.has(t.pid)){
+      movesPayload.push({ pid: t.pid, tid: t.tid, type: "home", finalStep: 0 });
+    }
+  });
+  nextTurn(bonus, diceWasSix);
+  pushGameState({
+    action: "move",
+    dice: v,
+    moves: movesPayload,
+    movedPid: pid,
+    movedTid: tid
+  }).catch(e => { _animating=false; console.error("doMove pushGameState failed:",e); });
+}
+function nextTurn(same, wasSix){
+  G.rolled=false;_rolling=false;G.diceVal=null;G.waiting=false;
+  if(!same){
+    // normal turn advance — move to next active player
+    G.sixes=0;
+    const layout = SEAT_LAYOUT_ACTIVE;
+    const curIdx = layout.indexOf(G.turn);
+    let tries = 0;
+    let nextIdx = (curIdx + 1) % layout.length;
+    while(tries < layout.length){
+      const nextSeat = layout[nextIdx];
+      const p = PLAYERS[nextSeat];
+      if(p && p.active && !toksOf(nextSeat).every(t=>t.step>=STEP_DONE)){
+        G.turn = nextSeat;
+        break;
+      }
+      nextIdx = (nextIdx + 1) % layout.length;
+      tries++;
+    }
+    if(tries >= layout.length) return;
+  } else if(same && !wasSix){
+    // capture bonus without a six — player gets another turn but sixes streak resets
+    G.sixes=0;
+  }
+  if(same){
+    const pid=G.turn;
+    if(dAcc.busy[pid]) dAcc.busy[pid]=false;
+    _lastTimerTurn = -1; // force timer restart on bonus turn (six/capture)
+  }
+  syncUI();
+}
+function endGame(){
+  G.over=true;
+  const medals=["🥇","🥈","🥉","4️⃣"];
+  const lines=G.placements.map((pid,i)=>{
+    const name = pid === MY_SEAT ? "You" : (PLAYERS[pid]?.label||`P${pid}`);
+    const dColor = getDisplayColorForSeat(pid);
+    const colorNames = {[BLUE]:"Blue",[PINK]:"Pink",[YELLOW]:"Yellow",[GREEN]:"Green"};
+    const colorName = colorNames[dColor] || "";
+    return `${medals[i]||"  "} ${name} (${colorName})`;
+  });
+  const winner=G.placements[0];
+  const isIWinner = winner === MY_SEAT;
+  const winColor = getDisplayColorForSeat(winner);
+  const winColorEmoji = winColor===BLUE?"🔵":winColor===PINK?"🔴":winColor===YELLOW?"🟡":"🟢";
+  const heading = isIWinner
+    ? `🎉 You Win! ${winColorEmoji}`
+    : `🎉 ${PLAYERS[winner]?.label||"Winner"} Wins!`;
+  if(isIWinner) SFX.win(); else SFX.lose();
+  document.getElementById("win-msg").textContent=heading;
+  document.getElementById("win-places").textContent=lines.join("\n");
+  const winEl=document.getElementById("win");
+  winEl.classList.add("show");
+  const trophy=document.getElementById("win-trophy");
+  if(trophy){
+    trophy.style.animation="none";
+    void trophy.offsetWidth;
+    trophy.style.animation="trophyEntrance 0.7s cubic-bezier(.2,1.4,.4,1) forwards";
+    setTimeout(()=>{trophy.style.animation="trophyFloat 2.2s ease-in-out infinite";},900);
+  }
+  if(!PERF_MODE){
+  const cx=window.innerWidth/2,cy=window.innerHeight/2;
+  [0,1,2,3].forEach(i=>{
+    const ring=document.createElement("div");
+    const sz=(120+i*90)+"px";
+    ring.className="win-ring";
+    ring.style.cssText=`left:${cx}px;top:${cy}px;width:${sz};height:${sz};--wr-col:${winColor};--wr-dur:${0.8+i*0.18}s;--wr-delay:${i*0.12}s;z-index:1;`;
+    winEl.appendChild(ring);
+    setTimeout(()=>ring.remove(),2500);
+  });
+  }
+  if(!PERF_MODE){
+  const canvas=document.getElementById("win-confetti-canvas");
+  if(canvas){
+    canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+    const ctx2=canvas.getContext("2d");
+    const CONFETTI_COLORS=[winColor,"#FFD700","#ffffff","#ff6b9d","#00e5ff","#69ff47",winColor];
+    const pieces=[];const PIECE_COUNT=50;
+    for(let i=0;i<PIECE_COUNT;i++){
+      const side=Math.random()<0.5?0:1;
+      pieces.push({
+        x:side===0?canvas.width*0.25:canvas.width*0.75,y:canvas.height*0.55,
+        vx:(Math.random()-0.5)*14+(side===0?3:-3),vy:-(Math.random()*14+8),
+        rot:Math.random()*360,rotV:(Math.random()-0.5)*12,
+        w:7+Math.random()*7,h:4+Math.random()*5,
+        color:CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)],
+        alpha:1,shape:Math.random()<0.5?'rect':'circle',
+      });
+    }
+    let confettiStart=null;const CONFETTI_DUR=3200;
+    function drawConfetti(now){
+      if(!confettiStart)confettiStart=now;
+      const elapsed=now-confettiStart;
+      ctx2.clearRect(0,0,canvas.width,canvas.height);
+      let any=false;
+      pieces.forEach(p=>{
+        p.x+=p.vx;p.y+=p.vy;p.vy+=0.38;p.vx*=0.99;p.rot+=p.rotV;
+        if(elapsed>CONFETTI_DUR*0.6)p.alpha=Math.max(0,p.alpha-0.018);
+        if(p.alpha<=0||p.y>canvas.height+20)return;
+        any=true;
+        ctx2.save();ctx2.globalAlpha=p.alpha;ctx2.translate(p.x,p.y);ctx2.rotate(p.rot*Math.PI/180);ctx2.fillStyle=p.color;
+        if(p.shape==='circle'){ctx2.beginPath();ctx2.arc(0,0,p.w/2,0,Math.PI*2);ctx2.fill();}
+        else{ctx2.fillRect(-p.w/2,-p.h/2,p.w,p.h);}
+        ctx2.restore();
+      });
+      if(any&&elapsed<CONFETTI_DUR+1000)window._confettiFrame=requestAnimationFrame(drawConfetti);
+      else ctx2.clearRect(0,0,canvas.width,canvas.height);
+    }
+    window._confettiFrame=requestAnimationFrame(drawConfetti);
+  }
+  }
+}
+function restartGame(){
+  if(window._confettiFrame){cancelAnimationFrame(window._confettiFrame);window._confettiFrame=null;}
+  const canvas=document.getElementById("win-confetti-canvas");
+  if(canvas){const c=canvas.getContext("2d");c.clearRect(0,0,canvas.width,canvas.height);}
+  document.querySelectorAll(".win-ring").forEach(r=>r.remove());
+  document.getElementById("win").classList.remove("show");
+  window.leaveToLobby();
+}
+window.togglePause=function(){
+  if(G.over) return;
+  G_PAUSED=!G_PAUSED;
+  const overlay=document.getElementById("pause-overlay");
+  const btn=document.getElementById("btn-pause");
+  if(G_PAUSED){
+    overlay.classList.add("show");
+    if(btn){btn.innerHTML="&#9654;";btn.title="Resume";}
+  } else {
+    overlay.classList.remove("show");
+    if(btn){btn.innerHTML="&#10074;&#10074;";btn.title="Pause";}
+  }
+};
+let _resizeTimer;
+window.addEventListener("resize",()=>{
+  clearTimeout(_resizeTimer);
+  _cacheValid=false;
+  for(const k in _slotPxCache) delete _slotPxCache[k];
+  _resizeTimer=setTimeout(()=>{
+    if(MY_SEAT !== null) applyBoardRotation();
+    else renderTokens();
+  },100);
+});
+document.addEventListener("contextmenu",e=>e.preventDefault());
+document.addEventListener("selectstart",e=>e.preventDefault());
+document.addEventListener("dragstart",e=>e.preventDefault());
+document.addEventListener("touchstart",e=>{if(e.touches.length>1)e.preventDefault();},{passive:false});
+window.addEventListener("wheel",e=>{if(e.ctrlKey)e.preventDefault();},{passive:false});
+let _chatOpen = false;
+let _unreadCount = 0;
+let _chatListening = false;
+let _lastChatKey = null;
+if(window.visualViewport){
+  window.visualViewport.addEventListener("resize", ()=>{
+    if(!_chatOpen) return;
+    const panel = document.getElementById("chat-panel");
+    if(!panel) return;
+    const keyboardHeight = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+    if(keyboardHeight > 50){
+      panel.style.bottom = keyboardHeight + "px";
+    } else {
+      panel.style.bottom = "0px";
+    }
+  });
+}
+let _chatToggleTs = 0;
+window.toggleChat = function(){
+  const now = Date.now();
+  if(now - _chatToggleTs < 600) return;
+  _chatToggleTs = now;
+  _chatOpen = !_chatOpen;
+  const panel = document.getElementById("chat-panel");
+  const topBar = document.getElementById("top-bar");
+  const inp = document.getElementById("chat-input");
+  if(_chatOpen){
+    panel.classList.add("open");
+    if(topBar) topBar.style.display = "none";
+    _unreadCount = 0;
+    updateChatBadge();
+    setTimeout(()=>{ scrollChatBottom(); }, 300);
+  } else {
+    if(inp){ inp.readOnly = true; inp.blur(); inp.readOnly = false; }
+    panel.classList.remove("open");
+    if(topBar) topBar.style.display = "flex";
+    window.clearReply();
+    _syncReplyBar();
+  }
+};
+function updateChatBadge(){
+  const badge = document.getElementById("chat-badge");
+  if(!badge) return;
+  if(_unreadCount > 0 && !_chatOpen){
+    badge.style.display = "flex";
+    badge.textContent = _unreadCount > 9 ? "9+" : String(_unreadCount);
+  } else {
+    badge.style.display = "none";
+  }
+}
+function scrollChatBottom(){
+  if(!_chatOpen) return;
+  const el = document.getElementById("chat-messages");
+  if(el) el.scrollTop = el.scrollHeight;
+}
+function escapeHtml(str){
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function appendChatMessage(msg, isHistory){
+  const el = document.getElementById("chat-messages");
+  if(!el) return;
+  const isMine = msg.seat === MY_SEAT;
+  if(msg.type === "system"){
+    const div = document.createElement("div");
+    div.className = "chat-sys-msg";
+    div.textContent = msg.text;
+    el.appendChild(div);
+  } else {
+    const color = getDisplayColorForSeat(msg.seat);
+    const name = msg.name || `P${msg.seat+1}`;
+    const time = new Date(msg.ts || Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    const swipeWrap = document.createElement("div");
+    swipeWrap.className = "chat-msg-swipe";
+    const replyIcon = document.createElement("div");
+    replyIcon.className = "chat-reply-icon";
+    replyIcon.textContent = "↩";
+    const div = document.createElement("div");
+    div.className = `chat-msg${isMine?" mine":""}`;
+    let replyQuoteHTML = "";
+    if(msg.replyTo){
+      const rName = escapeHtml(msg.replyTo.name || "Someone");
+      const rText = escapeHtml((msg.replyTo.text||"").slice(0,60));
+      const rColor = msg.replyTo.color || "var(--gold)";
+      replyQuoteHTML = `<div class="chat-reply-quote">
+        <div class="chat-reply-quote-name" style="color:${rColor}">${rName}</div>
+        <div class="chat-reply-quote-text">${rText}</div>
+      </div>`;
+    }
+    div.innerHTML = `
+      <div class="chat-msg-meta">
+        <div class="chat-msg-dot" style="background:${color}"></div>
+        <span class="chat-msg-name" style="color:${color}">${isMine?"You":escapeHtml(name)}</span>
+        <span class="chat-msg-time">${time}</span>
+      </div>
+      ${replyQuoteHTML}
+      <div class="chat-msg-text">${escapeHtml(msg.text)}</div>
+    `;
+    swipeWrap.appendChild(replyIcon);
+    swipeWrap.appendChild(div);
+    el.appendChild(swipeWrap);
+    _attachSwipeReply(swipeWrap, replyIcon, msg, name, color, isMine);
+  }
+  if(!isHistory) scrollChatBottom();
+  if(!isHistory && !isMine && msg.type !== "system"){
+    const senderPid = msg.seat ?? null;
+    if(senderPid !== null){
+      const bubble = document.getElementById(`chatbubble-${senderPid}`);
+      if(bubble){
+        bubble.textContent = msg.text;
+        bubble.classList.add("show");
+        if(bubble._hideTimer) clearTimeout(bubble._hideTimer);
+        bubble._hideTimer = setTimeout(()=>{ bubble.classList.remove("show"); }, 4000);
+      }
+    }
+  }
+  if(!isHistory && MY_SEAT !== null && !isMine && !_chatOpen && msg.type !== "system"){
+    _unreadCount++;
+    updateChatBadge();
+    SFX.chatPing();
+  }
+}
+window.sendChat = function(){
+  const inp = document.getElementById("chat-input");
+  if(!inp || !ROOM_CODE || MY_SEAT === null) return;
+  const text = inp.value.trim();
+  if(!text) return;
+  inp.value = "";
+  const payload = { seat:MY_SEAT, name:MY_NAME, text, ts:Date.now(), type:"user" };
+  if(_replyTarget){
+    payload.replyTo = {
+      name: _replyTarget.name,
+      text: _replyTarget.text,
+      color: _replyTarget.color,
+    };
+    window.clearReply();
+  }
+  const chatRef = db.ref(`rooms/${ROOM_CODE}/chat`);
+  chatRef.push(payload).catch(()=>showToast("Chat send failed"));
+};
+let _replyTarget = null;
+window.clearReply = function(){
+  _replyTarget = null;
+  const bar = document.getElementById("chat-reply-bar");
+  if(bar) bar.classList.remove("show");
+};
+function _syncReplyBar(){
+  if(!_replyTarget){
+    const bar = document.getElementById("chat-reply-bar");
+    if(bar) bar.classList.remove("show");
+  }
+}
+function _setReply(name, text, color){
+  _replyTarget = { name, text, color };
+  const bar    = document.getElementById("chat-reply-bar");
+  const barName= document.getElementById("chat-reply-bar-name");
+  const barText= document.getElementById("chat-reply-bar-text");
+  if(!bar) return;
+  barName.textContent = name;
+  barName.style.color = color;
+  barText.textContent = text.slice(0, 80);
+  bar.classList.add("show");
+  const inp = document.getElementById("chat-input");
+  if(inp) setTimeout(()=>inp.focus(), 60);
+}
+const SWIPE_TRIGGER = 60;
+const SWIPE_MAX     = 72;
+function _attachSwipeReply(swipeWrap, replyIcon, msg, name, color, isMine){
+  let startX = 0, startY = 0, curX = 0;
+  let active = false, triggered = false;
+  function onStart(e){
+    const touch = e.touches ? e.touches[0] : e;
+    startX = touch.clientX;
+    startY = touch.clientY;
+    curX   = 0;
+    active = true;
+    triggered = false;
+    swipeWrap.classList.add("swiping");
+  }
+  function onMove(e){
+    if(!active) return;
+    const touch = e.touches ? e.touches[0] : e;
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    if(!triggered && Math.abs(dy) > Math.abs(dx) + 8){ active=false; _resetSwipe(swipeWrap,replyIcon); return; }
+    const dir = isMine ? -1 : 1;
+    const raw = dx * dir;
+    if(raw < 0){ _resetSwipe(swipeWrap,replyIcon); return; }
+    curX = Math.min(raw, SWIPE_MAX);
+    const visual = curX <= 45 ? curX : 45 + (curX - 45) * 0.4;
+    swipeWrap.style.transform = `translateX(${visual * dir}px)`;
+    if(curX > 20){
+      replyIcon.classList.add("visible");
+    } else {
+      replyIcon.classList.remove("visible");
+    }
+    if(curX >= SWIPE_TRIGGER && !triggered){
+      triggered = true;
+      replyIcon.classList.add("popped");
+      if(navigator.vibrate) navigator.vibrate(18);
+    }
+    if(curX < SWIPE_TRIGGER && triggered){
+      triggered = false;
+      replyIcon.classList.remove("popped");
+    }
+  }
+  function onEnd(){
+    if(!active) return;
+    active = false;
+    swipeWrap.classList.remove("swiping");
+    if(triggered){
+      _setReply(isMine ? "You" : name, msg.text, color);
+    }
+    _resetSwipe(swipeWrap, replyIcon);
+  }
+  function _resetSwipe(wrap, icon){
+    wrap.classList.remove("swiping");
+    wrap.style.transform = "";
+    icon.classList.remove("visible","popped");
+    active = false;
+  }
+  swipeWrap.addEventListener("touchstart", onStart, {passive:true});
+  swipeWrap.addEventListener("touchmove",  onMove,  {passive:true});
+  swipeWrap.addEventListener("touchend",   onEnd,   {passive:true});
+  swipeWrap.addEventListener("touchcancel",onEnd,   {passive:true});
+  let mouseDown = false;
+  swipeWrap.addEventListener("mousedown", e=>{ mouseDown=true; onStart(e); });
+  swipeWrap.addEventListener("mousemove", e=>{ if(mouseDown) onMove(e); });
+  swipeWrap.addEventListener("mouseup",   e=>{ if(mouseDown){ mouseDown=false; onEnd(); } });
+  swipeWrap.addEventListener("mouseleave",e=>{ if(mouseDown){ mouseDown=false; onEnd(); } });
+}
+function listenChat(){
+  if(_chatListening || !ROOM_CODE) return;
+  _chatListening = true;
+  addChatBadgeToButton();
+  const chatRef = db.ref(`rooms/${ROOM_CODE}/chat`);
+  // Shared handle object so the cleanup fn in _listeners always calls the
+  // most up-to-date unsubscribe, even if once() fires after leaveToLobby.
+  const handle = { cancel: ()=>{} };
+  _listeners.push(()=> handle.cancel());
+  chatRef.once('value', snap=>{
+    // If handle.cancel was already swapped out to a real off() by the time
+    // this fires AND leaveToLobby already ran, don't register a new listener.
+    if(!ROOM_CODE) return;
+    const el = document.getElementById("chat-messages");
+    if(!el) return;
+    if(snap.exists()){
+      const data = snap.val();
+      const keys = Object.keys(data);
+      el.innerHTML = "";
+      keys.forEach(k=>appendChatMessage(data[k], true));
+      scrollChatBottom();
+      _lastChatKey = keys[keys.length-1];
+      _unreadCount = 0;
+      updateChatBadge();
+    }
+    const newRef = _lastChatKey
+      ? chatRef.orderByKey().startAfter(_lastChatKey)
+      : chatRef.orderByKey().limitToLast(1);
+    const childCb = snap2=>{
+      if(!snap2.exists()) return;
+      const el2 = document.getElementById("chat-messages");
+      if(!el2) return;
+      if(_lastChatKey && snap2.key <= _lastChatKey) return;
+      appendChatMessage(snap2.val(), false);
+      _lastChatKey = snap2.key;
+    };
+    newRef.on('child_added', childCb);
+    // Upgrade the handle so the already-registered _listeners cleanup works
+    handle.cancel = ()=> newRef.off('child_added', childCb);
+  });
+}
+function addChatBadgeToButton(){
+  const btn = document.getElementById("btn-chat-toggle");
+  if(!btn || btn.querySelector("#chat-badge")) return;
+  const badge = document.createElement("div");
+  badge.id = "chat-badge";
+  btn.appendChild(badge);
+}
+async function _doLoadAndStartGame(){
+  await loadAndStartGame();
+  listenChat();
+  listenPlayerPresence();
+  listenHostOnline();
+  if(_pendingSync){
+    const pending = _pendingSync;
+    _pendingSync = null;
+    if(G.over === false) syncGameState(pending);
+  }
+}
+function bindBtn(id, fn){
+  const el = document.getElementById(id);
+  if(el) el.addEventListener("click", fn);
+  else console.warn("Button not found:", id);
+}
+bindBtn("btn-create-room", ()=>window.showCreateRoom());
+bindBtn("btn-join-room",   ()=>window.showJoinRoom());
+bindBtn("btn-2p",            ()=>window.createRoom(2));
+bindBtn("btn-3p",            ()=>window.createRoom(3));
+bindBtn("btn-4p",            ()=>window.createRoom(4));
+bindBtn("btn-cancel-create", ()=>closeModals());
+bindBtn("btn-confirm-name", ()=>window.confirmHostName());
+bindBtn("btn-start-game",   ()=>window.hostStartGame());
+bindBtn("btn-leave-waiting",()=>window.leaveRoom());
+bindBtn("btn-join",         ()=>window.joinRoom());
+bindBtn("btn-cancel-join",  ()=>closeModals());
+bindBtn("btn-test-mode", ()=>window.launchTestMode());
+window.launchTestMode = function(){
+  MY_SEAT = 3;
+  MY_NAME = "YOU";
+  IS_HOST = true;
+  NUM_PLAYERS = 4;
+  SEAT_LAYOUT_ACTIVE = [0,1,2,3];
+  PLAYERS = [];
+  const names = ["P1","P2","P3","YOU"];
+  for(let seat=0;seat<4;seat++){
+    PLAYERS.push({id:seat,seat,color:SEAT_COLOR[seat],label:names[seat],active:true,human:seat===3});
+  }
+  G = {
+    turn: 3,
+    diceVal: null,
+    rolled: false,
+    waiting: false,
+    over: false,
+    sixes: 0,
+    tokens: Array.from({length:16},(_,i)=>({pid:Math.floor(i/4),tid:i%4,step:0})),
+    placements: []
+  };
+  Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
+  _cacheValid = false;
+  MY_SLOT = SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT);
+  document.getElementById("lobby").style.display = "none";
+  document.getElementById("game-wrap").style.display = "inline-flex";
+  document.getElementById("top-bar").style.display = "flex";
+  buildBoard();
+  buildPlayers();
+  _sdeReset();
+  PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
+  applyBoardRotation();
+  setSyncStatus("ok");
+  _gameLoaded = true; // required: syncGameState + timer guards check this
+  refreshUI();
+  renderTokens();
+  updateTurnBanner();
+  showToast("Test Mode — You are Blue (seat 3)");
+};
+bindBtn("btn-resume",       ()=>window.togglePause());
+bindBtn("btn-leave-pause",  ()=>window.leaveToLobby());
+bindBtn("btn-home-confirm-yes", ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); window.leaveToLobby(); });
+bindBtn("btn-home-confirm-no",  ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); });
+bindBtn("btn-play-again",   ()=>restartGame());
+bindBtn("chat-header", (e)=>{ if(e.target.closest('#chat-close')) return; window.toggleChat(); });
+(function(){
+  const cc = document.getElementById("chat-close");
+  if(!cc) return;
+  cc.addEventListener("pointerdown", function(e){
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    window.toggleChat();
+  }, {passive:false});
+})();
+bindBtn("chat-send",   ()=>window.sendChat());
+const chatInp = document.getElementById("chat-input");
+if(chatInp) chatInp.addEventListener("keydown", (e)=>{
+  if(e.key==="Enter"){e.preventDefault();window.sendChat();}
+});
+window.closeModals = closeModals;
+
+const _rcDisplay = document.getElementById("display-room-code");
+const _copyToast = document.getElementById("copy-toast");
+let _copyTimer = null;
+if(_rcDisplay){
+  _rcDisplay.addEventListener("click", function(){
+    const code = _rcDisplay.textContent.trim();
+    if(!code || code === "------") return;
+    const doCopy = () => {
+      if(_copyTimer) clearTimeout(_copyTimer);
+      _copyToast.classList.add("show");
+      _copyTimer = setTimeout(()=>_copyToast.classList.remove("show"), 1800);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(doCopy).catch(()=>{
+        const ta = document.createElement("textarea");
+        ta.value = code; ta.style.cssText="position:fixed;opacity:0;";
+        document.body.appendChild(ta); ta.select(); document.execCommand("copy");
+        document.body.removeChild(ta); doCopy();
+      });
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = code; ta.style.cssText="position:fixed;opacity:0;";
+      document.body.appendChild(ta); ta.select(); document.execCommand("copy");
+      document.body.removeChild(ta); doCopy();
+    }
+  });
+}
+bindBtn("btn-mute", ()=>SFX.toggleMute());
+bindBtn("btn-perf", ()=>togglePerfMode());
+applyPerfMode();
+}); // end DOMContentLoaded
+</script>
+
+</body>
+</html>
