@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
-<title>Ludo King — Online Multiplayer v52</title>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<title>Ludo King — Online Multiplayer v43</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
-<style>:root{--gold:#F5C518;--gold2:#b8920f;--pink:#FF2D78;--blue:#00AEEF;--green:#00C853;--yellow:#FFD600;--bg:#0d0d1a;--surface:#13132a;--surface2:#1a1a35;--border:#252550;--border2:#333366;--text:#f0f0ff;--muted:rgba(240,240,255,.4)}*{box-sizing:border-box;margin:0;padding:0;user-select:none !important;-webkit-user-select:none !important;-webkit-touch-callout:none !important}body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:52px 12px 0;font-family:'Nunito',sans-serif;touch-action:manipulation;overflow:hidden}#lobby{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center}#lobby-inner{display:flex;flex-direction:column;align-items:center;gap:20px;width:300px}#lobby-crown{font-size:3.2rem;filter:drop-shadow(0 0 20px rgba(245,197,24,.7));animation:crownFloat 3s ease-in-out infinite}@keyframes crownFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}#lobby-sub{color:var(--muted);font-size:11px;letter-spacing:3px;text-transform:uppercase;text-align:center;font-family:'Nunito',sans-serif;font-weight:700}#lobby-divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}#lobby-title{color:var(--gold);font-size:16px;letter-spacing:2px;font-family:'Rajdhani',sans-serif;font-weight:700;text-align:center}.s-card{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;cursor:pointer;transition:all 0.18s;width:100%}.s-card:hover,.s-card:active{border-color:var(--gold);background:var(--surface2);box-shadow:0 0 0 1px rgba(245,197,24,.15),0 8px 32px rgba(0,0,0,.5)}.s-card:active{transform:scale(0.98)}.s-card-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}.s-card-text{display:flex;flex-direction:column;gap:3px;flex:1}.s-card-title{color:var(--text);font-size:1rem;font-weight:800;font-family:'Nunito',sans-serif;letter-spacing:.3px}.s-card-sub{color:var(--muted);font-size:11px;font-family:'Nunito',sans-serif;font-weight:600;line-height:1.4}.s-card-arrow{color:rgba(255,255,255,.2);font-size:16px;flex-shrink:0}.s-card-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%);pointer-events:none}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(4px);z-index:600;align-items:center;justify-content:center}.modal-overlay.show{display:flex}.modal-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;width:300px;box-shadow:0 16px 60px rgba(0,0,0,.7)}.modal-title{color:white;font-size:1.2rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif}.modal-sub{color:var(--muted);font-size:12px;text-align:center;font-family:'Nunito',sans-serif}.modal-input{width:100%;padding:13px 16px;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;color:white;font-size:1rem;font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:4px;text-align:center;outline:none}.modal-input:focus{border-color:var(--gold)}.modal-btn{width:100%;padding:14px 0;font-size:.9rem;font-weight:800;border:none;border-radius:12px;cursor:pointer;transition:transform 0.12s,opacity 0.12s;letter-spacing:.5px;background:var(--gold);color:#000}.modal-btn:active{transform:scale(0.96)}.modal-btn.secondary{background:var(--surface);border:1.5px solid var(--border2);color:var(--text)}.modal-btn:disabled{opacity:.4;cursor:not-allowed}.room-code-display{background:var(--surface);border:2px solid var(--gold);border-radius:14px;padding:14px 24px;font-size:2rem;font-weight:900;color:var(--gold);letter-spacing:8px;font-family:'Rajdhani',sans-serif;text-align:center;cursor:pointer;transition:background 0.15s}.room-code-display:hover{background:var(--surface2)}.copy-hint{font-size:11px;color:var(--muted);font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:1px;text-transform:uppercase;text-align:center;margin-top:-6px}.copy-toast{font-size:12px;color:var(--green);font-family:'Nunito',sans-serif;font-weight:800;letter-spacing:1px;text-align:center;opacity:0;transition:opacity 0.2s}.copy-toast.show{opacity:1}.waiting-dots::after{content:'';animation:dots 1.2s steps(3,end) infinite}@keyframes dots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}.player-slot{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px}.player-slot-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}.player-slot-name{color:var(--text);font-size:.9rem;font-family:'Nunito',sans-serif;font-weight:700;flex:1}.player-slot-status{color:var(--muted);font-size:.75rem;font-family:'Nunito',sans-serif}.lc-inner{transition:transform 0.6s cubic-bezier(0.4,0,0.2,1)}#game-wrap{flex-direction:column;align-items:stretch;gap:6px;display:none;margin-top:12px}.prow{display:flex;justify-content:space-between;align-items:flex-end;overflow:visible}.prow.bottom{align-items:flex-start}.pcol{display:flex;flex-direction:column;gap:8px}.pcol.left{align-items:flex-start}.pcol.right{align-items:flex-end}.plabel{font-size:10px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;transition:color 0.3s;padding:0 4px;font-family:'Rajdhani',sans-serif}.pbox{position:relative;display:flex;align-items:center;width:145px;height:76px;border-radius:12px;overflow:visible}.pbox-bg{position:absolute;inset:0;background:#1a1a1a;border-radius:12px;border:1.5px solid transparent;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:border-color 0.25s,box-shadow 0.25s}.pbox-shine{position:absolute;inset:1px;border-radius:11px;background:linear-gradient(150deg,rgba(255,255,255,.04) 0%,transparent 55%);pointer-events:none}.pbox-tok{position:relative;z-index:3;width:46px;display:flex;justify-content:center;align-items:center;flex-shrink:0}.pbox-dice{position:relative;z-index:100;width:60px;height:60px;border-radius:10px;background:linear-gradient(135deg,#4a4a5a,#2e2e3e);border:1.5px solid #1a1a28;box-shadow:inset 0 2px 4px rgba(255,255,255,.12),0 2px 8px rgba(0,0,0,.4);flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:visible}.pbox-rank{position:absolute;inset:0;border-radius:12px;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;pointer-events:none;overflow:hidden}.pbox-rank-crown{font-size:1.55rem;line-height:1;display:block}.pbox-rank-pos{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.05rem;line-height:1;letter-spacing:.5px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)}.pbox-rank[data-rank="1"]{background:rgba(180,130,0,.82)}.pbox-rank[data-rank="2"]{background:rgba(80,100,120,.82)}.pbox-rank[data-rank="3"]{background:rgba(110,60,20,.82)}.pbox-rank[data-rank="4"]{background:rgba(40,20,50,.82)}.turn-timer-svg{position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);pointer-events:none;z-index:5;border-radius:12px;overflow:visible}.turn-timer-bar{fill:none;stroke-width:3;stroke-linecap:round;stroke-dasharray:var(--tda,400);stroke-dashoffset:var(--tdo,0);transition:stroke 0.4s;filter:drop-shadow(0 0 4px var(--timer-color,#fff))}@keyframes timerDrain{from{stroke-dashoffset:0}to{stroke-dashoffset:var(--tda,400)}}.turn-timer-bar.draining{animation:timerDrain var(--timer-dur,60s) linear forwards}.pbox-offline-overlay{position:absolute;inset:0;border-radius:12px;z-index:25;display:none;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:rgba(6,4,14,0.86);backdrop-filter:blur(3px);cursor:pointer;pointer-events:auto;transition:background 0.15s}.pbox-offline-overlay:hover{background:rgba(6,4,14,0.93)}.pbox-offline-overlay:active{background:rgba(6,4,14,0.98)}.pbox-offline-overlay.show{display:flex}.pbox-offline-overlay.voted{background:rgba(4,18,10,0.86)}.pbox-offline-label{font-size:.58rem;font-weight:800;letter-spacing:1.2px;color:rgba(255,255,255,.35);font-family:'Rajdhani',sans-serif;text-transform:uppercase;line-height:1}.pbox-makebot-text{font-size:.84rem;font-weight:900;letter-spacing:1px;color:#F5C518;font-family:'Rajdhani',sans-serif;text-transform:uppercase;line-height:1;text-shadow:0 0 8px rgba(245,197,24,.5)}.pbox-offline-overlay.voted .pbox-makebot-text{color:#00C853;text-shadow:0 0 8px rgba(0,200,83,.4)}.pbox-vote-count{font-size:.5rem;font-weight:700;letter-spacing:.3px;color:rgba(255,255,255,.32);font-family:'Nunito',sans-serif;text-align:center;line-height:1.5;padding:0 4px;min-height:8px}.bot-label{display:inline-block;font-size:.55rem;font-weight:800;color:#F5C518;background:rgba(245,197,24,.15);border:1px solid rgba(245,197,24,.35);border-radius:5px;padding:1px 5px;font-family:'Rajdhani',sans-serif;letter-spacing:.5px;vertical-align:middle;margin-left:3px}.you-badge{position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;font-size:8px;font-weight:900;letter-spacing:1px;padding:2px 6px;border-radius:6px;font-family:'Rajdhani',sans-serif;z-index:10;white-space:nowrap}#board-wrap{position:relative;display:inline-block;transition:transform 0.6s cubic-bezier(0.34,1.26,0.64,1);transform-origin:center center;flex-shrink:0;overflow:visible}#board{--cell:min(5.8vw,4.8dvh,40px);display:grid;grid-template-columns:repeat(15,var(--cell));grid-template-rows:repeat(15,var(--cell));gap:1px;background:#3a4a55;padding:5px;border-radius:10px;box-shadow:0 0 0 1px rgba(255,255,255,.05),0 8px 48px rgba(0,0,0,.8)}.lc{display:flex;align-items:center;justify-content:center;contain:layout style paint}.star-svg{width:82%;height:82%;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,200,.8))}.dice-3d{width:44px;height:44px;min-width:44px;min-height:44px;position:relative;perspective:210px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10}.dice-3d.off{cursor:default;pointer-events:none}.dice-3d.inactive{opacity:0;pointer-events:none}.dice-cube{width:38px;height:38px;transform-style:preserve-3d;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}.dice-face{position:absolute;width:38px;height:38px;border-radius:7px;border:1.5px solid #cdb880;backface-visibility:hidden;overflow:hidden}.face-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.65) 0%,transparent 50%);border-radius:7px;pointer-events:none;z-index:2}.ddot{width:7px;height:7px;background:radial-gradient(circle at 33% 28%,#4a3878,#0e0c22);border-radius:50%;position:absolute;box-shadow:0 1px 2px rgba(0,0,0,.55);z-index:3}#tokens-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;contain:layout;transform:translateZ(0)}.tok{position:absolute;pointer-events:none;will-change:transform;transition:none;left:0;top:0;contain:layout style;transform-style:flat;backface-visibility:hidden;-webkit-backface-visibility:hidden}.tok.movable{pointer-events:auto;cursor:pointer}.tok.movable::after{content:"";position:absolute;inset:-4px;border-radius:50%}.tok.movable svg{animation:movablePulse 0.9s ease-in-out infinite alternate}@keyframes movablePulse{from{opacity:0.85;transform:scale(0.97)}to{opacity:1;transform:scale(1.03)}}.tok-shadow{position:absolute;left:0;top:0;border-radius:50%;background:rgba(0,0,0,0.28);pointer-events:none;will-change:transform;transition:transform 0.09s cubic-bezier(0.22,1,0.36,1),opacity 0.15s}.tok-ring{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;border:2px solid rgba(0,0,0,0.7);animation:tokRingPulse 0.8s ease-in-out infinite}@keyframes tokRingPulse{0%,100%{opacity:0.5;transform:var(--tr-base) scale(1)}50%{opacity:1;transform:var(--tr-base) scale(1.08)}}.tok-shield{position:absolute;left:0;top:0;pointer-events:none;z-index:4;opacity:0;transition:opacity 0.3s}.tok-shield.normal{opacity:1}.tok-shield.super{opacity:1}@keyframes starGlow{0%{box-shadow:0 0 0 0 rgba(255,220,0,0.8)}40%{box-shadow:0 0 14px 8px rgba(255,220,0,0.55)}100%{box-shadow:0 0 0 0 rgba(255,220,0,0)}}.star-land-glow{animation:starGlow 0.7s ease-out forwards;border-radius:4px}@keyframes ringPop{from{opacity:0.9;transform:translate(var(--rx),var(--ry)) scale(0.2)}to{opacity:0;transform:translate(var(--rx),var(--ry)) scale(2.2)}}.tok-trail{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;animation:trailFade var(--td,0.4s) ease-out forwards}@keyframes trailFade{from{opacity:var(--ta,0.7);transform:var(--tx) scale(var(--ts,1))}to{opacity:0;transform:var(--tx) scale(0.2)}}.sparkle{position:absolute;left:0;top:0;pointer-events:none;border-radius:50%;animation:sparkleFly var(--sd,0.6s) ease-out forwards}@keyframes sparkleFly{0%{opacity:1;transform:var(--st) scale(1)}100%{opacity:0;transform:var(--st) translate(var(--sx),var(--sy)) scale(0)}}@media (hover:hover) and (pointer:fine){.dice-3d:not(.off):not(.inactive):hover .dice-cube{animation:diceWobble 0.4s ease-in-out}}@keyframes diceWobble{0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg))}20%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,1,0,16deg) scale(1.06)}45%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,-1,0,12deg) scale(1.03)}70%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(-1,1,0,8deg) scale(1.01)}100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1)}}@keyframes diceLand{0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(2.2) translateY(-55px)}55%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.18) scaleY(0.84) translateY(5px)}75%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(0.94) scaleY(1.08) translateY(-3px)}90%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.04) scaleY(0.97) translateY(0)}100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1) translateY(0)}}.dice-cube.landing{animation:diceLand 0.48s cubic-bezier(0.22,1,0.36,1) forwards;z-index:9999}#status-row{display:none;align-items:center;gap:8px}#top-bar{position:fixed;top:10px;left:12px;right:12px;z-index:9999;display:none;align-items:center;justify-content:space-between;gap:8px}#top-bar-left{display:flex;align-items:center;gap:8px}#top-bar-right{display:flex;align-items:center;gap:8px}#top-bar-center{flex:1;display:flex;align-items:center;justify-content:center}#btn-home{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-home:hover{background:rgba(255,60,60,.15);border-color:rgba(255,60,60,.4);color:white}#btn-home:active{transform:scale(0.92)}#sync-bar{display:flex;align-items:center;gap:6px;font-size:10px;font-family:'Nunito',sans-serif;font-weight:700;color:var(--muted);padding:0 4px;flex:1;justify-content:center}#sync-dot{width:7px;height:7px;border-radius:50%;background:#555;flex-shrink:0;transition:background 0.3s}#sync-dot.ok{background:#00C853;box-shadow:0 0 6px #00C853}#sync-dot.warn{background:#FFD600;box-shadow:0 0 6px #FFD600}#sync-dot.err{background:#FF2D78;box-shadow:0 0 6px #FF2D78}#btn-mute{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-mute:hover{background:rgba(255,255,255,.28);transform:scale(1.08)}#btn-mute:active{transform:scale(0.94)}#btn-mute.muted{background:rgba(255,60,60,.25);border:1px solid rgba(255,60,60,.4);color:#FF2D78}#btn-perf{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-perf:hover{background:rgba(255,255,255,.08)}#btn-perf:active{transform:scale(0.92)}#btn-perf.on{background:rgba(245,197,24,.18);border-color:rgba(245,197,24,.5);color:#F5C518}#pause-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(3px);z-index:150;align-items:center;justify-content:center}#pause-overlay.show{display:flex}#pause-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:32px 36px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 16px 60px rgba(0,0,0,.7);width:280px}#pause-title{color:white;font-size:1.3rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif}.pause-btn{width:100%;padding:13px 0;font-size:.9rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:transform 0.12s,opacity 0.12s;letter-spacing:.5px}.pause-btn:active{transform:scale(0.96)}.pause-btn{background:var(--gold);color:#000}.pause-btn.secondary{background:var(--surface);border:1.5px solid var(--border2);color:var(--text)}#win{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(5px);z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:16px;overflow:hidden}#win.show{display:flex}#win-confetti-canvas{position:absolute;inset:0;pointer-events:none;z-index:0}#win-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px}#win-trophy{font-size:4rem;animation:trophyEntrance 0.7s cubic-bezier(.2,1.4,.4,1) forwards;opacity:0}@keyframes trophyEntrance{0%{opacity:0;transform:scale(0) rotate(-25deg) translateY(30px)}60%{opacity:1;transform:scale(1.25) rotate(8deg) translateY(-8px)}80%{transform:scale(0.92) rotate(-3deg)}100%{opacity:1;transform:scale(1) rotate(0deg) translateY(0)}}@keyframes trophyFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}#win-trophy.float{animation:trophyFloat 2.2s ease-in-out infinite}#win h1{color:var(--gold);font-size:1.9rem;font-weight:900;text-align:center;font-family:'Rajdhani',sans-serif;letter-spacing:2px;opacity:0;animation:slideUp 0.5s 0.4s cubic-bezier(.2,1.4,.4,1) forwards}@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}#win-crown-ring{font-size:1.1rem;letter-spacing:6px;opacity:0;animation:slideUp 0.5s 0.55s ease-out forwards}#win-places{color:var(--text);font-size:1rem;text-align:center;font-family:'Rajdhani',sans-serif;line-height:2.1;white-space:pre;opacity:0;animation:slideUp 0.5s 0.7s ease-out forwards;background:rgba(255,255,255,.04);border-radius:14px;padding:12px 28px;border:1px solid rgba(255,255,255,.1)}#win button{padding:14px 44px;font-size:.95rem;border:none;border-radius:14px;cursor:pointer;background:var(--gold);color:#000;font-weight:800;box-shadow:0 6px 28px rgba(245,197,24,.4);letter-spacing:.5px;opacity:0;animation:slideUp 0.5s 0.9s ease-out forwards;transition:transform 0.12s,box-shadow 0.12s}#win button:hover{transform:scale(1.05);box-shadow:0 8px 36px rgba(245,197,24,.6)}#win button:active{transform:scale(0.96)}#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(30,30,60,.95);border:1px solid var(--border2);color:white;font-size:.85rem;font-family:'Nunito',sans-serif;font-weight:700;padding:10px 20px;border-radius:20px;opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;z-index:500;white-space:nowrap}#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.pcol{position:relative}.player-chat-bubble{position:absolute;left:50%;transform:translateX(-50%);background:rgba(20,20,45,0.95);border:1px solid var(--border2);border-radius:8px;padding:4px 10px;font-size:.72rem;font-family:'Nunito',sans-serif;font-weight:600;color:var(--text);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;z-index:350;opacity:0;transition:opacity 0.18s}.player-chat-bubble.show{opacity:1}.player-chat-bubble::after{content:'';position:absolute;left:50%;transform:translateX(-50%);border:6px solid transparent}.pcol.top-bubble .player-chat-bubble{bottom:calc(100% + 6px)}.pcol.top-bubble .player-chat-bubble::after{top:100%;border-top-color:var(--border2)}.pcol.bot-bubble .player-chat-bubble{top:calc(100% + 6px)}.pcol.bot-bubble .player-chat-bubble::after{bottom:100%;border-bottom-color:var(--border2)}#chat-panel{position:fixed;bottom:0;right:0;width:280px;height:340px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:16px 16px 0 0;display:flex;flex-direction:column;z-index:300;transform:translateY(100%);transition:transform 0.28s cubic-bezier(0.34,1.26,0.64,1);box-shadow:0 -8px 40px rgba(0,0,0,.6);overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}#chat-panel.open{transform:translateY(0)}#chat-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border2);flex-shrink:0;cursor:pointer}#chat-header-title{color:var(--gold);font-size:.85rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:1px}#chat-close{color:var(--muted);font-size:16px;line-height:1;background:none;border:none;cursor:pointer;padding:8px 10px;margin:-8px -10px -8px 0;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;position:relative;z-index:9999}#chat-close:hover{color:white;background:rgba(255,255,255,.08)}#chat-messages{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}#chat-messages::-webkit-scrollbar{width:4px}#chat-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}.chat-msg{display:flex;flex-direction:column;gap:2px;animation:msgIn 0.2s ease-out}@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.chat-msg-meta{display:flex;align-items:center;gap:5px}.chat-msg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}.chat-msg-name{font-size:.7rem;font-weight:700;font-family:'Nunito',sans-serif}.chat-msg-time{font-size:.65rem;color:var(--muted);margin-left:auto}.chat-msg-text{font-size:.8rem;color:var(--text);font-family:'Nunito',sans-serif;background:var(--surface);border-radius:0 8px 8px 8px;padding:6px 10px;line-height:1.4;word-break:break-word;max-width:90%;border:1px solid var(--border)}.chat-msg.mine .chat-msg-text{border-radius:8px 0 8px 8px;background:rgba(245,197,24,.1);border-color:rgba(245,197,24,.2);align-self:flex-end}.chat-msg.mine .chat-msg-meta{flex-direction:row-reverse}.chat-msg.mine .chat-msg-time{margin-left:0;margin-right:auto}.chat-sys-msg{text-align:center;font-size:.7rem;color:var(--muted);font-family:'Nunito',sans-serif;padding:2px 0}#chat-input-row{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--border2);flex-shrink:0;background:var(--surface)}#chat-input{flex:1;background:var(--bg);border:1.5px solid var(--border2);border-radius:20px;padding:7px 12px;color:white;font-size:.82rem;font-family:'Nunito',sans-serif;outline:none;min-width:0}#chat-input:focus{border-color:var(--gold)}#chat-send{width:32px;height:32px;border-radius:50%;border:none;background:var(--gold);color:#000;font-size:14px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:transform 0.12s;align-self:center}#chat-send:active{transform:scale(0.88)}#chat-badge{position:absolute;top:-4px;right:-4px;background:var(--pink);color:white;font-size:9px;font-weight:900;width:16px;height:16px;border-radius:50%;display:none;align-items:center;justify-content:center;font-family:'Nunito',sans-serif}#btn-chat-toggle{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-chat-toggle:hover{background:rgba(245,197,24,.15);border-color:rgba(245,197,24,.4);color:white}#btn-chat-toggle:active{transform:scale(0.92)}.chat-msg-swipe{position:relative;touch-action:pan-y;will-change:transform;transition:transform 0.22s cubic-bezier(0.22,1,0.36,1)}.chat-msg-swipe.swiping{transition:none}.chat-reply-icon{position:absolute;top:50%;right:4px;transform:translateY(-50%) scale(0.5);width:28px;height:28px;background:var(--border2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;opacity:0;transition:opacity 0.15s,transform 0.15s;pointer-events:none;color:white}.chat-msg.mine .chat-reply-icon{right:auto;left:4px}.chat-reply-icon.visible{opacity:1;transform:translateY(-50%) scale(1)}.chat-reply-icon.popped{transform:translateY(-50%) scale(1.35)}#chat-reply-bar{display:none;align-items:center;gap:8px;padding:6px 10px 4px;background:var(--surface);border-top:1px solid var(--border2);flex-shrink:0;animation:replyBarIn 0.18s cubic-bezier(0.34,1.26,0.64,1)}@keyframes replyBarIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}#chat-reply-bar.show{display:flex}#chat-reply-bar-line{width:3px;height:100%;min-height:28px;border-radius:3px;background:var(--gold);flex-shrink:0}#chat-reply-bar-content{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}#chat-reply-bar-name{font-size:.68rem;font-weight:800;color:var(--gold);font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#chat-reply-bar-text{font-size:.72rem;color:var(--muted);font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#chat-reply-cancel{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0}#chat-reply-cancel:hover{color:white}.chat-reply-quote{background:rgba(255,255,255,.05);border-left:3px solid var(--gold);border-radius:0 6px 6px 0;padding:4px 8px;margin-bottom:4px;max-width:100%}.chat-reply-quote-name{font-size:.65rem;font-weight:800;color:var(--gold);font-family:'Nunito',sans-serif;margin-bottom:1px}.chat-reply-quote-text{font-size:.7rem;color:var(--muted);font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}@keyframes tokSpawnBounce{0%{transform:var(--sp-base) scale(0) translateY(8px)}55%{transform:var(--sp-base) scale(1.32) translateY(-4px)}75%{transform:var(--sp-base) scale(0.88) translateY(2px)}90%{transform:var(--sp-base) scale(1.06) translateY(0)}100%{transform:var(--sp-base) scale(1) translateY(0)}}.tok-spawn{animation:tokSpawnBounce 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards}@keyframes tokLandSquash{0%{transform:var(--sq-base) scaleX(1.12) scaleY(0.84)}50%{transform:var(--sq-base) scaleX(0.96) scaleY(1.04)}100%{transform:var(--sq-base) scaleX(1) scaleY(1)}}.tok-land{animation:tokLandSquash 0.18s ease-out forwards}</style>
+<style>:root{--gold:#F5C518;--gold2:#b8920f;--pink:#FF2D78;--blue:#00AEEF;--green:#00C853;--yellow:#FFD600;--bg:#0d0d1a;--surface:#13132a;--surface2:#1a1a35;--border:#252550;--border2:#333366;--text:#f0f0ff;--muted:rgba(240,240,255,.4)}*{box-sizing:border-box;margin:0;padding:0;user-select:none !important;-webkit-user-select:none !important;-webkit-touch-callout:none !important}body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:52px 12px 0;font-family:'Nunito',sans-serif;touch-action:manipulation;overflow:hidden;-webkit-font-smoothing:antialiased}#lobby{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center}#lobby-inner{display:flex;flex-direction:column;align-items:center;gap:20px;width:300px}#lobby-crown{font-size:3.2rem;filter:drop-shadow(0 0 20px rgba(245,197,24,.7));animation:crownFloat 3s ease-in-out infinite}@keyframes crownFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}#lobby-sub{color:var(--muted);font-size:11px;letter-spacing:3px;text-transform:uppercase;text-align:center;font-family:'Nunito',sans-serif;font-weight:700}#lobby-divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}#lobby-title{color:var(--gold);font-size:16px;letter-spacing:2px;font-family:'Rajdhani',sans-serif;font-weight:700;text-align:center}.s-card{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;cursor:pointer;transition:all 0.18s;width:100%}.s-card:hover,.s-card:active{border-color:var(--gold);background:var(--surface2);box-shadow:0 0 0 1px rgba(245,197,24,.15),0 8px 32px rgba(0,0,0,.5)}.s-card:active{transform:scale(0.98)}.s-card-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}.s-card-text{display:flex;flex-direction:column;gap:3px;flex:1}.s-card-title{color:var(--text);font-size:1rem;font-weight:800;font-family:'Nunito',sans-serif;letter-spacing:.3px}.s-card-sub{color:var(--muted);font-size:11px;font-family:'Nunito',sans-serif;font-weight:600;line-height:1.4}.s-card-arrow{color:rgba(255,255,255,.2);font-size:16px;flex-shrink:0}.s-card-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%);pointer-events:none}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(4px);z-index:600;align-items:center;justify-content:center}.modal-overlay.show{display:flex}.modal-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;width:300px;box-shadow:0 16px 60px rgba(0,0,0,.7)}.modal-title{color:white;font-size:1.2rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif}.modal-sub{color:var(--muted);font-size:12px;text-align:center;font-family:'Nunito',sans-serif}.modal-input{width:100%;padding:13px 16px;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;color:white;font-size:1rem;font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:4px;text-align:center;outline:none}.modal-input:focus{border-color:var(--gold)}.modal-btn{width:100%;padding:14px 0;font-size:.9rem;font-weight:800;border:none;border-radius:12px;cursor:pointer;transition:transform 0.12s,opacity 0.12s;letter-spacing:.5px;background:var(--gold);color:#000}.modal-btn:active{transform:scale(0.96)}.modal-btn.secondary{background:var(--surface);border:1.5px solid var(--border2);color:var(--text)}.modal-btn:disabled{opacity:.4;cursor:not-allowed}.room-code-display{background:var(--surface);border:2px solid var(--gold);border-radius:14px;padding:14px 24px;font-size:2rem;font-weight:900;color:var(--gold);letter-spacing:8px;font-family:'Rajdhani',sans-serif;text-align:center;cursor:pointer;transition:background 0.15s}.room-code-display:hover{background:var(--surface2)}.copy-hint{font-size:11px;color:var(--muted);font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:1px;text-transform:uppercase;text-align:center;margin-top:-6px}.copy-toast{font-size:12px;color:var(--green);font-family:'Nunito',sans-serif;font-weight:800;letter-spacing:1px;text-align:center;opacity:0;transition:opacity 0.2s}.copy-toast.show{opacity:1}.waiting-dots::after{content:'';animation:dots 1.2s steps(3,end) infinite}@keyframes dots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}.player-slot{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px}.player-slot-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}.player-slot-name{color:var(--text);font-size:.9rem;font-family:'Nunito',sans-serif;font-weight:700;flex:1}.player-slot-status{color:var(--muted);font-size:.75rem;font-family:'Nunito',sans-serif}.lc-inner{transition:transform 0.6s cubic-bezier(0.4,0,0.2,1)}#game-wrap{flex-direction:column;align-items:stretch;gap:6px;display:none;margin-top:12px}.prow{display:flex;justify-content:space-between;align-items:flex-end;overflow:visible}.prow.bottom{align-items:flex-start}.pcol{display:flex;flex-direction:column;gap:8px}.pcol.left{align-items:flex-start}.pcol.right{align-items:flex-end}.plabel{font-size:10px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;transition:color 0.3s;padding:0 4px;font-family:'Rajdhani',sans-serif}.pbox{position:relative;display:flex;align-items:center;width:145px;height:76px;border-radius:12px;overflow:visible}.pbox-bg{position:absolute;inset:0;background:#1a1a1a;border-radius:12px;border:1.5px solid transparent;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:border-color 0.25s,box-shadow 0.25s}.pbox-shine{position:absolute;inset:1px;border-radius:11px;background:linear-gradient(150deg,rgba(255,255,255,.04) 0%,transparent 55%);pointer-events:none}.pbox-tok{position:relative;z-index:3;width:46px;display:flex;justify-content:center;align-items:center;flex-shrink:0}.pbox-dice{position:relative;z-index:100;width:60px;height:60px;border-radius:10px;background:linear-gradient(135deg,#4a4a5a,#2e2e3e);border:1.5px solid #1a1a28;box-shadow:inset 0 2px 4px rgba(255,255,255,.12),0 2px 8px rgba(0,0,0,.4);flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:visible}.pbox-rank{position:absolute;inset:0;border-radius:12px;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;pointer-events:none;overflow:hidden}.pbox-rank-crown{font-size:1.55rem;line-height:1;display:block}.pbox-rank-pos{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.05rem;line-height:1;letter-spacing:.5px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)}.pbox-rank[data-rank="1"]{background:rgba(180,130,0,.82)}.pbox-rank[data-rank="2"]{background:rgba(80,100,120,.82)}.pbox-rank[data-rank="3"]{background:rgba(110,60,20,.82)}.pbox-rank[data-rank="4"]{background:rgba(40,20,50,.82)}.turn-timer-svg{position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);pointer-events:none;z-index:5;border-radius:12px;overflow:visible}.turn-timer-bar{fill:none;stroke-width:3;stroke-linecap:round;stroke-dasharray:var(--tda,400);stroke-dashoffset:var(--tdo,0);transition:stroke 0.4s;filter:drop-shadow(0 0 4px var(--timer-color,#fff))}@keyframes timerDrain{from{stroke-dashoffset:0}to{stroke-dashoffset:var(--tda,400)}}.turn-timer-bar.draining{animation:timerDrain var(--timer-dur,60s) linear forwards}.pbox-offline-overlay{position:absolute;inset:0;border-radius:12px;z-index:25;display:none;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:rgba(6,4,14,0.86);backdrop-filter:blur(3px);cursor:pointer;pointer-events:auto;transition:background 0.15s}.pbox-offline-overlay:hover{background:rgba(6,4,14,0.93)}.pbox-offline-overlay:active{background:rgba(6,4,14,0.98)}.pbox-offline-overlay.show{display:flex}.pbox-offline-overlay.voted{background:rgba(4,18,10,0.86)}.pbox-offline-label{font-size:.58rem;font-weight:800;letter-spacing:1.2px;color:rgba(255,255,255,.35);font-family:'Rajdhani',sans-serif;text-transform:uppercase;line-height:1}.pbox-makebot-text{font-size:.84rem;font-weight:900;letter-spacing:1px;color:#F5C518;font-family:'Rajdhani',sans-serif;text-transform:uppercase;line-height:1;text-shadow:0 0 8px rgba(245,197,24,.5)}.pbox-offline-overlay.voted .pbox-makebot-text{color:#00C853;text-shadow:0 0 8px rgba(0,200,83,.4)}.pbox-vote-count{font-size:.5rem;font-weight:700;letter-spacing:.3px;color:rgba(255,255,255,.32);font-family:'Nunito',sans-serif;text-align:center;line-height:1.5;padding:0 4px;min-height:8px}.bot-label{display:inline-block;font-size:.55rem;font-weight:800;color:#F5C518;background:rgba(245,197,24,.15);border:1px solid rgba(245,197,24,.35);border-radius:5px;padding:1px 5px;font-family:'Rajdhani',sans-serif;letter-spacing:.5px;vertical-align:middle;margin-left:3px}.you-badge{position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;font-size:8px;font-weight:900;letter-spacing:1px;padding:2px 6px;border-radius:6px;font-family:'Rajdhani',sans-serif;z-index:10;white-space:nowrap}#board-wrap{position:relative;display:inline-block;transition:transform 0.6s cubic-bezier(0.34,1.26,0.64,1);transform-origin:center center;flex-shrink:0;overflow:visible;will-change:transform}#board{--cell:min(5.8vw,4.8dvh,40px);display:grid;grid-template-columns:repeat(15,var(--cell));grid-template-rows:repeat(15,var(--cell));gap:1px;background:#3a4a55;padding:5px;border-radius:10px;box-shadow:0 0 0 1px rgba(255,255,255,.05),0 8px 48px rgba(0,0,0,.8)}.lc{display:flex;align-items:center;justify-content:center;contain:layout style paint}.star-svg{width:82%;height:82%;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,200,.8))}.dice-3d{width:44px;height:44px;min-width:44px;min-height:44px;position:relative;perspective:210px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10}.dice-3d.off{cursor:default;pointer-events:none}.dice-3d.inactive{opacity:0;pointer-events:none}.dice-cube{width:38px;height:38px;transform-style:preserve-3d;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}.dice-face{position:absolute;width:38px;height:38px;border-radius:7px;border:1.5px solid #cdb880;backface-visibility:hidden;overflow:hidden}.face-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.65) 0%,transparent 50%);border-radius:7px;pointer-events:none;z-index:2}.ddot{width:7px;height:7px;background:radial-gradient(circle at 33% 28%,#4a3878,#0e0c22);border-radius:50%;position:absolute;box-shadow:0 1px 2px rgba(0,0,0,.55);z-index:3}#tokens-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;will-change:transform;contain:layout style}.tok{position:absolute;pointer-events:none;will-change:transform;transition:none;left:0;top:0;contain:layout style}.tok.movable{pointer-events:auto;cursor:pointer}.tok.movable::after{content:"";position:absolute;inset:-4px;border-radius:50%}.tok.movable svg{animation:movablePulse 0.9s ease-in-out infinite alternate}@keyframes movablePulse{from{opacity:0.85;transform:scale3d(0.97,0.97,1)}to{opacity:1;transform:scale3d(1.03,1.03,1)}}.tok-shadow{position:absolute;left:0;top:0;border-radius:50%;background:rgba(0,0,0,0.28);pointer-events:none;will-change:transform;transition:transform 0.09s cubic-bezier(0.22,1,0.36,1),opacity 0.15s}.tok-ring{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;border:2px solid rgba(0,0,0,0.7);animation:tokRingPulse 0.8s ease-in-out infinite}@keyframes tokRingPulse{0%,100%{opacity:0.5;transform:var(--tr-base) scale(1)}50%{opacity:1;transform:var(--tr-base) scale(1.08)}}.tok-shield{position:absolute;left:0;top:0;pointer-events:none;z-index:4;opacity:0;transition:opacity 0.3s}.tok-shield.normal{opacity:1}.tok-shield.super{opacity:1}@keyframes starGlow{0%{box-shadow:0 0 0 0 rgba(255,220,0,0.8)}40%{box-shadow:0 0 14px 8px rgba(255,220,0,0.55)}100%{box-shadow:0 0 0 0 rgba(255,220,0,0)}}.star-land-glow{animation:starGlow 0.7s ease-out forwards;border-radius:4px}@keyframes ringPop{from{opacity:0.9;transform:translate(var(--rx),var(--ry)) scale(0.2)}to{opacity:0;transform:translate(var(--rx),var(--ry)) scale(2.2)}}.tok-trail{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;animation:trailFade var(--td,0.4s) ease-out forwards}@keyframes trailFade{from{opacity:var(--ta,0.7);transform:var(--tx) scale(var(--ts,1))}to{opacity:0;transform:var(--tx) scale(0.2)}}.sparkle{position:absolute;left:0;top:0;pointer-events:none;border-radius:50%;animation:sparkleFly var(--sd,0.6s) ease-out forwards}@keyframes sparkleFly{0%{opacity:1;transform:var(--st) scale(1)}100%{opacity:0;transform:var(--st) translate(var(--sx),var(--sy)) scale(0)}}@media (hover:hover) and (pointer:fine){.dice-3d:not(.off):not(.inactive):hover .dice-cube{animation:diceWobble 0.4s ease-in-out}}@keyframes diceWobble{0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg))}20%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,1,0,16deg) scale(1.06)}45%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,-1,0,12deg) scale(1.03)}70%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(-1,1,0,8deg) scale(1.01)}100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1)}}@keyframes diceLand{0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(2.2) translateY(-55px)}55%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.18) scaleY(0.84) translateY(5px)}75%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(0.94) scaleY(1.08) translateY(-3px)}90%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.04) scaleY(0.97) translateY(0)}100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1) translateY(0)}}.dice-cube.landing{animation:diceLand 0.48s cubic-bezier(0.22,1,0.36,1) forwards;z-index:9999}#status-row{display:none;align-items:center;gap:8px}#top-bar{position:fixed;top:10px;left:12px;right:12px;z-index:9999;display:none;align-items:center;justify-content:space-between;gap:8px}#top-bar-left{display:flex;align-items:center;gap:8px}#top-bar-right{display:flex;align-items:center;gap:8px}#top-bar-center{flex:1;display:flex;align-items:center;justify-content:center}#btn-home{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-home:hover{background:rgba(255,60,60,.15);border-color:rgba(255,60,60,.4);color:white}#btn-home:active{transform:scale(0.92)}#sync-bar{display:flex;align-items:center;gap:6px;font-size:10px;font-family:'Nunito',sans-serif;font-weight:700;color:var(--muted);padding:0 4px;flex:1;justify-content:center}#sync-dot{width:7px;height:7px;border-radius:50%;background:#555;flex-shrink:0;transition:background 0.3s}#sync-dot.ok{background:#00C853;box-shadow:0 0 6px #00C853}#sync-dot.warn{background:#FFD600;box-shadow:0 0 6px #FFD600}#sync-dot.err{background:#FF2D78;box-shadow:0 0 6px #FF2D78}#btn-mute{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-mute:hover{background:rgba(255,255,255,.28);transform:scale(1.08)}#btn-mute:active{transform:scale(0.94)}#btn-mute.muted{background:rgba(255,60,60,.25);border:1px solid rgba(255,60,60,.4);color:#FF2D78}#btn-perf{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-perf:hover{background:rgba(255,255,255,.08)}#btn-perf:active{transform:scale(0.92)}#btn-perf.on{background:rgba(245,197,24,.18);border-color:rgba(245,197,24,.5);color:#F5C518}#pause-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(3px);z-index:150;align-items:center;justify-content:center}#pause-overlay.show{display:flex}#pause-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:32px 36px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 16px 60px rgba(0,0,0,.7);width:280px}#pause-title{color:white;font-size:1.3rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif}.pause-btn{width:100%;padding:13px 0;font-size:.9rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:transform 0.12s,opacity 0.12s;letter-spacing:.5px}.pause-btn:active{transform:scale(0.96)}.pause-btn{background:var(--gold);color:#000}.pause-btn.secondary{background:var(--surface);border:1.5px solid var(--border2);color:var(--text)}#win{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(5px);z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:16px;overflow:hidden}#win.show{display:flex}#win-confetti-canvas{position:absolute;inset:0;pointer-events:none;z-index:0}#win-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px}#win-trophy{font-size:4rem;animation:trophyEntrance 0.7s cubic-bezier(.2,1.4,.4,1) forwards;opacity:0}@keyframes trophyEntrance{0%{opacity:0;transform:scale(0) rotate(-25deg) translateY(30px)}60%{opacity:1;transform:scale(1.25) rotate(8deg) translateY(-8px)}80%{transform:scale(0.92) rotate(-3deg)}100%{opacity:1;transform:scale(1) rotate(0deg) translateY(0)}}@keyframes trophyFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}#win-trophy.float{animation:trophyFloat 2.2s ease-in-out infinite}#win h1{color:var(--gold);font-size:1.9rem;font-weight:900;text-align:center;font-family:'Rajdhani',sans-serif;letter-spacing:2px;opacity:0;animation:slideUp 0.5s 0.4s cubic-bezier(.2,1.4,.4,1) forwards}@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}#win-crown-ring{font-size:1.1rem;letter-spacing:6px;opacity:0;animation:slideUp 0.5s 0.55s ease-out forwards}#win-places{color:var(--text);font-size:1rem;text-align:center;font-family:'Rajdhani',sans-serif;line-height:2.1;white-space:pre;opacity:0;animation:slideUp 0.5s 0.7s ease-out forwards;background:rgba(255,255,255,.04);border-radius:14px;padding:12px 28px;border:1px solid rgba(255,255,255,.1)}#win button{padding:14px 44px;font-size:.95rem;border:none;border-radius:14px;cursor:pointer;background:var(--gold);color:#000;font-weight:800;box-shadow:0 6px 28px rgba(245,197,24,.4);letter-spacing:.5px;opacity:0;animation:slideUp 0.5s 0.9s ease-out forwards;transition:transform 0.12s,box-shadow 0.12s}#win button:hover{transform:scale(1.05);box-shadow:0 8px 36px rgba(245,197,24,.6)}#win button:active{transform:scale(0.96)}#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(30,30,60,.95);border:1px solid var(--border2);color:white;font-size:.85rem;font-family:'Nunito',sans-serif;font-weight:700;padding:10px 20px;border-radius:20px;opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;z-index:500;white-space:nowrap}#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.pcol{position:relative}.player-chat-bubble{position:absolute;left:50%;transform:translateX(-50%);background:rgba(20,20,45,0.95);border:1px solid var(--border2);border-radius:8px;padding:4px 10px;font-size:.72rem;font-family:'Nunito',sans-serif;font-weight:600;color:var(--text);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;z-index:350;opacity:0;transition:opacity 0.18s}.player-chat-bubble.show{opacity:1}.player-chat-bubble::after{content:'';position:absolute;left:50%;transform:translateX(-50%);border:6px solid transparent}.pcol.top-bubble .player-chat-bubble{bottom:calc(100% + 6px)}.pcol.top-bubble .player-chat-bubble::after{top:100%;border-top-color:var(--border2)}.pcol.bot-bubble .player-chat-bubble{top:calc(100% + 6px)}.pcol.bot-bubble .player-chat-bubble::after{bottom:100%;border-bottom-color:var(--border2)}#chat-panel{position:fixed;bottom:0;right:0;width:280px;height:340px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:16px 16px 0 0;display:flex;flex-direction:column;z-index:300;transform:translateY(100%);transition:transform 0.28s cubic-bezier(0.34,1.26,0.64,1);box-shadow:0 -8px 40px rgba(0,0,0,.6);overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}#chat-panel.open{transform:translateY(0)}#chat-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border2);flex-shrink:0;cursor:pointer}#chat-header-title{color:var(--gold);font-size:.85rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:1px}#chat-close{color:var(--muted);font-size:16px;line-height:1;background:none;border:none;cursor:pointer;padding:8px 10px;margin:-8px -10px -8px 0;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;position:relative;z-index:9999}#chat-close:hover{color:white;background:rgba(255,255,255,.08)}#chat-messages{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}#chat-messages::-webkit-scrollbar{width:4px}#chat-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}.chat-msg{display:flex;flex-direction:column;gap:2px;animation:msgIn 0.2s ease-out}@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.chat-msg-meta{display:flex;align-items:center;gap:5px}.chat-msg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}.chat-msg-name{font-size:.7rem;font-weight:700;font-family:'Nunito',sans-serif}.chat-msg-time{font-size:.65rem;color:var(--muted);margin-left:auto}.chat-msg-text{font-size:.8rem;color:var(--text);font-family:'Nunito',sans-serif;background:var(--surface);border-radius:0 8px 8px 8px;padding:6px 10px;line-height:1.4;word-break:break-word;max-width:90%;border:1px solid var(--border)}.chat-msg.mine .chat-msg-text{border-radius:8px 0 8px 8px;background:rgba(245,197,24,.1);border-color:rgba(245,197,24,.2);align-self:flex-end}.chat-msg.mine .chat-msg-meta{flex-direction:row-reverse}.chat-msg.mine .chat-msg-time{margin-left:0;margin-right:auto}.chat-sys-msg{text-align:center;font-size:.7rem;color:var(--muted);font-family:'Nunito',sans-serif;padding:2px 0}#chat-input-row{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--border2);flex-shrink:0;background:var(--surface)}#chat-input{flex:1;background:var(--bg);border:1.5px solid var(--border2);border-radius:20px;padding:7px 12px;color:white;font-size:.82rem;font-family:'Nunito',sans-serif;outline:none;min-width:0}#chat-input:focus{border-color:var(--gold)}#chat-send{width:32px;height:32px;border-radius:50%;border:none;background:var(--gold);color:#000;font-size:14px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:transform 0.12s;align-self:center}#chat-send:active{transform:scale(0.88)}#chat-badge{position:absolute;top:-4px;right:-4px;background:var(--pink);color:white;font-size:9px;font-weight:900;width:16px;height:16px;border-radius:50%;display:none;align-items:center;justify-content:center;font-family:'Nunito',sans-serif}#btn-chat-toggle{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-chat-toggle:hover{background:rgba(245,197,24,.15);border-color:rgba(245,197,24,.4);color:white}#btn-chat-toggle:active{transform:scale(0.92)}.chat-msg-swipe{position:relative;touch-action:pan-y;will-change:transform;transition:transform 0.22s cubic-bezier(0.22,1,0.36,1)}.chat-msg-swipe.swiping{transition:none}.chat-reply-icon{position:absolute;top:50%;right:4px;transform:translateY(-50%) scale(0.5);width:28px;height:28px;background:var(--border2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;opacity:0;transition:opacity 0.15s,transform 0.15s;pointer-events:none;color:white}.chat-msg.mine .chat-reply-icon{right:auto;left:4px}.chat-reply-icon.visible{opacity:1;transform:translateY(-50%) scale(1)}.chat-reply-icon.popped{transform:translateY(-50%) scale(1.35)}#chat-reply-bar{display:none;align-items:center;gap:8px;padding:6px 10px 4px;background:var(--surface);border-top:1px solid var(--border2);flex-shrink:0;animation:replyBarIn 0.18s cubic-bezier(0.34,1.26,0.64,1)}@keyframes replyBarIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}#chat-reply-bar.show{display:flex}#chat-reply-bar-line{width:3px;height:100%;min-height:28px;border-radius:3px;background:var(--gold);flex-shrink:0}#chat-reply-bar-content{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}#chat-reply-bar-name{font-size:.68rem;font-weight:800;color:var(--gold);font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#chat-reply-bar-text{font-size:.72rem;color:var(--muted);font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#chat-reply-cancel{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0}#chat-reply-cancel:hover{color:white}.chat-reply-quote{background:rgba(255,255,255,.05);border-left:3px solid var(--gold);border-radius:0 6px 6px 0;padding:4px 8px;margin-bottom:4px;max-width:100%}.chat-reply-quote-name{font-size:.65rem;font-weight:800;color:var(--gold);font-family:'Nunito',sans-serif;margin-bottom:1px}.chat-reply-quote-text{font-size:.7rem;color:var(--muted);font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}@keyframes tokSpawnBounce{0%{transform:var(--sp-base) scale(0) translateY(8px)}55%{transform:var(--sp-base) scale(1.32) translateY(-4px)}75%{transform:var(--sp-base) scale(0.88) translateY(2px)}90%{transform:var(--sp-base) scale(1.06) translateY(0)}100%{transform:var(--sp-base) scale(1) translateY(0)}}.tok-spawn{animation:tokSpawnBounce 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards}@keyframes tokLandSquash{0%{transform:var(--sq-base) scaleX(1.18) scaleY(0.78)}40%{transform:var(--sq-base) scaleX(0.93) scaleY(1.06)}70%{transform:var(--sq-base) scaleX(1.04) scaleY(0.97)}100%{transform:var(--sq-base) scaleX(1) scaleY(1)}}.tok-land{animation:tokLandSquash 0.14s cubic-bezier(0.22,1,0.36,1) forwards}</style>
 </head>
 <body>
 <div id="lobby">
@@ -44,7 +46,7 @@
         <div class="s-card-arrow">›</div>
         <div class="s-card-shine"></div>
       </div>
-    <div id="rejoin-card" class="s-card" style="display:none;border-color:rgba(0,174,239,.4);background:rgba(0,174,239,.06);" onclick="window.tryRejoin()" ontouchend="event.preventDefault();window.tryRejoin()">
+    <div id="rejoin-card" class="s-card" style="display:none;border-color:rgba(0,174,239,.4);background:rgba(0,174,239,.06);" onclick="window.tryRejoin()">
       <div class="s-card-icon" style="background:linear-gradient(135deg,#00AEEF,#0077aa);">🔄</div>
       <div class="s-card-text">
         <div class="s-card-title">Rejoin Game</div>
@@ -193,7 +195,7 @@
       <div id="chat-reply-bar-name"></div>
       <div id="chat-reply-bar-text"></div>
     </div>
-    <button id="chat-reply-cancel" onclick="window.clearReply()" ontouchend="event.preventDefault();window.clearReply()">✕</button>
+    <button id="chat-reply-cancel" onclick="window.clearReply()">✕</button>
   </div>
   <div id="chat-input-row">
     <input id="chat-input" type="text" inputmode="text" maxlength="120" placeholder="Say something..." autocomplete="off">
@@ -231,17 +233,22 @@ if(!window.firebase){
 }
 </script>
 <script>
-// SFX module removed — replaced with no-op stub
-const SFX = (()=>{
+// SFX stub — Web Audio engine removed. MP3-based system aayega baad mein.
+// Mute button preserved. Saare SFX.xyz() calls no-ops hain abhi.
+const SFX = (() => {
   let _muted = false;
-  const noop = ()=>{};
+  function toggleMute(){
+    _muted = !_muted;
+    const btn = document.getElementById('btn-mute');
+    if(btn){ btn.textContent = _muted ? '🔇' : '🔊'; btn.title = _muted ? 'Unmute' : 'Mute'; btn.classList.toggle('muted', _muted); }
+    return _muted;
+  }
+  const noop = () => {};
   return {
-    diceRoll:noop, tokenStep:noop, tokenSpawn:noop, tokenCapture:noop,
-    reverseWalk:noop, safeStar:noop, homeStretch:noop, tokenDone:noop,
-    rolledSix:noop, noMove:noop, threeSixesSkip:noop, win:noop, lose:noop,
-    gameStart:noop, chatPing:noop, prewarm:noop,
-    toggleMute(){ _muted=!_muted; const b=document.getElementById('btn-mute'); if(b){b.textContent=_muted?'🔇':'🔊'; b.classList.toggle('muted',_muted);} return _muted; },
-    isMuted(){ return _muted; }
+    diceRoll: noop, tokenStep: noop, tokenSpawn: noop, tokenCapture: noop,
+    reverseWalk: noop, safeStar: noop, homeStretch: noop, tokenDone: noop,
+    rolledSix: noop, noMove: noop, threeSixesSkip: noop, win: noop, lose: noop,
+    gameStart: noop, chatPing: noop, toggleMute, isMuted: () => _muted,
   };
 })();
 </script>
@@ -271,7 +278,7 @@ function _setAuthReady(){
   _authResolvers.forEach(r => r());
   _authResolvers = [];
 }
-const _authTimeout = setTimeout(_setAuthReady, 1500);
+const _authTimeout = setTimeout(_setAuthReady, 5000);
 auth.onAuthStateChanged((user) => {
   clearTimeout(_authTimeout);
   _setAuthReady();
@@ -286,32 +293,19 @@ auth.signInAnonymously().catch((err) => {
   console.warn("⚠️ Auth failed (continuing):", err.code);
 });
 const _connRef = db.ref(".info/connected");
-let _wasConnected = null; // null = never connected yet, false = was connected but dropped, true = connected
-// If Firebase never fires connected=true within 3s, mark as offline so lobby buttons still work
-const _connFallbackTimer = setTimeout(()=>{
-  if(_wasConnected === null){
-    _wasConnected = false;
-    const lobbyDot = document.getElementById("lobby-conn-dot");
-    const lobbyTxt = document.getElementById("lobby-conn-text");
-    if(lobbyDot){ lobbyDot.style.background = "#FFD600"; }
-    if(lobbyTxt){ lobbyTxt.textContent = "Offline mode (no server)"; lobbyTxt.style.color = "#FFD600"; }
-  }
-}, 3000);
+let _wasConnected = false;
 _connRef.on("value", snap => {
   const connected = snap.val() === true;
   const lobbyDot = document.getElementById("lobby-conn-dot");
   const lobbyTxt = document.getElementById("lobby-conn-text");
   if(connected){
-    clearTimeout(_connFallbackTimer);
     if(lobbyDot){ lobbyDot.style.background = "#00C853"; }
     if(lobbyTxt){ lobbyTxt.textContent = "Server connected ✓"; lobbyTxt.style.color = "#00C853"; }
-    if(_wasConnected === false){
+    if(!_wasConnected){
       setSyncStatus("ok");
-      if(document.getElementById("game-wrap").style.display !== "none"){
+      if(_wasConnected === false && document.getElementById("game-wrap").style.display !== "none"){
         showToast("🟢 Reconnected!");
       }
-    } else if(_wasConnected === null){
-      setSyncStatus("ok");
     }
     _wasConnected = true;
   } else {
@@ -381,8 +375,6 @@ function applyBoardRotation(){
   if(bw) bw.style.transform = `rotate(${deg}deg)`;
   _tokenRotationDeg = -deg;
   _cacheValid = false;
-  // Invalidate slot pixel cache — home circle positions are rotation-dependent
-  for(const k in _slotPxCache) delete _slotPxCache[k];
   document.querySelectorAll(".lc-inner").forEach(el=>{
     el.style.transform = `rotate(${-deg}deg)`;
   });
@@ -403,15 +395,31 @@ let IS_HOST = false; // Only used for lobby UI (Start Game button)
 // i.e. the first seat in SEAT_LAYOUT_ACTIVE that is currently online.
 // This replaces IS_HOST for all game logic (timeout, bot, skip).
 let _forcedElderSeat = null; // null = auto, number = manual override from Firebase
+let _cachedElderResult = null;
+let _cachedElderOnlineSet = '';
 function amIElderPlayer(){
   if(!ROOM_CODE || MY_SEAT === null) return false;
-  if(_forcedElderSeat !== null) return MY_SEAT === _forcedElderSeat;
-  for(const seat of SEAT_LAYOUT_ACTIVE){
-    if(!(PLAYERS[seat] && PLAYERS[seat].active)) continue;
-    if(_onlineSeats.has(seat)) return seat === MY_SEAT;
+  // Manual override — someone explicitly assigned elder via panel
+  if(_forcedElderSeat !== null){
+    return MY_SEAT === _forcedElderSeat;
   }
-  const first = SEAT_LAYOUT_ACTIVE.find(s => (PLAYERS[s] && PLAYERS[s].active));
-  return first === MY_SEAT;
+  // Memoize — only recompute when _onlineSeats changes
+  const onlineKey = [..._onlineSeats].sort().join(',');
+  if(_cachedElderOnlineSet === onlineKey && _cachedElderResult !== null){
+    return _cachedElderResult;
+  }
+  _cachedElderOnlineSet = onlineKey;
+  for(const seat of SEAT_LAYOUT_ACTIVE){
+    if(!PLAYERS[seat]?.active) continue;
+    if(_onlineSeats.has(seat)){
+      _cachedElderResult = (seat === MY_SEAT);
+      return _cachedElderResult;
+    }
+  }
+  // fallback: if no presence data yet, assume first active seat
+  const first = SEAT_LAYOUT_ACTIVE.find(s => PLAYERS[s]?.active);
+  _cachedElderResult = (first === MY_SEAT);
+  return _cachedElderResult;
 }
 let _onlineSeats = new Set(); // tracks which seats are currently online
 let NUM_PLAYERS = 4;
@@ -421,220 +429,17 @@ let playersRef = null;
 let _listeners = [];
 let _presenceRef = null;
 let PLAYERS = [];
-let G = { turn:0, diceVal:null, rolled:false, waiting:false, over:false, sixes:0, tokens:[], placements:[], turnStartedAt:0 };
+let G = { turn:0, diceVal:null, rolled:false, waiting:false, over:false, sixes:0, tokens:[], placements:[] };
 let G_PAUSED = false;
 let _rolling = false;
-let _precomputedRoll = null; // smartRng result cached at turn-start so click has zero compute cost
 let _animating = false;
-let _animatingSetAt = 0; // timestamp when _animating was last set true
-// Watchdog: agar _animating ya _syncAnimPlaying 8 second se zyada stuck rahe
-// (unhandled error / missed callback) toh force-reset karo taaki game freeze na ho
-setInterval(()=>{
-  const MAX_ANIM_MS = 8000;
-  if(_animating && _animatingSetAt > 0 && (Date.now() - _animatingSetAt) > MAX_ANIM_MS){
-    console.warn("[watchdog] _animating stuck — force resetting");
-    _animating = false; _animatingSetAt = 0;
-    if(_syncAnimPending && _syncAnimPending.length > 0) _flushSyncPending();
-  }
-  if(_syncAnimPlaying){
-    // _syncAnimPlaying has its own guards (DICE_DUR_MS+100 timeout) but belt-and-suspenders
-    if(!_animating) { _syncAnimPlaying = false; }
-  }
-}, 3000);
-
-// ── FIX 6: smartRng Web Worker ─────────────────────────────────────────────
-// Inline Blob Worker — alag file ki zaroorat nahi.
-// Main thread se game state serialize karke bhejo, Worker background mein
-// smartRng compute kare, result postMessage se wapas aaye.
-// Roll tap pe _precomputedRoll already ready hoga — zero blocking.
-const _workerSrc = `
-const STEP_MAIN_END=51,STEP_STRETCH_START=52,STEP_DONE=57;
-const MAIN_PATH=[[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],[8,14],[8,13],[8,12],[8,11],[8,10],[8,9],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[14,7],[14,6],[13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0],[6,0]];
-const ENTRY_BY_SEAT=[MAIN_PATH.findIndex(([r,c])=>r===6&&c===1),MAIN_PATH.findIndex(([r,c])=>r===1&&c===8),MAIN_PATH.findIndex(([r,c])=>r===8&&c===13),MAIN_PATH.findIndex(([r,c])=>r===13&&c===6)];
-const STRETCH_BY_SEAT=[[[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],[[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],[[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]]];
-const GREY_STARS=new Set(["2-6","8-2","6-12","12-8"]);
-const COLOR_STARS=new Set(["6-1","1-8","8-13","13-6"]);
-const SAFE=new Set([...GREY_STARS,...COLOR_STARS]);
-ENTRY_BY_SEAT.forEach(idx=>{const[r,c]=MAIN_PATH[idx];SAFE.add(r+"-"+c);});
-const STRETCH_CELL_SET=new Set(STRETCH_BY_SEAT.flatMap(arr=>arr.map(([r,c])=>r+"-"+c)));
-const SEAT_COLOR=["#FF2D78","#FFD600","#00C853","#00AEEF"];
-
-function getCell(pid,step){
-  if(step<=0||step>=STEP_DONE) return null;
-  const entry=ENTRY_BY_SEAT[pid];
-  if(entry===undefined||entry<0) return null;
-  if(step<=STEP_MAIN_END){const idx=(entry+step-1)%MAIN_PATH.length;return MAIN_PATH[idx];}
-  const si=step-STEP_STRETCH_START;
-  const lane=STRETCH_BY_SEAT[pid];
-  return(lane&&si>=0&&si<lane.length)?lane[si]:null;
-}
-function movable(pid,dv,tokens,activePids){
-  return tokens.filter(t=>t.pid===pid).filter(t=>{
-    if(t.step===0) return dv===6;
-    if(t.step>=STEP_DONE) return false;
-    if(t.step>=STEP_STRETCH_START){return(t.step+dv)<=STEP_DONE;}
-    const targetStep=t.step+dv;
-    if(targetStep>STEP_DONE) return false;
-    for(let s=t.step+1;s<=targetStep&&s<=STEP_MAIN_END;s++){
-      const rc=getCell(pid,s); if(!rc) continue;
-      const ck=rc[0]+"-"+rc[1];
-      if(SAFE.has(ck)||STRETCH_CELL_SET.has(ck)) continue;
-      const isDestination=(s===targetStep);
-      const oppColorCounts={};
-      tokens.forEach(o=>{
-        if(o.pid===pid||o.step===0||o.step>=STEP_DONE) return;
-        const oc=getCell(o.pid,o.step);
-        if(!oc||oc[0]+"-"+oc[1]!==ck) return;
-        const col=SEAT_COLOR[o.pid];
-        oppColorCounts[col]=(oppColorCounts[col]||0)+1;
-      });
-      const maxOppStack=Math.max(0,...Object.values(oppColorCounts));
-      if(maxOppStack>=3) return false;
-      if(maxOppStack>=2&&isDestination) return false;
-    }
-    return true;
-  });
-}
-function rng(){return(Math.random()*6|0)+1;}
-function _rbBiasedRoll(n,d){return Math.random()<n/d?6:(Math.random()*5|0)+1;}
-function rubberbandRng(pid,tokens,players,rb){
-  const myToks=tokens.filter(t=>t.pid===pid);
-  const activePids=players.filter(p=>p.active).map(p=>p.id);
-  if(!players[pid]||!players[pid].human) return null;
-  const homeCount=(p)=>tokens.filter(t=>t.pid===p&&t.step===0).length;
-  const boardCount=(p)=>tokens.filter(t=>t.pid===p&&t.step>0&&t.step<STEP_STRETCH_START).length;
-  const stretchCount=(p)=>tokens.filter(t=>t.pid===p&&t.step>=STEP_STRETCH_START&&t.step<STEP_DONE).length;
-  const doneCount=(p)=>tokens.filter(t=>t.pid===p&&t.step>=STEP_DONE).length;
-  const myHome=homeCount(pid),myBoard=boardCount(pid),myStretch=stretchCount(pid),myDone=doneCount(pid);
-  if((rb.totalAssists[pid]||0)>=8) return null;
-  if(myDone>=2) return null;
-  const opponents=activePids.filter(p=>p!==pid);
-  const maxOppDone=opponents.length>0?Math.max(...opponents.map(doneCount)):0;
-  const myOnBoard=myBoard+myStretch;
-  const isRoughlyEqual=maxOppDone===myDone&&myHome<=2&&myOnBoard>=1;
-  if(maxOppDone>=3&&myDone===0){if((rb.consecutiveAssisted[pid]||0)>=2) return null;return{sixChanceNum:1,sixChanceDen:4,maxConsec:2};}
-  if((rb.lastCutRoll[pid]||0)>0) return{sixChanceNum:2,sixChanceDen:8,maxConsec:99};
-  if(myHome===4){
-    if((rb.consecutiveAssisted[pid]||0)>=4) return null;
-    const oppsWithTwoInStretch=opponents.filter(p=>stretchCount(p)>=2).length;
-    if(opponents.length>=2&&oppsWithTwoInStretch>=opponents.length) return{sixChanceNum:4,sixChanceDen:9,maxConsec:4};
-    return{sixChanceNum:2,sixChanceDen:9,maxConsec:4};
-  }
-  if(myHome===3&&(myBoard===1||myStretch===1)){
-    const boardTok=myToks.find(t=>t.step>0&&t.step<STEP_STRETCH_START);
-    const stretchTok=myToks.find(t=>t.step>=STEP_STRETCH_START&&t.step<STEP_DONE);
-    const activeTok=boardTok||stretchTok;
-    if(activeTok&&activeTok.step<10){if((rb.consecutiveAssisted[pid]||0)>=3) return null;return{sixChanceNum:2,sixChanceDen:8,maxConsec:3};}
-  }
-  return null;
-}
-function smartRngWorker(pid,tokens,players,sixes,smartTargetPids,forceDiceVal,rb){
-  if(forceDiceVal!=null) return forceDiceVal;
-  const blockSix=(sixes||0)>=2;
-  if(!smartTargetPids.includes(pid)){
-    // rubberbandRng path
-    const config=rubberbandRng(pid,tokens,players,rb);
-    if(!config){let v=rng();if(blockSix){let a=0;while(v===6&&a<20){v=rng();a++;}}return v;}
-    let val=_rbBiasedRoll(config.sixChanceNum,config.sixChanceDen);
-    if(blockSix){let a=0;while(val===6&&a<20){val=_rbBiasedRoll(config.sixChanceNum,config.sixChanceDen);a++;}}
-    return val;
-  }
-  const enemyCkSet=new Set();
-  tokens.forEach(o=>{if(o.pid===pid||o.step===0||o.step>=STEP_DONE) return;if(!players[o.pid]||!players[o.pid].active) return;const rc=getCell(o.pid,o.step);if(rc) enemyCkSet.add(rc[0]+"-"+rc[1]);});
-  for(let v=1;v<=6;v++){if(blockSix&&v===6) continue;const mv=movable(pid,v,tokens);if(mv.some(t=>(t.step===0?1:t.step+v)>=STEP_DONE)) return v;}
-  for(let v=1;v<=6;v++){if(blockSix&&v===6) continue;const mv=movable(pid,v,tokens);for(const tok of mv){const toStep=tok.step===0?1:tok.step+v;if(toStep>STEP_MAIN_END) continue;const rc=getCell(pid,toStep);if(!rc) continue;const ck=rc[0]+"-"+rc[1];if(!SAFE.has(ck)&&enemyCkSet.has(ck)) return v;}}
-  let bestVal=null,bestToStep=-1;
-  for(let v=1;v<=6;v++){if(blockSix&&v===6) continue;const mv=movable(pid,v,tokens);if(!mv.length) continue;for(const tok of mv){const toStep=tok.step===0?1:tok.step+v;if(toStep>bestToStep){bestToStep=toStep;bestVal=v;}}}
-  if(bestVal!==null) return bestVal;
-  let fb=rng();if(blockSix){let a=0;while(fb===6&&a<20){fb=rng();a++;}}return fb;
-}
-self.onmessage=function(e){
-  const{pid,tokens,players,sixes,smartTargetPids,forceDiceVal,rb}=e.data;
-  const result=smartRngWorker(pid,tokens,players,sixes,smartTargetPids,forceDiceVal,rb);
-  self.postMessage({pid,result});
-};
-`;
-let _rngWorker = null;
-let _rngWorkerBusy = false;
-let _rngWorkerCb = null;
-function _initRngWorker(){
-  if(_rngWorker) return;
-  try {
-    const blob = new Blob([_workerSrc], {type:'application/javascript'});
-    const url = URL.createObjectURL(blob);
-    _rngWorker = new Worker(url);
-    _rngWorker.onmessage = function(e){
-      _rngWorkerBusy = false;
-      if(_rngWorkerCb){ const cb=_rngWorkerCb; _rngWorkerCb=null; cb(e.data.result); }
-    };
-    _rngWorker.onerror = function(err){
-      console.warn('RNG Worker error — falling back to main thread', err);
-      _rngWorkerBusy = false;
-      _rngWorker = null; // disable worker, fallback to direct smartRng
-      if(_rngWorkerCb){ const cb=_rngWorkerCb; _rngWorkerCb=null; cb(null); }
-    };
-  } catch(e){ _rngWorker = null; }
-}
-// Worker ko game state bhejo aur background compute karwao
-// cb(result) jab ready ho — agar Worker unavailable toh main thread pe directly compute
-function _smartRngAsync(pid, cb){
-  _initRngWorker();
-  if(!_rngWorker || _rngWorkerBusy){
-    // Worker busy ya unavailable — direct compute (safe fallback)
-    cb(smartRng(pid));
-    return;
-  }
-  _rngWorkerBusy = true;
-  _rngWorkerCb = cb;
-  // Sirf zaroori state serialize karo — no DOM refs, no functions
-  _rngWorker.postMessage({
-    pid,
-    tokens: G.tokens.map(t=>({pid:t.pid,tid:t.tid,step:t.step})),
-    players: PLAYERS.map(p=>p ? {id:p.id,active:!!p.active,human:!!p.human} : null),
-    sixes: G.sixes || 0,
-    smartTargetPids: [...smartDice.targetPids],
-    forceDiceVal: (forceDice[pid] != null) ? forceDice[pid] : null,
-    rb: {
-      consecutiveAssisted: {..._rb.consecutiveAssisted},
-      totalAssists: {..._rb.totalAssists},
-      lastCutRoll: {..._rb.lastCutRoll}
-    }
-  });
-}
-// Precompute trigger — turn start pe Worker ko immediately kaam pe lagao
-function _triggerPrecompute(seat){
-  if(seat !== MY_SEAT || G.over || G.rolled) return;
-  _precomputedRoll = null;
-  _smartRngAsync(seat, (val) => {
-    // Result aaya — sirf tab store karo jab turn abhi bhi same hai
-    if(G.turn === seat && !G.rolled && !G.over) _precomputedRoll = val;
-  });
-}
-// ── END FIX 6 ──────────────────────────────────────────────────────────────
-let _lastDiceSoundKey = null; // dedup guard: prevent duplicate diceRoll SFX on rapid Firebase snapshots
 let _gameLoaded = false;
 function showToast(msg, dur=2500){ /* toasts disabled */ }
-let _syncWarnTimer = null;
 function setSyncStatus(status){
-  // "warn" state ko 300ms delay ke baad dikhao — dice/token animation ke dauraan
-  // DOM className flicker se layout recalc aur jank hoti thi, especially host ke liye
-  // jo har action pe pushGameState karta hai (joiner sirf receive karta hai).
-  if(status === "warn"){
-    clearTimeout(_syncWarnTimer);
-    _syncWarnTimer = setTimeout(()=>{
-      const dot = document.getElementById("sync-dot");
-      const txt = document.getElementById("sync-text");
-      if(dot){ dot.className = "warn"; }
-      if(txt){ txt.textContent = "Syncing..."; }
-    }, 300);
-    return;
-  }
-  clearTimeout(_syncWarnTimer);
   const dot = document.getElementById("sync-dot");
   const txt = document.getElementById("sync-text");
-  if(!dot) return;
   dot.className = status;
-  txt.textContent = status==="ok"?"Synced":"Disconnected";
+  txt.textContent = status==="ok"?"Synced":status==="warn"?"Syncing...":"Disconnected";
 }
 function closeModals(){
   document.querySelectorAll(".modal-overlay").forEach(m=>m.classList.remove("show"));
@@ -664,11 +469,6 @@ const SEAT_LAYOUTS = {
 };
 window.createRoom = async function(numPlayers){
   closeModals();
-  // If Firebase is unavailable (stub active), block online room creation
-  if(window.firebase && window.firebase._stub){
-    showToast("❌ No server — use Test Mode instead");
-    return;
-  }
   showToast("Connecting to server...");
   try { await waitForAuth(); } catch(e){ showToast("⚠️ Auth error — check internet"); return; }
   NUM_PLAYERS = numPlayers;
@@ -715,10 +515,6 @@ window.createRoom = async function(numPlayers){
   listenRoom();
 };
 window.joinRoom = async function(){
-  if(window.firebase && window.firebase._stub){
-    showToast("❌ No server — use Test Mode instead");
-    return;
-  }
   await waitForAuth();
   showToast("Connecting...");
   const code = document.getElementById("join-code-input").value.trim().toUpperCase();
@@ -796,16 +592,10 @@ function listenRoom(){
       return;
     }
     if(data && G.over === false){
-      // Deduplicate by seq (unique per push) — timestamp can collide when roll+move
-      // happen within the same millisecond, silently dropping the move event.
-      const dedupeKey = data.seq || data.timestamp || 0;
-      if(dedupeKey && dedupeKey === _lastProcessedTs) return;
-      // Drop self-echo — we already applied state locally before pushing.
-      if(data.actionBy === MY_SEAT && MY_SEAT !== null){
-        if(dedupeKey) _lastProcessedTs = dedupeKey;
-        return;
-      }
-      if(dedupeKey) _lastProcessedTs = dedupeKey;
+      // Deduplicate by timestamp — if we already processed this exact push, skip
+      const ts = data.timestamp || 0;
+      if(ts && ts === _lastProcessedTs) return;
+      if(ts) _lastProcessedTs = ts;
       syncGameState(data);
     }
   };
@@ -817,20 +607,15 @@ function listenRoom(){
   const cbElder = snap=>{
     const val = snap.val();
     _forcedElderSeat = (val !== null && val !== undefined) ? Number(val) : null;
+    _cachedElderResult = null; // force amIElderPlayer recompute
     // Clear any pending timeout from old elder — prevents double-skip race condition
     clearTimeout(_turnTimeoutTimer);
     _turnTimeoutTimer = null;
     // If I'm now the elder, start a fresh timeout for current turn
-    // Guard: skip if the turn player is already a bot (bot flag may lag Firebase by a tick)
-    if(amIElderPlayer() && _gameLoaded && !G.over && G.turn !== MY_SEAT && !(PLAYERS[G.turn] && PLAYERS[G.turn].isBot)){
-      // Small defer so any in-flight bot-activation Firebase updates settle first
-      setTimeout(()=>{
-        if(amIElderPlayer() && !G.over && G.turn !== MY_SEAT && !(PLAYERS[G.turn] && PLAYERS[G.turn].isBot)){
-          resetTurnTimeout();
-        }
-      }, 150);
+    if(amIElderPlayer() && _gameLoaded && !G.over && G.turn !== MY_SEAT){
+      resetTurnTimeout();
     }
-    if((document.getElementById('smart-dice-panel') && document.getElementById('smart-dice-panel').style.display) !== 'none'){
+    if(document.getElementById('smart-dice-panel')?.style.display !== 'none'){
       _renderSmartDicePanel();
     }
   };
@@ -876,7 +661,7 @@ window.hostStartGame = async function(){
       tokens.push({ pid: seat, tid, step: 0 });
     }
   }
-  const firstTurn = (layout.find(s => seats.includes(s)) != null ? layout.find(s => seats.includes(s)) : layout[0]);
+  const firstTurn = layout.find(s => seats.includes(s)) ?? layout[0];
   const initGame = {
     turn: firstTurn,
     diceVal: null,
@@ -924,7 +709,7 @@ async function loadAndStartGame(){
   document.getElementById("lobby").style.display = "none";
   document.getElementById("game-wrap").style.display = "inline-flex";
   document.getElementById("top-bar").style.display = "flex";
-  const _initTurn = (gData.turn != null ? gData.turn : SEAT_LAYOUT_ACTIVE[0]);
+  const _initTurn = gData.turn ?? SEAT_LAYOUT_ACTIVE[0];
   const _myTurnNow = (_initTurn === MY_SEAT);
   G = {
     turn: _initTurn,
@@ -956,7 +741,6 @@ async function loadAndStartGame(){
   showToast("Game started! You are "+(_myColorNames[SEAT_COLOR[MY_SEAT]]||""));
   saveSession();
   SFX.gameStart();
-  SFX.prewarm(); // pre-generate all reverb buffers — eliminates first-dice-tap lag
   _gameLoaded = true;
 }
 function _flushSyncPending(){
@@ -965,18 +749,13 @@ function _flushSyncPending(){
   syncGameState(next);
 }
 let _syncAnimPending = []; // FIX: queue instead of single slot — prevents dropped rapid updates
+let _lastProcessedTs = 0; // tracks last Firebase timestamp to prevent stale re-processing
 function syncGameState(data, _forceApply){
   if(!_gameLoaded){ return; }
+  // Block our own actions to prevent self-triggering Firebase listener loop.
+  // Exception: _forceApply=true is used by the fresh-pull on timer expiry to
+  // unconditionally catch up with server state regardless of who pushed last.
   if(!_forceApply && data.actionBy === MY_SEAT) return;
-  // Force-apply (e.g. timer expiry fresh pull) bypasses the animation queue entirely.
-  // It clears any stale pending events first, then applies immediately.
-  if(_forceApply){
-    _syncAnimPending = [];
-    _syncAnimPlaying = false;
-    _animating = false;
-    _applySyncGameState(data);
-    return;
-  }
   if(_syncAnimPlaying || _animating){
     if(data.action === "move"){
       // move events must NEVER be dropped — always queue them
@@ -1026,22 +805,13 @@ function _applySyncGameState(data){
   G.over       = data.over || false;
   G.sixes      = data.sixes   || 0;
   _applyPlacements(data.placements);
-  // FIX 1: tokenDiff support — sirf changed tokens update karo in-place
-  const _appliedDiff = data.tokenDiff && Array.isArray(data.tokenDiff);
-  if(_appliedDiff){
-    data.tokenDiff.forEach(dt=>{
-      const lt = G.tokens.find(t=>t.pid===dt.pid&&t.tid===dt.tid);
-      if(lt) lt.step = dt.step;
-    });
-  }
   if(G.over && !document.getElementById("win").classList.contains("show")){
-    // Full token state on win — only apply if tokenDiff wasn't used (tokenDiff won't exist on win payload anyway)
-    if(data.tokens && !_appliedDiff) G.tokens = JSON.parse(JSON.stringify(data.tokens));
+    if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
     endGame();
     return;
   }
   const action   = data.action || data.lastAction;
-  const dice     = data.diceVal;
+  const dice     = data.dice   ?? data.diceVal;
   const rolledBy = data.actionBy;
   if(action === "roll"){
     if(rolledBy !== null && rolledBy !== undefined){
@@ -1055,24 +825,23 @@ function _applySyncGameState(data){
     G.waiting = false;
     if(G.turn === MY_SEAT){ G.rolled = false; G.diceVal = null; }
     if(rolledBy === MY_SEAT){
-      syncUI(true); // roll pe tokens change nahi — renderTokens skip
+      syncUI();
       _flushSyncPending();
       return;
     }
     if(dice != null && rolledBy != null){
-      const _dsk = `${rolledBy}-${dice}-${data.seq||data.ts||''}`;
-      if(_lastDiceSoundKey !== _dsk){ _lastDiceSoundKey=_dsk; SFX.diceRoll(); }
+      SFX.diceRoll();
       _syncAnimPlaying = true;
-      const _syncPlayGuard1 = setTimeout(()=>{ _lastRollAnimBy=rolledBy; _syncAnimPlaying=false; syncUI(true); _flushSyncPending(); }, DICE_DUR_MS+100);
+      const _syncPlayGuard1 = setTimeout(()=>{ _lastRollAnimBy=rolledBy; _syncAnimPlaying=false; syncUI(); _flushSyncPending(); }, DICE_DUR_MS+100);
       animDice(rolledBy, dice, ()=>{
         clearTimeout(_syncPlayGuard1);
         _lastRollAnimBy = rolledBy;
         _syncAnimPlaying = false;
-        syncUI(true); // roll ke baad bhi tokens nahi badle
+        syncUI();
         _flushSyncPending();
       });
     } else {
-      syncUI(true);
+      syncUI();
     }
     return;
   }
@@ -1084,12 +853,6 @@ function _applySyncGameState(data){
     const applyFinalState = () => {
       const prevTurn = G.turn;
       if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
-      else if(data.tokenDiff && Array.isArray(data.tokenDiff)){
-        data.tokenDiff.forEach(dt=>{
-          const lt=G.tokens.find(t=>t.pid===dt.pid&&t.tid===dt.tid);
-          if(lt) lt.step=dt.step;
-        });
-      }
       G.turn       = data.turn;
       G.rolled     = false;
       G.waiting    = false;
@@ -1099,10 +862,7 @@ function _applySyncGameState(data){
       G.over       = data.over       || false;
       _animating   = false;
       // Force timer restart if turn changed
-      if(G.turn !== prevTurn){
-        _lastTimerTurn = -1;
-        G.turnStartedAt = data.turnStartedAt || 0;
-      }
+      if(G.turn !== prevTurn) _lastTimerTurn = -1;
       if(G.over && !document.getElementById("win").classList.contains("show")){
         endGame(); return;
       }
@@ -1121,9 +881,9 @@ function _applySyncGameState(data){
         const { pid, tid, type, finalStep } = primaryMove;
         const tok = tokOf(pid, tid);
         if(tok && !_animating){
-          _animating = true; _animatingSetAt = Date.now();
+          _animating = true;
           try {
-            if(type === "open"){
+            if(type === "open" && tok.step === 0){
               SFX.tokenSpawn();
               const spawnKey = `${pid}-${tid}`;
               const [spawnHr, spawnHc] = getHomeCornerBySeat(pid);
@@ -1159,17 +919,11 @@ function _applySyncGameState(data){
       }
       if(data.tokens){
         const capturePromises=[];
-        // Use server-authoritative moves[] to identify sent-home tokens,
-        // NOT live G.tokens which may already be patched by tokenDiff above.
-        const homeMovePids = new Set(
-          (data.moves || [])
-            .filter(m => m.type === "home" && m.finalStep === 0)
-            .map(m => `${m.pid}-${m.tid}`)
-        );
         data.tokens.forEach(ft => {
-          if(ft.step === 0 && homeMovePids.has(`${ft.pid}-${ft.tid}`)){
+          if(ft.step === 0){
             const lt = tokOf(ft.pid, ft.tid);
-            // Only animate sendHome if token is still on the board locally
+            // Use live token position (already set by animateMove above)
+            // but do NOT rely on ft data since applyFinalState hasn't run
             if(lt && lt.step > 0){
               capturePromises.push(sendHomeFast(lt));
             }
@@ -1180,29 +934,22 @@ function _applySyncGameState(data){
       await rafDelay(80);
       applyFinalState();
     };
-    const _safeRunMoveAnim = () => runMoveAnim().catch(e => {
-      console.error("runMoveAnim failed:", e);
-      _animating = false;
-      _syncAnimPlaying = false;
-      applyFinalState();
-    });
     if(dice != null && rolledBy != null){
       if(rolledBy === MY_SEAT){
-        _safeRunMoveAnim();
+        runMoveAnim();
       } else if(_lastRollAnimBy === rolledBy){
         // Roll dice anim already played for this player — skip re-animation, go straight to move
         _lastRollAnimBy = -1;
-        _safeRunMoveAnim();
+        runMoveAnim();
       } else {
         // Roll event missed/skipped — play dice anim before move
-        const _dsk2 = `${rolledBy}-${dice}-${data.seq||data.ts||''}`;
-        if(_lastDiceSoundKey !== _dsk2){ _lastDiceSoundKey=_dsk2; SFX.diceRoll(); }
+        SFX.diceRoll();
         _syncAnimPlaying = true;
-        const _syncPlayGuard2 = setTimeout(()=>{ _syncAnimPlaying=false; _safeRunMoveAnim(); }, DICE_DUR_MS+100);
-        animDice(rolledBy, dice, () => { clearTimeout(_syncPlayGuard2); _syncAnimPlaying = false; _safeRunMoveAnim(); });
+        const _syncPlayGuard2 = setTimeout(()=>{ _syncAnimPlaying=false; runMoveAnim(); }, DICE_DUR_MS+100);
+        animDice(rolledBy, dice, () => { clearTimeout(_syncPlayGuard2); _syncAnimPlaying = false; runMoveAnim(); });
       }
     } else {
-      _safeRunMoveAnim();
+      runMoveAnim();
     }
     return;
   }
@@ -1215,10 +962,7 @@ function _applySyncGameState(data){
     G.sixes      = data.sixes      || 0;
     _applyPlacements(data.placements);
     // Force timer restart if turn changed (skip always advances turn)
-    if(G.turn !== prevTurn){
-      _lastTimerTurn = -1;
-      G.turnStartedAt = data.turnStartedAt || 0;
-    }
+    if(G.turn !== prevTurn) _lastTimerTurn = -1;
     if((dice != null && dice !== -1) && rolledBy != null){
       if(rolledBy === MY_SEAT){
         if(data.reason === "3sixes") SFX.threeSixesSkip();
@@ -1231,8 +975,7 @@ function _applySyncGameState(data){
         else if(data.reason === "noMove") SFX.noMove();
         syncUI(); _flushSyncPending();
       } else {
-        const _dsk3 = `${rolledBy}-${dice}-${data.seq||data.ts||''}`;
-        if(_lastDiceSoundKey !== _dsk3){ _lastDiceSoundKey=_dsk3; SFX.diceRoll(); }
+        SFX.diceRoll();
         _syncAnimPlaying = true;
         const _syncPlayGuard3 = setTimeout(()=>{ _syncAnimPlaying=false; if(data.reason==="3sixes") SFX.threeSixesSkip(); else if(data.reason==="noMove") SFX.noMove(); syncUI(); _flushSyncPending(); }, DICE_DUR_MS+100);
         animDice(rolledBy, dice, ()=>{
@@ -1247,7 +990,7 @@ function _applySyncGameState(data){
     } else {
       // timeout skip — player never rolled; show toast so others know
       if(data.reason === "timeout" && rolledBy !== MY_SEAT && rolledBy != null){
-        const skippedName = (PLAYERS[rolledBy] && PLAYERS[rolledBy].label) || `P${rolledBy+1}`;
+        const skippedName = PLAYERS[rolledBy]?.label || `P${rolledBy+1}`;
         showToast(`⏱️ ${skippedName} timed out — turn skipped`);
       }
       syncUI();
@@ -1265,46 +1008,8 @@ function _applySyncGameState(data){
   syncUI();
 }
 let _pushDebounce = null;
-// Last pushed token snapshot — used to compute diff payload
-let _lastPushedTokens = null;
-function _buildTokensDiff(){
-  // Roll pe tokens change nahi hote — tokens field skip karo entirely
-  // Move pe sirf changed tokens bhejo (1-2 tokens max vs full 16-token array)
-  if(!_lastPushedTokens || _lastPushedTokens.length !== G.tokens.length){
-    // First push ya length mismatch — full array bhejo aur snapshot lo
-    _lastPushedTokens = G.tokens.map(t=>({pid:t.pid,tid:t.tid,step:t.step}));
-    return { tokens: G.tokens };
-  }
-  const diff = [];
-  for(let i=0;i<G.tokens.length;i++){
-    const cur=G.tokens[i], prev=_lastPushedTokens[i];
-    if(!prev || cur.pid!==prev.pid || cur.tid!==prev.tid || cur.step!==prev.step){
-      diff.push({pid:cur.pid,tid:cur.tid,step:cur.step});
-    }
-  }
-  if(diff.length===0){
-    // Koi change nahi — tokens field hi mat bhejo (roll case)
-    return {};
-  }
-  // Sirf changed tokens bhejo — receiving side merge karega
-  // Full snapshot bhi bhejo taaki late joiners/resync theek ho
-  // Actually for safety: agar diff chhota hai toh diff, warna full
-  if(diff.length <= 3){
-    _lastPushedTokens = G.tokens.map(t=>({pid:t.pid,tid:t.tid,step:t.step}));
-    return { tokenDiff: diff };
-  }
-  _lastPushedTokens = G.tokens.map(t=>({pid:t.pid,tid:t.tid,step:t.step}));
-  return { tokens: G.tokens };
-}
 function pushGameState(extra={}){
   setSyncStatus("warn");
-  // turnStartedAt is only written on turn-change actions so the timer can sync.
-  // Roll/move within same turn must NOT overwrite it (opponents use it to offset their timer).
-  const isTurnChange = extra.action === "skip" || extra.action === "noMove" || extra.action === "skip3six" || extra.lastAction === "win" || extra.action === "move";
-  const turnStartedAtField = isTurnChange ? { turnStartedAt: firebase.database.ServerValue.TIMESTAMP } : {};
-  // FIX 1: tokens diff bhejo — roll pe skip, move pe sirf changed tokens
-  // Win case pe hamesha full tokens bhejo (final state important hai)
-  const tokensPayload = (extra.lastAction === "win") ? { tokens: G.tokens } : _buildTokensDiff();
   const payload = {
     turn: G.turn,
     diceVal: G.diceVal,
@@ -1312,13 +1017,11 @@ function pushGameState(extra={}){
     waiting: G.waiting,
     over: G.over,
     sixes: G.sixes,
-    ...tokensPayload,
+    tokens: G.tokens,
     placements: G.placements,
     seatLayout: SEAT_LAYOUT_ACTIVE,
     actionBy: MY_SEAT,
-    seq: Date.now().toString(36) + Math.random().toString(36).slice(2), // timestamp+random — collision-proof
     timestamp: firebase.database.ServerValue.TIMESTAMP,
-    ...turnStartedAtField,
     ...extra
   };
   // Non-blocking: fire and forget — UI never waits for Firebase round-trip
@@ -1331,13 +1034,13 @@ function pushGameState(extra={}){
 }
 function saveSession(){
   if(!ROOM_CODE || MY_SEAT === null || !MY_NAME) return;
-  try { localStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME})); } catch(e){}
+  try { sessionStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME})); } catch(e){}
 }
 function clearSession(){
-  try { localStorage.removeItem('ludo_session'); } catch(e){}
+  try { sessionStorage.removeItem('ludo_session'); } catch(e){}
 }
 function loadSession(){
-  try { const s=localStorage.getItem('ludo_session'); return s?JSON.parse(s):null; } catch(e){ return null; }
+  try { const s=sessionStorage.getItem('ludo_session'); return s?JSON.parse(s):null; } catch(e){ return null; }
 }
 (function checkRejoin(){
   const s=loadSession();
@@ -1407,8 +1110,7 @@ function hideHostLeaveOverlay(){
   showToast("🟢 Host reconnected — game resuming!");
 }
 function listenHostOnline(){ /* Removed — no host concept in game logic */ }
-// Shared teardown — called by both leaveToLobby and leaveRoom
-function _resetClientState(){
+window.leaveToLobby = async function(){
   clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
   stopTurnTimer();
@@ -1416,18 +1118,15 @@ function _resetClientState(){
   if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
   _listeners.forEach(fn=>fn());
   _listeners = [];
-  _gameStarted = false; _gameStartLock = false; _pendingSync = null;
+  _gameStarted = false;
+  _gameStartLock = false;
+  _pendingSync = null;
+  const _savedName = MY_NAME;
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
   _rolling = false; _animating = false; _onlineSeats = new Set();
   _lastTimerTurn = -1;
-  G.turnStartedAt = 0;
+  _cachedElderResult = null; _cachedElderOnlineSet = '';
   _forcedElderSeat = null;
-  const chatPanel = document.getElementById("chat-panel");
-  if(chatPanel) chatPanel.classList.remove("open");
-}
-// Full game → lobby transition (game was in progress — restore UI)
-window.leaveToLobby = async function(){
-  _resetClientState();
   SEAT_LAYOUT_ACTIVE = [0,1,2,3];
   _gameLoaded = false;
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
@@ -1437,6 +1136,8 @@ window.leaveToLobby = async function(){
   document.getElementById("pause-overlay").classList.remove("show");
   _chatOpen = false; _unreadCount = 0; _chatListening = false; _lastChatKey = null;
   _replyTarget = null;
+  const chatPanel = document.getElementById("chat-panel");
+  if(chatPanel) chatPanel.classList.remove("open");
   const s = loadSession();
   const rc = document.getElementById("rejoin-card");
   const rsub = document.getElementById("rejoin-sub");
@@ -1444,13 +1145,27 @@ window.leaveToLobby = async function(){
   document.getElementById("lobby").style.display = "flex";
   closeModals();
 };
-// Pre-game lobby leave (waiting room → lobby)
 window.leaveRoom = async function(){
-  const _code = ROOM_CODE, _seat = MY_SEAT;
-  _resetClientState();
-  if(_code && _seat !== null){
-    await db.ref(`rooms/${_code}/players/${_seat}/online`).set(false);
+  clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
+  clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
+  stopTurnTimer();
+  if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
+  clearSession();
+  _listeners.forEach(fn=>fn());
+  _listeners = [];
+  _gameStarted = false;
+  _gameStartLock = false;
+  _pendingSync = null;
+  if(ROOM_CODE && MY_SEAT !== null){
+    await db.ref(`rooms/${ROOM_CODE}/players/${MY_SEAT}/online`).set(false);
   }
+  ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
+  _rolling = false; _animating = false; _onlineSeats = new Set();
+  _lastTimerTurn = -1;
+  _cachedElderResult = null; _cachedElderOnlineSet = '';
+  _forcedElderSeat = null;
+  const chatPanel = document.getElementById("chat-panel");
+  if(chatPanel) chatPanel.classList.remove("open");
   const rc=document.getElementById("rejoin-card"); if(rc) rc.style.display="none";
   document.getElementById("lobby").style.display = "flex";
   closeModals();
@@ -1463,7 +1178,7 @@ function listenPlayerPresence(){
   // Add self to online set immediately
   if(MY_SEAT !== null) _onlineSeats.add(MY_SEAT);
   SEAT_LAYOUT_ACTIVE.forEach(seat=>{
-    if(!(PLAYERS[seat] && PLAYERS[seat].active)) return;
+    if(!PLAYERS[seat]?.active) return;
     _timerExpireCount[seat] = 0;
     const ref = db.ref(`rooms/${ROOM_CODE}/players/${seat}/online`);
     const cb = snap=>{
@@ -1471,6 +1186,7 @@ function listenPlayerPresence(){
       const wasElder = amIElderPlayer(); // check before cache invalidation
       // Track online seats for amIElderPlayer()
       if(online){ _onlineSeats.add(seat); } else { _onlineSeats.delete(seat); }
+      _cachedElderResult = null; // invalidate elder cache on presence change
       // If someone went offline and I just became the new elder — start fresh timeout
       // so the stuck turn gets resolved even without a turn change event
       if(!online && !wasElder && amIElderPlayer() && _gameLoaded && !G.over && G.turn !== MY_SEAT){
@@ -1481,7 +1197,7 @@ function listenPlayerPresence(){
           resetTurnTimeout();
         }, 200); // small buffer to let Firebase settle
       }
-      if(online && (PLAYERS[seat] && PLAYERS[seat].isBot)){
+      if(online && PLAYERS[seat]?.isBot){
         _deactivateBot(seat);
       }
       if(online){
@@ -1498,7 +1214,7 @@ function _updateOfflineBadge(seat, isOffline){
   const badge = document.getElementById(`offbadge-${seat}`);
   if(!badge) return;
   if(seat === MY_SEAT){ badge.classList.remove('show'); return; }
-  if((PLAYERS[seat] && PLAYERS[seat].isBot)){ badge.classList.remove('show'); return; }
+  if(PLAYERS[seat]?.isBot){ badge.classList.remove('show'); return; }
   if(!isOffline){ badge.classList.remove('show'); return; }
   badge.classList.add('show');
   const myVote = (_botVotes[seat]||{})[MY_SEAT];
@@ -1526,10 +1242,10 @@ function listenBotVotes(){
   const cb = snap=>{
     _botVotes = snap.val() || {};
     SEAT_LAYOUT_ACTIVE.forEach(seat=>{
-      if(!(PLAYERS[seat] && PLAYERS[seat].active)) return;
-      if((PLAYERS[seat] && PLAYERS[seat].isBot)) return;
+      if(!PLAYERS[seat]?.active) return;
+      if(PLAYERS[seat]?.isBot) return;
       const votes = Object.keys(_botVotes[seat]||{}).length;
-      const activePlayers = SEAT_LAYOUT_ACTIVE.filter(s=>(PLAYERS[s] && PLAYERS[s].active)&&s!==seat);
+      const activePlayers = SEAT_LAYOUT_ACTIVE.filter(s=>PLAYERS[s]?.active&&s!==seat);
       const needed = Math.ceil(activePlayers.length / 2);
       if(votes >= needed && votes > 0){
         _activateBot(seat);
@@ -1543,7 +1259,7 @@ function listenBotVotes(){
 window.voteForBot = async function(seat){
   if(MY_SEAT === null || !ROOM_CODE) return;
   if(seat === MY_SEAT) return;
-  if((PLAYERS[seat] && PLAYERS[seat].isBot)) return;
+  if(PLAYERS[seat]?.isBot) return;
   if((_botVotes[seat]||{})[MY_SEAT]) return;
   const badge = document.getElementById(`offbadge-${seat}`);
   if(badge) badge.classList.add('voted');
@@ -1574,7 +1290,7 @@ function _activateBot(seat){
   }
 }
 function _deactivateBot(seat){
-  if(!(PLAYERS[seat] && PLAYERS[seat].isBot)) return;
+  if(!PLAYERS[seat]?.isBot) return;
   PLAYERS[seat].isBot = false;
   const lbl = document.getElementById(`lbl-${seat}`);
   if(lbl){ const bl = lbl.querySelector('.bot-label'); if(bl) bl.remove(); }
@@ -1602,7 +1318,7 @@ const STRETCH_SEAT={
   "7-8":2,"7-9":2,"7-10":2,"7-11":2,"7-12":2,"7-13":2,
   "8-7":3,"9-7":3,"10-7":3,"11-7":3,"12-7":3,"13-7":3
 };
-const getStretchSeat=(r,c)=>(STRETCH_SEAT[`${r}-${c}`] != null ? STRETCH_SEAT[`${r}-${c}`] : null);
+const getStretchSeat=(r,c)=>STRETCH_SEAT[`${r}-${c}`]??null;
 const ARROWS={"7-0":{dir:"right",seat:0},"0-7":{dir:"down",seat:1},"7-14":{dir:"left",seat:2},"14-7":{dir:"up",seat:3}};
 const GREY_STARS=new Set(["2-6","8-2","6-12","12-8"]);
 const COLOR_STARS=new Set(["6-1","1-8","8-13","13-6"]);
@@ -1626,20 +1342,9 @@ function renderSeatVisuals(seat){
     }
   }
 }
-// Hardcoded light/dark shades for the 4 game colors — avoids runtime hex parsing.
-// Fallback to generic math for any unexpected color (e.g. DEF grey in board cells).
-const _LIGHTEN_MAP = {'#FF2D78':'#ff6298','#00AEEF':'#33c1f2','#00C853':'#33d46d','#FFD600':'#ffde33'};
-const _DARKEN_MAP  = {'#FF2D78':'#cd0046','#00AEEF':'#007cbd','#00C853':'#009621','#FFD600':'#cda400'};
-function lighten(hex,a=15){
-  if(_LIGHTEN_MAP[hex]) return _LIGHTEN_MAP[hex];
-  let c=hex.replace("#","");const r=Math.min(255,parseInt(c.slice(0,2),16)+a);const g=Math.min(255,parseInt(c.slice(2,4),16)+a);const b=Math.min(255,parseInt(c.slice(4,6),16)+a);
-  return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
-}
-function darken(hex,a=18){
-  if(_DARKEN_MAP[hex]) return _DARKEN_MAP[hex];
-  let c=hex.replace("#","");const r=Math.max(0,parseInt(c.slice(0,2),16)-a);const g=Math.max(0,parseInt(c.slice(2,4),16)-a);const b=Math.max(0,parseInt(c.slice(4,6),16)-a);
-  return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
-}const MAIN_PATH=[
+function lighten(hex,a=15){let c=hex.replace("#","");const r=Math.min(255,parseInt(c.slice(0,2),16)+a);const g=Math.min(255,parseInt(c.slice(2,4),16)+a);const b=Math.min(255,parseInt(c.slice(4,6),16)+a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
+function darken(hex,a=18){let c=hex.replace("#","");const r=Math.max(0,parseInt(c.slice(0,2),16)-a);const g=Math.max(0,parseInt(c.slice(2,4),16)-a);const b=Math.max(0,parseInt(c.slice(4,6),16)-a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
+const MAIN_PATH=[
   [6,1],[6,2],[6,3],[6,4],[6,5],
   [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],
   [1,8],[2,8],[3,8],[4,8],[5,8],
@@ -1682,7 +1387,7 @@ const STRETCH_CELL_SET=new Set(
   STRETCH_BY_SEAT.flatMap(arr=>arr.map(([r,c])=>`${r}-${c}`))
 );
 function getHomeCornerBySeat(seat){
-  return (HOME_CORNER_BY_SEAT[seat] != null ? HOME_CORNER_BY_SEAT[seat] : [9,0]);
+  return HOME_CORNER_BY_SEAT[seat] ?? [9,0];
 }
 function getRenderCell(pid, globalStep){
   if(globalStep <= 0 || globalStep >= STEP_DONE) return null;
@@ -1726,9 +1431,8 @@ function movable(pid,dv){
       if(!rc) continue;
       const ck=`${rc[0]}-${rc[1]}`;
       if(SAFE.has(ck)) continue;
-      // Only skip own stretch lane cells — other players' stretch lanes are NOT safe to pass through
-      const isOwnStretchCell=STRETCH_BY_SEAT[pid]&&STRETCH_BY_SEAT[pid].some(([sr,sc])=>sr===rc[0]&&sc===rc[1]);
-      if(isOwnStretchCell) continue;
+      const isStretchCell=STRETCH_CELL_SET.has(ck);
+      if(isStretchCell) continue;
       const isDestination=(s===targetStep);
       const oppColorCounts={};
       G.tokens.forEach(o=>{
@@ -1758,7 +1462,7 @@ function buildBoard(){
     const homeSeat = hz.seat;
     if(_renderedHomeSeats.has(homeSeat)) continue;
     _renderedHomeSeats.add(homeSeat);
-    const isActive = (PLAYERS[homeSeat] && PLAYERS[homeSeat].active) === true;
+    const isActive = PLAYERS[homeSeat]?.active === true;
     const dc = isActive ? getDisplayColorForSeat(homeSeat) : "#546E7A";
     const circleColor = isActive ? lighten(dc,10) : "#4a5f6a";
     const circleBorder = isActive ? darken(dc,20) : "#3a4f5a";
@@ -1845,14 +1549,23 @@ function buildBoard(){
 const _boardCellMap = {};
 function getPanelSeats(){
   const me = MY_SEAT !== null ? MY_SEAT : SEAT_LAYOUT_ACTIVE[0];
-  const active = SEAT_LAYOUT_ACTIVE.filter(s => (PLAYERS[s] && PLAYERS[s].active));
+  const active = SEAT_LAYOUT_ACTIVE.filter(s => PLAYERS[s]?.active);
   const sorted = [...active].sort((a,b) => CW_INDEX[a] - CW_INDEX[b]);
-  const mi = sorted.indexOf(me);
-  const n = sorted.length;
-  const cw = k => n > k ? sorted[(mi + k) % n] : -1;
-  if(n === 2) return [-1, cw(1), me, -1];
-  if(n === 3) return [cw(1), cw(2), me, -1];
-  return [cw(1), cw(2), me, cw(3)];
+  const myIdx  = sorted.indexOf(me);
+  function cwNext(n){
+    if(n >= sorted.length) return -1;
+    return sorted[(myIdx + n) % sorted.length];
+  }
+  const cw1 = cwNext(1);
+  const cw2 = cwNext(2);
+  const cw3 = cwNext(3);
+  if(active.length === 2){
+    return [-1, cw1, me, -1];
+  }
+  if(active.length === 3){
+    return [cw1, cw2, me, -1];
+  }
+  return [cw1, cw2, me, cw3];
 }
 function buildPlayers(){
   const top=document.getElementById("top-row");
@@ -1860,7 +1573,7 @@ function buildPlayers(){
   top.innerHTML="";bot.innerHTML="";
   const seats = getPanelSeats();
   const s0 = seats[0]; const s1 = seats[1];
-  if(s0 >= 0 && (PLAYERS[s0] && PLAYERS[s0].active)) top.appendChild(makePanel(s0,"left","top"));
+  if(s0 >= 0 && PLAYERS[s0]?.active) top.appendChild(makePanel(s0,"left","top"));
   else top.appendChild(makePlaceholder("left"));
   if(!document.getElementById("btn-home")){
     const homeBtn=document.createElement("button");
@@ -1881,12 +1594,12 @@ function buildPlayers(){
     document.getElementById("top-bar-right").appendChild(chatBtn);
     addChatBadgeToButton();
   }
-  if(s1 >= 0 && (PLAYERS[s1] && PLAYERS[s1].active)) top.appendChild(makePanel(s1,"right","top"));
+  if(s1 >= 0 && PLAYERS[s1]?.active) top.appendChild(makePanel(s1,"right","top"));
   else top.appendChild(makePlaceholder("right"));
   const s2 = seats[2]; const s3 = seats[3];
-  if(s2 >= 0 && (PLAYERS[s2] && PLAYERS[s2].active)) bot.appendChild(makePanel(s2,"left","bot",true));
+  if(s2 >= 0 && PLAYERS[s2]?.active) bot.appendChild(makePanel(s2,"left","bot",true));
   else bot.appendChild(makePlaceholder("left"));
-  if(s3 >= 0 && (PLAYERS[s3] && PLAYERS[s3].active)) bot.appendChild(makePanel(s3,"right","bot"));
+  if(s3 >= 0 && PLAYERS[s3]?.active) bot.appendChild(makePanel(s3,"right","bot"));
   else bot.appendChild(makePlaceholder("right"));
   PLAYERS.forEach(p=>{
     if(!p.active) return;
@@ -2008,9 +1721,9 @@ const FACE_DEFS=[{n:1,bg:"linear-gradient(145deg,#fff,#f5ebd8)",tf:"rotateY(0deg
 const LAND={1:{rx:0,ry:0},2:{rx:0,ry:-90},3:{rx:-90,ry:0},4:{rx:90,ry:0},5:{rx:0,ry:90},6:{rx:0,ry:180}};
 const dAcc={rx:{},ry:{},busy:{},last:{}};
 const _domCache={banner:null,pbg:{},lbl:{},box:{},ptok:{},d3d:{},dcube:{},pdw:{},tbar:{}};
-function rng(){ return (Math.random()*6|0)+1; }
+function rng(){if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(1);while(true){crypto.getRandomValues(a);if(a[0]<252)return(a[0]%6)+1;}}return Math.floor(Math.random()*6)+1;}
 const _rb = { consecutiveAssisted:{}, totalAssists:{}, lastCutRoll:{} };
-function _rbReset(){for(let i=0;i<4;i++){_rb.consecutiveAssisted[i]=0;_rb.totalAssists[i]=0;_rb.lastCutRoll[i]=0;}}
+function _rbReset(){[0,1,2,3].forEach(pid=>{_rb.consecutiveAssisted[pid]=0;_rb.totalAssists[pid]=0;_rb.lastCutRoll[pid]=0;});}
 _rbReset();
 function _rbNotifyCut(victimPid){if(PLAYERS[victimPid]&&PLAYERS[victimPid].human)_rb.lastCutRoll[victimPid]=2;}
 function _rbAssess(pid){
@@ -2046,8 +1759,10 @@ function _rbAssess(pid){
   return null;
 }
 function _rbBiasedRoll(sixChanceNum,sixChanceDen){
+  const threshold=Math.round((sixChanceNum/sixChanceDen)*252);
+  if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(1);crypto.getRandomValues(a);if(a[0]<threshold) return 6;while(true){crypto.getRandomValues(a);if(a[0]<250) return(a[0]%5)+1;}}
   if(Math.random()<sixChanceNum/sixChanceDen) return 6;
-  return (Math.random()*5|0)+1;
+  return Math.floor(Math.random()*5)+1;
 }
 function rubberbandRng(pid){
   const config=_rbAssess(pid);
@@ -2142,15 +1857,15 @@ function _renderSmartDicePanel(){
     ? _forcedElderSeat
     : (()=>{
         for(const seat of SEAT_LAYOUT_ACTIVE){
-          if(!(PLAYERS[seat] && PLAYERS[seat].active)) continue;
+          if(!PLAYERS[seat]?.active) continue;
           if(_onlineSeats.has(seat)) return seat;
         }
-        return (SEAT_LAYOUT_ACTIVE.find(s => (PLAYERS[s] && PLAYERS[s].active)) != null ? SEAT_LAYOUT_ACTIVE.find(s => (PLAYERS[s] && PLAYERS[s].active)) : -1);
+        return SEAT_LAYOUT_ACTIVE.find(s => PLAYERS[s]?.active) ?? -1;
       })();
 
   if(elderStatus){
     const isManual = _forcedElderSeat !== null;
-    const eName = (PLAYERS[currentElder] && PLAYERS[currentElder].label) || `P${currentElder+1}`;
+    const eName = PLAYERS[currentElder]?.label || `P${currentElder+1}`;
     const eColor = getDisplayColorForSeat(currentElder);
     elderStatus.style.color = eColor;
     elderStatus.textContent = isManual
@@ -2224,16 +1939,17 @@ function smartRng(pid){
 }
 function eio(t){return t<.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1;}
 function lerp(a,b,t){return a+(b-a)*t;}
+function arcY(t){if(t<.82){const p=t/.82;return-52*4*p*(1-p);}const p=(t-.82)/.18;return 4*Math.sin((1-Math.pow(1-p,3))*Math.PI);}
 function sqX(t){
   if(t<0.72)return 1;
   const p=(t-0.72)/0.28;
-  if(p<0.4){ return lerp(1,1.14,p/0.4); }
+  if(p<0.4){return lerp(1,1.14,p/0.4);}
   return lerp(1.14,1,(p-0.4)/0.6);
 }
 function sqY(t){
   if(t<0.72)return 1;
   const p=(t-0.72)/0.28;
-  if(p<0.4){ return lerp(1,0.82,p/0.4); }
+  if(p<0.4){return lerp(1,0.82,p/0.4);}
   return lerp(0.82,1,(p-0.4)/0.6);
 }
 function animDice(pid,finalVal,cb){
@@ -2242,6 +1958,9 @@ function animDice(pid,finalVal,cb){
   if(!cube){dAcc.busy[pid]=false;if(cb)cb();return;}
   if(dAcc.busy[pid]){setTimeout(()=>animDice(pid,finalVal,cb),50);return;}
   dAcc.busy[pid]=true;
+  const _busyGuard=setTimeout(()=>{
+    if(dAcc.busy[pid]){dAcc.busy[pid]=false;if(cb)cb();}
+  },900);
   const tg=LAND[finalVal];
   const curRx=dAcc.rx[pid]||0,curRy=dAcc.ry[pid]||0;
   const normRx=((curRx%360)+360)%360,normRy=((curRy%360)+360)%360;
@@ -2270,17 +1989,24 @@ function animDice(pid,finalVal,cb){
     if(p<0.55){return lerp(JUMP_Y,5,1-Math.pow(1-(p/0.55),2.5));}
     const q=(p-0.55)/0.45;return lerp(5,0,1-Math.pow(1-q,3));
   }
+    const _invDICE=1/DICE_DUR_MS;
+  const _rxRange=eRx-normRx, _ryRange=eRy-normRy;
+  let _lastWrapZIdx='9999';
   function tick(now){
     if(!t0)t0=now;
-    const t=Math.min((now-t0)/DICE_DUR_MS,1);
+    const t=Math.min((now-t0)*_invDICE,1);
     const ease=diceEase(t);
-    const rx=lerp(normRx,eRx,ease);
-    const ry=lerp(normRy,eRy,ease);
+    const rx=normRx+_rxRange*ease;
+    const ry=normRy+_ryRange*ease;
     const sc=wrapScale(t);
     const wy=wrapY(t);
     const csx=sqX(t);
     const csy=sqY(t);
-    if(wrap)wrap.style.transform=`translateY(${wy}px) scale(${sc})`;
+    if(wrap){
+      wrap.style.transform=`translateY(${wy}px) scale(${sc})`;
+      const newZ=t<0.85?'9999':'';
+      if(newZ!==_lastWrapZIdx){_lastWrapZIdx=newZ;wrap.style.zIndex=newZ;}
+    }
     cube.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg) scaleX(${csx}) scaleY(${csy})`;
     if(t<1){
       requestAnimationFrame(tick);
@@ -2289,6 +2015,7 @@ function animDice(pid,finalVal,cb){
       cube.style.transform=`rotateX(${eRx}deg) rotateY(${eRy}deg)`;
       dAcc.rx[pid]=eRx;dAcc.ry[pid]=eRy;dAcc.last[pid]=finalVal;
       dAcc.busy[pid]=false;
+      clearTimeout(_busyGuard);
       if(cb)cb();
     }
   }
@@ -2325,20 +2052,32 @@ function makeDice(pid){
   });
   return wrap;
 }
-// Hardcoded token SVGs for the 4 game colors. Size is still parametric but we cache by key.
-const _svgCache = {};
-function tokSVG(color, size=28){
-  const key = color + size;
-  if(_svgCache[key]) return _svgCache[key];
-  const sh = _DARKEN_MAP[color] || color;
-  const id = 't' + color.replace('#','');
-  const h = Math.round(size*1.3);
-  const svg = `<svg width="${size}" height="${h}" viewBox="0 0 100 130" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="${id}p" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="white" stop-opacity=".6"/><stop offset="35%" stop-color="${color}"/><stop offset="100%" stop-color="${sh}"/></radialGradient><radialGradient id="${id}i" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="white" stop-opacity=".9"/><stop offset="50%" stop-color="white" stop-opacity=".5"/><stop offset="100%" stop-color="${color}" stop-opacity=".3"/></radialGradient><filter id="${id}f" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,.5)"/></filter></defs><g filter="url(#${id}f)"><path d="M50,8 C27,8 12,24 12,42 C12,62 50,122 50,122 C50,122 88,62 88,42 C88,24 73,8 50,8 Z" fill="url(#${id}p)"/><path d="M50,8 C27,8 12,24 12,42 C12,62 50,122 50,122 C50,122 88,62 88,42 C88,24 73,8 50,8 Z" stroke="${sh}" stroke-width="2" fill="none"/><circle cx="50" cy="40" r="19" fill="url(#${id}i)"/><circle cx="50" cy="40" r="19" stroke="${sh}" stroke-width="1.5" fill="none"/><ellipse cx="42" cy="31" rx="6" ry="4" fill="white" opacity=".4" transform="rotate(-20,42,31)"/></g></svg>`;
-  _svgCache[key] = svg;
+const _svgCache = new Map();
+function tokSVG(color,size=28){
+  const cacheKey = `${color}|${size}`;
+  if(_svgCache.has(cacheKey)) return _svgCache.get(cacheKey);
+  const dk=(hex)=>{const n=parseInt(hex.slice(1),16);const r=Math.max(0,(n>>16)-50);const g=Math.max(0,((n>>8)&0xff)-50);const b=Math.max(0,(n&0xff)-50);return`#${((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1)}`;};
+  const sh=dk(color);
+  const id=`t${color.replace("#","")}`;
+  const svg = `<svg width="${size}" height="${Math.round(size*1.3)}" viewBox="0 0 100 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="${id}p" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="white" stop-opacity=".6"/><stop offset="35%" stop-color="${color}"/><stop offset="100%" stop-color="${sh}"/></radialGradient>
+      <radialGradient id="${id}i" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="white" stop-opacity=".9"/><stop offset="50%" stop-color="white" stop-opacity=".5"/><stop offset="100%" stop-color="${color}" stop-opacity=".3"/></radialGradient>
+      <filter id="${id}f" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,.5)"/></filter>
+    </defs>
+    <g filter="url(#${id}f)">
+      <path d="M50,8 C27,8 12,24 12,42 C12,62 50,122 50,122 C50,122 88,62 88,42 C88,24 73,8 50,8 Z" fill="url(#${id}p)"/>
+      <path d="M50,8 C27,8 12,24 12,42 C12,62 50,122 50,122 C50,122 88,62 88,42 C88,24 73,8 50,8 Z" stroke="${sh}" stroke-width="2" fill="none"/>
+      <circle cx="50" cy="40" r="19" fill="url(#${id}i)"/>
+      <circle cx="50" cy="40" r="19" stroke="${sh}" stroke-width="1.5" fill="none"/>
+      <ellipse cx="42" cy="31" rx="6" ry="4" fill="white" opacity=".4" transform="rotate(-20,42,31)"/>
+    </g>
+  </svg>`;
+  _svgCache.set(cacheKey, svg);
   return svg;
 }
 const _tokEls={};
-const _shieldSvgCache = {};
+const _shieldSvgCache = new Map();
 function _ensureTokEl(tok,color){
   const key=`${tok.pid}-${tok.tid}`;
   const layer=document.getElementById("tokens-layer");
@@ -2386,15 +2125,20 @@ function spawnTrailDot(x,y,color,layer){
   dot.style.opacity="0.82";
   dot.style.transform=`translate(${x-sz/2}px,${y-sz/2}px)`;
   layer.appendChild(dot);
+  // Use double-rAF instead of setTimeout-inside-rAF to avoid timer jank
   requestAnimationFrame(()=>{
-    dot.style.transition="opacity 320ms linear";
-    dot.style.opacity="0";
-    setTimeout(()=>{
-      dot.remove();
-      dot.style.transition="none";
-      dot.style.opacity="0.82";
-      if(_dotPool.length < MAX_DOTS) _dotPool.push(dot);
-    }, 340);
+    requestAnimationFrame(()=>{
+      dot.style.transition="opacity 320ms linear";
+      dot.style.opacity="0";
+      function _onEnd(){
+        dot.removeEventListener('transitionend',_onEnd);
+        dot.remove();
+        dot.style.transition="none";
+        dot.style.opacity="0.82";
+        if(_dotPool.length < MAX_DOTS) _dotPool.push(dot);
+      }
+      dot.addEventListener('transitionend',_onEnd,{once:true});
+    });
   });
 }
 let _cpx=0,_cacheValid=false;
@@ -2448,11 +2192,16 @@ function baseCirclePx(homeR,homeC,slotIdx){
   return{x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2};
 }
 let _renderScheduled = false;
+let _renderGeneration = 0;
 function renderTokens(){
   if(MY_SEAT === null) return;
   if(_renderScheduled) return;
   _renderScheduled = true;
-  requestAnimationFrame(()=>{ _renderScheduled=false; _doRenderTokens(); });
+  const gen = ++_renderGeneration;
+  requestAnimationFrame(()=>{
+    _renderScheduled=false;
+    if(gen===_renderGeneration) _doRenderTokens();
+  });
 }
 function _doRenderTokens(){
   _refreshCache();
@@ -2535,18 +2284,18 @@ function _doRenderTokens(){
     const scaleTransform = visualScale !== 1 ? ` scale(${visualScale})` : '';
     wrap.style.transformOrigin = `${rW/2}px ${tipOffset}px`;
     if(!wrap.dataset.animating){
-      wrap.style.transform=`translate(${tx}px,${ty}px) rotate(${_tr}deg)${scaleTransform}`;
+      const _newTr=`translate(${tx}px,${ty}px) rotate(${_tr}deg)${scaleTransform}`;
+      if(wrap._lastStaticTr!==_newTr){wrap._lastStaticTr=_newTr;wrap.style.transform=_newTr;}
     }
     const shadowW=rW*0.60,shadowH=rW*0.16,sx=px-shadowW/2,sy=py-shadowH/2+1;
-    shadow.style.transform=`translate(${sx}px,${sy}px)`;
-    shadow.style.width=`${shadowW}px`; shadow.style.height=`${shadowH}px`;
+    const _sTr=`translate(${sx}px,${sy}px)`;
+    if(shadow._lastTr!==_sTr){shadow._lastTr=_sTr;shadow.style.transform=_sTr;}
+    if(shadow._lastW!==shadowW){shadow._lastW=shadowW;shadow.style.width=`${shadowW}px`;shadow.style.height=`${shadowH}px`;}
     const showShadow=tok.step>0&&tok.step<STEP_DONE&&stackCount===1;
-    if(!wrap.dataset.animating){
-      const _sf=showShadow?'blur(3px)':'blur(2px)';
-      if(shadow._lastFilter!==_sf){shadow._lastFilter=_sf;shadow.style.filter=_sf;}
-      const _so=showShadow?"1":"0";
-      if(shadow._lastOpacity!==_so){shadow._lastOpacity=_so;shadow.style.opacity=_so;}
-    }
+    const _sf=showShadow?'blur(3px)':'blur(2px)';
+    if(shadow._lastFilter!==_sf){shadow._lastFilter=_sf;shadow.style.filter=_sf;}
+    const _so=showShadow?"1":"0";
+    if(shadow._lastOpacity!==_so){shadow._lastOpacity=_so;shadow.style.opacity=_so;}
     const wasMovable=wrap.classList.contains("movable");
     if(isMovable!==wasMovable){
       wrap.classList.toggle("movable",isMovable);
@@ -2599,20 +2348,22 @@ function _doRenderTokens(){
     }
     if(els.shield){
       let blockType=null;
-      // Single getRenderCell call shared across all shield logic below
-      const rcS = (tok.step>=1&&tok.step<=STEP_MAIN_END) ? getRenderCell(tok.pid,tok.step) : null;
-      if(rcS){
-        const ck2=`${rcS[0]}-${rcS[1]}`;
-        if(!SAFE.has(ck2)){
-          const grp2=groups[ck2]||[];
-          const sameColor=grp2.filter(o=>getDisplayColorForSeat(o.pid)===color);
-          if(sameColor.length>=3) blockType='super';
-          else if(sameColor.length===2) blockType='normal';
+      if(tok.step>=1&&tok.step<=STEP_MAIN_END){
+        const rc2=getRenderCell(tok.pid,tok.step);
+        if(rc2){
+          const ck2=`${rc2[0]}-${rc2[1]}`;
+          if(!SAFE.has(ck2)){
+            const grp2=groups[ck2]||[];
+            const sameColor=grp2.filter(o=>getDisplayColorForSeat(o.pid)===color);
+            if(sameColor.length>=3) blockType='super';
+            else if(sameColor.length===2) blockType='normal';
+          }
         }
       }
-      const grp3=rcS?groups[`${rcS[0]}-${rcS[1]}`]||[tok]:[tok];
+      const rc3=getRenderCell(tok.pid,tok.step);
+      const grp3=rc3?groups[`${rc3[0]}-${rc3[1]}`]||[tok]:[tok];
       const isFirst=grp3.indexOf(tok)===0;
-      const stackN=blockType==='super'?(rcS?(groups[`${rcS[0]}-${rcS[1]}`]||[]).length:3):2;
+      const stackN=blockType==='super'?(()=>{const rc4=getRenderCell(tok.pid,tok.step);return rc4?(groups[`${rc4[0]}-${rc4[1]}`]||[]).length:3;})():2;
       const tokVisScale=stackN<=2?0.78:0.65;
       const tipOffset2=rW*(130/100)*(122/130);
       const tokCenterY=py-(tipOffset2*tokVisScale*0.65);
@@ -2630,7 +2381,7 @@ function _doRenderTokens(){
         if(els.shield._lastType!==blockType||els.shield._lastSvgKey!==shieldSvgKey){
           els.shield._lastType=blockType;
           els.shield._lastSvgKey=shieldSvgKey;
-          let shieldSvg=_shieldSvgCache[shieldSvgKey];
+          let shieldSvg=_shieldSvgCache.get(shieldSvgKey);
           if(!shieldSvg){
             shieldSvg=`<svg viewBox="0 0 28 34" xmlns="http://www.w3.org/2000/svg" width="${sW}" height="${sH}">
           <defs>
@@ -2660,7 +2411,7 @@ function _doRenderTokens(){
                <circle cx="14" cy="16" r="1.4" fill="white" opacity="0.85"/>`
           }
         </svg>`;
-            _shieldSvgCache[shieldSvgKey]=shieldSvg;
+            _shieldSvgCache.set(shieldSvgKey,shieldSvg);
           }
           els.shield.innerHTML=shieldSvg;
         }
@@ -2679,16 +2430,8 @@ function _doRenderTokens(){
   });
   for(const key of Object.keys(_tokEls)){if(!alive.has(key))_removeTokEl(key);}
 }
-// FIX 3: syncUI ko split karo — roll ke baad renderTokens() skip karo
-// Roll pe tokens change nahi hote, sirf dice state + borders update chahiye
-function syncUI(skipTokenRender){ refreshUI(); if(!skipTokenRender) renderTokens(); updateTurnBanner(); }
-// FIX 5: refreshUI mein early return — agar G.turn aur G.rolled same hai toh skip
-let _lastRefreshTurn = -1, _lastRefreshRolled = null, _lastRefreshWaiting = null, _lastRefreshOver = null;
+function syncUI(){ refreshUI(); renderTokens(); updateTurnBanner(); }
 function refreshUI(){
-    const _curTurn=G.turn, _curRolled=G.rolled, _curWaiting=G.waiting, _curOver=G.over;
-    // Koi visual change nahi — early return
-    if(_curTurn===_lastRefreshTurn && _curRolled===_lastRefreshRolled && _curWaiting===_lastRefreshWaiting && _curOver===_lastRefreshOver) return;
-    _lastRefreshTurn=_curTurn; _lastRefreshRolled=_curRolled; _lastRefreshWaiting=_curWaiting; _lastRefreshOver=_curOver;
     PLAYERS.forEach(p=>{
     if(!p.active) return;
     renderSeatVisuals(p.id);
@@ -2722,44 +2465,37 @@ function updateTurnBanner(){
   if(G.turn !== _lastTimerTurn){
     _lastTimerTurn = G.turn;
     resetTurnTimeout(); // restart timeout only on actual turn change
-    // Calculate elapsed ms from server timestamp so all players sync their timer
-    // G.turnStartedAt is the Firebase server timestamp of when this turn began.
-    const elapsedMs = (G.turnStartedAt && G.turnStartedAt > 0) ? Math.max(0, Date.now() - G.turnStartedAt) : 0;
-    startTurnTimer(G.turn, elapsedMs);
-    // Smart dice override: agar opponent ka turn hai aur smartDice mein selected hai
-    // aur main elder hoon — turant uska turn play karo (bot jaisa), wait nahi
-    if(
-      ROOM_CODE &&
-      G.turn !== MY_SEAT &&
-      !G.rolled &&
-      !G.over &&
-      !_animating &&
-      !_rolling &&
-      amIElderPlayer() &&
-      smartDice.targetPids.has(G.turn)
-    ){
-      const _targetSeat = G.turn;
-      setTimeout(()=>{
-        if(G.turn !== _targetSeat || G.rolled || G.over || _animating || _rolling) return;
-        _doBotTurn(_targetSeat);
-      }, 300);
-    }
+    startTurnTimer(G.turn);
+  }
+  // SmartDice override: agar opponent ka turn hai aur smartDice mein selected hai
+  // aur main elder hoon — turant uska turn play karo (bot jaisa), wait nahi.
+  // This runs outside _lastTimerTurn guard to also catch bonus-six same-turn cases.
+  if(
+    ROOM_CODE &&
+    G.turn !== MY_SEAT &&
+    !G.rolled &&
+    !G.over &&
+    !_animating &&
+    !_rolling &&
+    amIElderPlayer() &&
+    smartDice.targetPids.has(G.turn)
+  ){
+    const _targetSeat = G.turn;
+    setTimeout(()=>{
+      if(G.turn !== _targetSeat || G.rolled || G.over || _animating || _rolling) return;
+      _doBotTurn(_targetSeat);
+    }, 300);
   }
 }
 const TURN_TIMER_SEC = 43; // FIX 6: aligned with TURN_TIMEOUT_MS (45s) so bar empties just before host skips
 let _timerInterval = null;
 let _timerSeat = -1;
 let _timerStart = 0;
-function startTurnTimer(seat, elapsedMs){
+function startTurnTimer(seat){
   stopTurnTimer();
-  if(G.over || !_gameLoaded || !(PLAYERS[seat] && PLAYERS[seat].active)) return;
+  if(G.over || !_gameLoaded || !PLAYERS[seat]?.active) return;
   _timerSeat = seat;
   _timerStart = Date.now();
-  // elapsedMs: how many ms have already elapsed since turn started on server.
-  // Clamp so we never start a negative or already-expired timer.
-  const elapsed = Math.max(0, Math.min(elapsedMs || 0, (TURN_TIMER_SEC - 1) * 1000));
-  const remainingMs = TURN_TIMER_SEC * 1000 - elapsed;
-  const remainingSec = remainingMs / 1000;
   const color = getDisplayColorForSeat(seat);
   const bar = _domCache.tbar[seat] || document.getElementById(`tbar-${seat}`);
   if(bar){
@@ -2770,37 +2506,42 @@ function startTurnTimer(seat, elapsedMs){
     bar.style.stroke = color;
     bar.style.filter = `drop-shadow(0 0 4px ${color})`;
     bar.classList.remove('draining');
-    // FIX 2: getBoundingClientRect() forced layout reflow tha — CSS animation restart
-    // ke liye sirf ek rAF yield kaafi hai, synchronous layout flush zarori nahi
-    setTimeout(()=>{
-      bar.style.setProperty('--timer-dur', `${remainingSec.toFixed(2)}s`);
-      bar.classList.add('draining');
-    }, 0);
+    void bar.getBoundingClientRect();
+    bar.style.setProperty('--timer-dur', `${TURN_TIMER_SEC}s`);
+    bar.classList.add('draining');
   }
   const _capturedSeat = seat;
-  // CSS animation handles the visual drain. JS only needs 2 phase color changes
-  // (yellow at 25s remaining, red at 10s remaining) + expiry — no interval needed.
-  function _setTimerColor(stroke, shadow){
-    const bar2 = _domCache.tbar[_capturedSeat] || document.getElementById(`tbar-${_capturedSeat}`);
-    if(bar2){ bar2.style.stroke=stroke; bar2.style.setProperty('--timer-color',stroke); bar2.style.filter=`drop-shadow(0 0 ${shadow})`; }
-  }
-  // Phase thresholds in ms-remaining, offset by how much has already elapsed
-  const msLeft25 = (TURN_TIMER_SEC - 25) * 1000 - elapsed;
-  const msLeft10 = (TURN_TIMER_SEC - 10) * 1000 - elapsed;
-  // Apply phase colors immediately if we're already past those thresholds
-  if(msLeft10 <= 0) _setTimerColor('#FF2D78','7px #FF2D78');
-  else if(msLeft25 <= 0) _setTimerColor('#FFD600','5px #FFD600');
-  // Phase 1 -> yellow (fires when 25s remain)
-  const _t1 = msLeft25 > 0 ? setTimeout(()=>_setTimerColor('#FFD600','5px #FFD600'), msLeft25) : null;
-  // Phase 2 -> red (fires when 10s remain)
-  const _t2 = msLeft10 > 0 ? setTimeout(()=>_setTimerColor('#FF2D78','7px #FF2D78'), msLeft10) : null;
-  // Expiry fires after remaining time only (not full TURN_TIMER_SEC)
-  const _t3 = setTimeout(()=>{ stopTurnTimer(); _onTurnTimerExpired(_capturedSeat); }, remainingMs);
-  // Store all handles so stopTurnTimer can cancel them
-  _timerInterval = { _t1, _t2, _t3 };
+  let _timerPhase = 0;
+  // Use 1000ms interval — CSS animation handles visual draining smoothly.
+  // JS only needs to fire for phase color changes (at 25s and 10s) and expiry.
+  _timerInterval = setInterval(()=>{
+    const elapsed = (Date.now() - _timerStart) / 1000;
+    const remaining = TURN_TIMER_SEC - elapsed;
+    if(remaining <= 0){
+      stopTurnTimer();
+      _onTurnTimerExpired(_capturedSeat);
+      return;
+    }
+    const newPhase = remaining < 10 ? 2 : remaining < 25 ? 1 : 0;
+    if(newPhase !== _timerPhase){
+      _timerPhase = newPhase;
+      const bar2 = _domCache.tbar[_capturedSeat] || document.getElementById(`tbar-${_capturedSeat}`);
+      if(bar2){
+        if(newPhase === 2){
+          bar2.style.stroke = '#FF2D78';
+          bar2.style.setProperty('--timer-color','#FF2D78');
+          bar2.style.filter = 'drop-shadow(0 0 7px #FF2D78)';
+        } else if(newPhase === 1){
+          bar2.style.stroke = '#FFD600';
+          bar2.style.setProperty('--timer-color','#FFD600');
+          bar2.style.filter = 'drop-shadow(0 0 5px #FFD600)';
+        }
+      }
+    }
+  }, 1000);
 }
 function stopTurnTimer(){
-  if(_timerInterval){ clearTimeout(_timerInterval._t1); clearTimeout(_timerInterval._t2); clearTimeout(_timerInterval._t3); _timerInterval = null; }
+  if(_timerInterval){ clearInterval(_timerInterval); _timerInterval = null; }
   if(!Array.isArray(PLAYERS) || !PLAYERS.length) return;
   try {
     const seat = _timerSeat >= 0 ? _timerSeat : -1;
@@ -2808,10 +2549,7 @@ function stopTurnTimer(){
       const bar = _domCache.tbar[seat] || document.getElementById(`tbar-${seat}`);
       if(bar){
         bar.classList.remove('draining');
-        // tbar is a <rect>, not <circle> — it has no 'r' attribute.
-        // Use the same PERIM formula as startTurnTimer to fully drain the bar.
-        const _PERIM = 2*(149+80) - 2*(11*2) + 2*Math.PI*11;
-        bar.style.strokeDashoffset = String(Math.round(_PERIM));
+        bar.style.strokeDashoffset = '0';
         bar.style.filter = '';
       }
     }
@@ -2820,7 +2558,7 @@ function stopTurnTimer(){
 }
 async function _onTurnTimerExpired(seat){
   if(G.over || G.turn !== seat) return;
-  if(seat !== MY_SEAT && !(PLAYERS[seat] && PLAYERS[seat].isBot)){
+  if(seat !== MY_SEAT && !PLAYERS[seat]?.isBot){
     _timerExpireCount[seat] = (_timerExpireCount[seat] || 0) + 1;
     if(_timerExpireCount[seat] >= EXPIRE_COUNT_FOR_VOTE){
       _updateOfflineBadge(seat, true);
@@ -2852,38 +2590,13 @@ async function _onTurnTimerExpired(seat){
     }
     return;
   }
+  if(amIElderPlayer() && PLAYERS[seat]?.isBot){
+    _doBotTurn(seat);
+    return;
+  }
   if(amIElderPlayer() && seat !== MY_SEAT){
-    // Pull fresh state first — opponent may have already moved but event was delayed locally.
-    // Only do bot turn if Firebase confirms it's still their turn.
-    if(ROOM_CODE && gameRef){
-      gameRef.once('value').then(snap => {
-        if(!snap || !snap.exists() || G.over) return;
-        const fresh = snap.val();
-        if(!fresh || G.over) return;
-        // If server already advanced the turn, just sync — don't override
-        if(fresh.turn !== seat){
-          syncGameState(fresh, true);
-          return;
-        }
-        // Server confirms it's still their turn — proceed with bot/skip
-        if(G.turn !== seat) return;
-        if(PLAYERS[seat] && !PLAYERS[seat].isBot){
-          PLAYERS[seat].isBot = true;
-        }
-        _doBotTurn(seat);
-      }).catch(()=>{
-        // Firebase unavailable — fall back to local state
-        if(G.turn !== seat || G.over) return;
-        if(PLAYERS[seat] && !PLAYERS[seat].isBot) PLAYERS[seat].isBot = true;
-        _doBotTurn(seat);
-      });
-      return;
-    }
-    // No Firebase (test mode) — act on local state directly
+    // Only skip if the turn hasn't already moved on (e.g. opponent was fast)
     if(G.turn !== seat) return;
-    if(PLAYERS[seat] && !PLAYERS[seat].isBot){
-      PLAYERS[seat].isBot = true;
-    }
     _doBotTurn(seat);
     return;
   }
@@ -2912,7 +2625,7 @@ async function _doBotTurn(seat){
   await new Promise(r => animDice(seat, v, r));
   clearTimeout(_botRollGuard); _rolling = false;
   if(v === 6){ G.sixes = (G.sixes||0)+1;
-    if(G.sixes >= 3){ G.sixes=0; G.rolled=false; G.diceVal=null; nextTurn(false);
+    if(G.sixes >= 3){ G.sixes=0; G.rolled=false; G.diceVal=null; _rolling=false; nextTurn(false);
       pushGameState({action:"skip",dice:v,reason:"3sixes"}); return; }
   } else { G.sixes = 0; }
   const mv = movable(seat, v);
@@ -2938,18 +2651,18 @@ function resetTurnTimeout(){
   _turnTimeoutTimer = null;
   if(!amIElderPlayer() || !ROOM_CODE || G.over) return;
   if(G.turn === MY_SEAT) return;
-  if((PLAYERS[G.turn] && PLAYERS[G.turn].isBot)) return;
+  if(PLAYERS[G.turn]?.isBot) return;
   // If the opponent has already rolled and is waiting to pick a token,
   // give them extra time (they're actively engaged) — use full timeout again.
   // The timer tracks from when the turn started, not from roll.
   _turnTimeoutTimer = setTimeout(()=>{
     if(G.over || G.turn === MY_SEAT) return;
-    if((PLAYERS[G.turn] && PLAYERS[G.turn].isBot)) return;
+    if(PLAYERS[G.turn]?.isBot) return;
     // If opponent already rolled but hasn't moved yet, give them one more chance
     // by just letting the visual timer handle it — don't force-skip mid-selection.
     if(G.rolled && G.waiting && G.diceVal != null) return;
     const skippedTurn = G.turn;
-    const savedDice = (G.diceVal != null ? G.diceVal : -1);
+    const savedDice = G.diceVal ?? -1;
     G.rolled=false; G.diceVal=null; G.waiting=false;
     nextTurn(false);
     pushGameState({ action:"skip", dice:savedDice, reason:"timeout", skippedSeat:skippedTurn });
@@ -2966,30 +2679,12 @@ function doRoll(pid){
   const rollSafety=setTimeout(()=>{_rolling=false;},DICE_DUR_MS+300);
   const d3d=document.getElementById(`d3d-${pid}`);
   if(d3d) d3d.classList.add("off");
-  // Pre-computed value use karo — agar miss hua toh rAF ke baad compute karo
-  // taki tap ke frame mein koi heavy scan na chale (host ke liye sabse zaroori)
-  const _doActualRoll = (v) => {
-    G.rolled=true;
-    G.diceVal=v;
-    // Invalidate refreshUI cache so bonus-turn syncUI forces a full re-render.
-    // Without this, if shouldAutoMove skips syncUI during roll, the cache sees
-    // rolled:false→false (unchanged) after nextTurn and skips dice re-enable.
-    _lastRefreshRolled = null;
-    navigator.vibrate && navigator.vibrate(28);
-    animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
-    SFX.diceRoll();
-    // Agla turn MY_SEAT ka ho sakta hai (six pe) — Worker se background compute
-    setTimeout(()=>{ _triggerPrecompute(MY_SEAT); }, DICE_DUR_MS + 50);
-  };
-  if(pid === MY_SEAT && _precomputedRoll != null){
-    const v = _precomputedRoll;
-    _precomputedRoll = null;
-    _doActualRoll(v);
-  } else {
-    _precomputedRoll = null;
-    // Worker se async compute — agar Worker miss ho toh main thread fallback
-    _smartRngAsync(pid, (val) => { _doActualRoll(val !== null ? val : smartRng(pid)); });
-  }
+  const v=smartRng(pid);
+  G.rolled=true;
+  G.diceVal=v;
+  SFX.diceRoll();
+  navigator.vibrate && navigator.vibrate(28);
+  animDice(pid,v,()=>{ clearTimeout(rollSafety); _rolling=false; afterRoll(pid,v); });
 }
 function shouldAutoMove(mv,v){
   if(mv.length===0) return false;
@@ -3052,9 +2747,7 @@ function afterRoll(pid,v){
   G.waiting=true;
   const selectable=mv.map(t=>t.tid);
   syncUI();
-  // pushGameState ko ek rAF yield ke baad karo — UI syncUI pehle paint ho,
-  // Firebase serialize+write baad mein. Host ke liye yeh sabse bada jank source tha.
-  requestAnimationFrame(()=>{ pushGameState({ action:"roll", dice:v, selectable }); });
+  pushGameState({ action:"roll", dice:v, selectable });
 }
 async function onTokClick(pid,tid){
   if(pid !== MY_SEAT) return;
@@ -3071,49 +2764,52 @@ async function onTokClick(pid,tid){
   await doMove(pid, tid, dv);
 }
 function rafDelay(ms){
+  if(ms<=0) return Promise.resolve();
+  if(ms<=16) return new Promise(r=>requestAnimationFrame(()=>r()));
   return new Promise(resolve=>{
     const start=performance.now();
     function tick(now){if(now-start>=ms)resolve();else requestAnimationFrame(tick);}
     requestAnimationFrame(tick);
   });
 }
-const JUMP_MS=130;
+const JUMP_MS=110;
 const DICE_DUR_MS=420;
 function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer){
   return new Promise(resolve=>{
     const rH=rW*(130/100),tipOffset=rH*(122/130);
     const shadowW=rW*0.60,shadowH=rW*0.16;
-    const shadowHalfW=shadowW/2, shadowHalfH=shadowH/2;
-    const rW2=rW/2;
-    const h=cp*0.65;
+    const shadowHalf=shadowW/2,shadowHalfH=shadowH/2;
+    const h=cp*0.55;
+    const negFourH=-4*h;
+    const invJUMP=1/JUMP_MS;
+    const rWHalf=rW/2;
     let t0=null;
     // Set transformOrigin ONCE — not every frame
-    el.style.transformOrigin=`${rW2}px ${tipOffset}px`;
+    el.style.transformOrigin=`${rWHalf}px ${tipOffset}px`;
     const _tr=_tokenRotationDeg;
+    const rotSuffix=_tr===0?'':` rotate(${_tr}deg)`;
     const dx=endX-startX, dy=endY-startY;
-    const _rotSuffix = _tr === 0 ? '' : ` rotate(${_tr}deg)`;
     if(layer && !PERF_MODE && (++_trailSkip%3===0))spawnTrailDot(startX,startY,color,layer);
-    // rAF-aligned SFX — avoids setTimeout jank
-    let _sfxFired = false;
-    const _sfxAt = JUMP_MS * 0.55;
+    setTimeout(()=>SFX.tokenStep(), Math.round(JUMP_MS * 0.55));
+    let _lastShadowKey='';
     function tick(now){
       if(!t0) t0=now;
-      let elapsed = now - t0;
-      if(!_sfxFired && elapsed >= _sfxAt){ _sfxFired=true; SFX.tokenStep(); }
-      let t = elapsed / JUMP_MS;
+      let t=(now-t0)*invJUMP;
       if(t>1) t=1;
-      // Smooth ease-out — no snap
-      const inv=1-t, et=1-inv*inv*inv;
+      const et=1-Math.pow(1-t,2.8);
       const x=startX+dx*et, y=startY+dy*et;
-      // Simple gentle hop
-      const jump=-h*Math.sin(Math.PI*t);
-      const tx=x-rW2, ty=y-tipOffset+jump;
-      el.style.transform=`translate(${tx|0}px,${ty|0}px)${_rotSuffix}`;
+      const jump=negFourH*t*(1-t);
+      el.style.transform=`translate(${x-rWHalf}px,${y-tipOffset+jump}px)${rotSuffix}`;
       if(shadowEl){
         const peakRatio=1-Math.abs(2*t-1);
-        const sc=(1-0.35*peakRatio);
-        shadowEl.style.transform=`translate(${(x-shadowHalfW)|0}px,${(y-shadowHalfH+1)|0}px) scaleX(${sc})`;
-        shadowEl.style.opacity=`${1-peakRatio*0.4}`;
+        const scaleX=1-0.35*peakRatio;
+        const opacity=1-peakRatio*0.4;
+        const sk=`${x|0},${y|0}`;
+        if(sk!==_lastShadowKey){
+          _lastShadowKey=sk;
+          shadowEl.style.transform=`translate(${x-shadowHalf}px,${y-shadowHalfH+1}px) scaleX(${scaleX})`;
+          shadowEl.style.opacity=opacity;
+        }
       }
       if(t<1) requestAnimationFrame(tick);
       else resolve();
@@ -3153,43 +2849,30 @@ async function animateMove(tok,steps){
     endXY=rcToXY(rc[0],rc[1]);
     const prevKey=`${prevCell[0]}-${prevCell[1]}`;
     const newKey=`${rc[0]}-${rc[1]}`;
-    // Reposition neighboring tokens — build cell→tokens map ONCE for affected keys only
-    const _affectedKeys=new Set([prevKey,newKey]);
-    const _cellToks={}; // cellKey → [tok, ...]
-    const _tokCell={}; // `pid-tid` → cellKey
-    G.tokens.forEach(t=>{
-      if(t.step<=0||t.step>=STEP_DONE) return;
-      const trc=getRenderCell(t.pid,t.step); if(!trc) return;
-      const ck=`${trc[0]}-${trc[1]}`;
-      if(!_affectedKeys.has(ck)) return;
-      if(!_cellToks[ck]) _cellToks[ck]=[];
-      _cellToks[ck].push(t);
-      _tokCell[`${t.pid}-${t.tid}`]=ck;
-    });
-    const _gap=cp*0.22;
-    const _BASE_W_2=BASE_W/2;
-    const _rotSuffix2=_tokenRotationDeg===0?'':` rotate(${_tokenRotationDeg}deg)`;
-    const _transStr=`transform ${JUMP_MS}ms cubic-bezier(0.22,1,0.36,1)`;
+    // Reposition neighboring tokens (only affected cells)
     G.tokens.forEach(other=>{
       if(other.pid===tok.pid&&other.tid===tok.tid) return;
       if(other.step<=0||other.step>=STEP_DONE) return;
-      const ok=_tokCell[`${other.pid}-${other.tid}`]; if(!ok) return;
       const orc=getRenderCell(other.pid,other.step); if(!orc) return;
+      const ok=`${orc[0]}-${orc[1]}`;
+      if(ok!==prevKey&&ok!==newKey) return;
       const oEls=_tokEls[`${other.pid}-${other.tid}`]; if(!oEls) return;
-      const grp=_cellToks[ok]||[other];
+      const grp=G.tokens.filter(t=>{
+        if(t.step<=0||t.step>=STEP_DONE) return false;
+        const trc=getRenderCell(t.pid,t.step);
+        return trc&&`${trc[0]}-${trc[1]}`===ok;
+      });
       const n=grp.length,idx=grp.indexOf(other);
       const sc=n<=1?1:n<=2?0.78:0.65;
-      let ddx=0,ddy=0;
-      if(n===2){ddx=idx===0?-_gap*0.5:_gap*0.5;}
-      else if(n>=3){const col=idx%2,row=Math.floor(idx/2);ddx=(col-0.5)*_gap;ddy=(row-0.5)*_gap;}
+      const gap=cp*0.22;let dx=0,dy=0;
+      if(n===2){dx=idx===0?-gap*0.5:gap*0.5;}
+      else if(n>=3){const col=idx%2,row=Math.floor(idx/2);dx=(col-0.5)*gap;dy=(row-0.5)*gap;}
       const oxy=rcToXY(orc[0],orc[1]);
       const scaleStr=sc!==1?` scale(${sc})`:'';
-      oEls.wrap.style.transition=_transStr;
-      oEls.wrap.style.transform=`translate(${(oxy.x+ddx-_BASE_W_2)|0}px,${(oxy.y+ddy-oTip)|0}px)${_rotSuffix2}${scaleStr}`;
-      oEls.wrap.style.transformOrigin=`${_BASE_W_2}px ${oTip}px`;
-      // Clear transition after animation — use rAF chain instead of setTimeout
-      const _wrap=oEls.wrap;
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(_wrap) _wrap.style.transition=""; }));
+      oEls.wrap.style.transition=`transform ${JUMP_MS}ms cubic-bezier(0.22,1,0.36,1)`;
+      oEls.wrap.style.transform=`translate(${oxy.x+dx-BASE_W/2}px,${oxy.y+dy-oTip}px) rotate(${_tokenRotationDeg}deg)${scaleStr}`;
+      oEls.wrap.style.transformOrigin=`${BASE_W/2}px ${oTip}px`;
+      setTimeout(()=>{if(oEls.wrap)oEls.wrap.style.transition="";},JUMP_MS+10);
     });
     if(!_homeStretchFired && curStep===STEP_STRETCH_START){
       SFX.homeStretch();
@@ -3198,8 +2881,7 @@ async function animateMove(tok,steps){
     const cellKey=`${rc[0]}-${rc[1]}`;
     const isStarCell=GREY_STARS.has(cellKey)||COLOR_STARS.has(cellKey);
     if(i===steps-1&&isStarCell){
-      const _rc0=rc[0],_rc1=rc[1];
-      rafDelay(JUMP_MS+20).then(()=>{SFX.safeStar();flashStarCell(_rc0,_rc1);});
+      setTimeout(()=>{SFX.safeStar();flashStarCell(rc[0],rc[1]);},JUMP_MS+20);
     }
     await jumpStep(els.wrap,els.shadow,startXY.x,startXY.y,endXY.x,endXY.y,BASE_W,color,cp,layer);
   }
@@ -3304,7 +2986,7 @@ function flashStarCell(r,c){
   setTimeout(()=>cell.classList.remove('star-land-glow'),750);
 }
 async function doMove(pid,tid,v){
-  _animating=true; _animatingSetAt = Date.now();
+  _animating=true;
   const tok=tokOf(pid,tid);
   if(!tok){ _animating=false; return; }
   const allowed=movable(pid,v);
@@ -3312,7 +2994,7 @@ async function doMove(pid,tid,v){
   if(tok.step>=STEP_STRETCH_START&&tok.step+v>STEP_DONE){ _animating=false; return; }  let bonus=false;
   const diceWasSix=(v===6);
   let captured=false;
-  const _capturedTids = new Set(); // track which tokens were sent home by THIS move
+  const capturedPids=new Set(); // hoisted — tracks which pids were captured this move
   async function checkAndPit(cellKey,movingPid,movingTid){
     const ownOnCell=G.tokens.filter(o=>{
       if(o.pid!==movingPid||o.step===0||o.step>=STEP_DONE) return false;
@@ -3327,14 +3009,12 @@ async function doMove(pid,tid,v){
     });
     if(ownOnCell.length>=2) return;
     if(enemiesOnCell.length>=1){
-      const capturedPids=new Set();
       const capturePromises=[];
       for(const enemy of enemiesOnCell){
         if(capturedPids.has(enemy.pid)) continue;
         const samePlayerOnCell=enemiesOnCell.filter(e=>e.pid===enemy.pid);
         if(samePlayerOnCell.length>=2) continue;
         _rbNotifyCut(enemy.pid);
-        _capturedTids.add(`${enemy.pid}-${enemy.tid}`);
         capturePromises.push(sendHomeFast(enemy));
         capturedPids.add(enemy.pid);
         captured=true;
@@ -3342,18 +3022,28 @@ async function doMove(pid,tid,v){
       if(capturePromises.length>0) await Promise.all(capturePromises);
     }
   }
-  try {
   if(tok.step===0&&v===6){
-    const spawnKey=`${tok.pid}-${tok.tid}`;
     const [spawnHr,spawnHc]=getHomeCornerBySeat(tok.pid);
     const spawnStart=baseCirclePx(spawnHr,spawnHc,tok.tid);
     tok.step=1;bonus=diceWasSix;
     SFX.tokenSpawn();
-    renderTokens();await rafDelay(20);
+    renderTokens();
+    // Animate token jumping from home circle to entry cell first
     const entryCell=getCell(pid,1);
     if(entryCell){
+      const entryXY=rcToXY(entryCell[0],entryCell[1]);
+      const cp=cellPx(),BASE_W=Math.round(cp*1.15);
+      const layer=document.getElementById('tokens-layer');
+      const key=`${tok.pid}-${tok.tid}`;
+      const els=_tokEls[key];
+      const color=getDisplayColorForSeat(tok.pid);
+      if(els) await jumpStep(els.wrap,els.shadow,spawnStart.x,spawnStart.y,entryXY.x,entryXY.y,BASE_W,color,cp,layer);
+      renderTokens();await rafDelay(20);
+      // Capture check after animation — token is now visually at entry cell
       const eck=`${entryCell[0]}-${entryCell[1]}`;
       if(!SAFE.has(eck)) await checkAndPit(eck,pid,tok.tid);
+    } else {
+      await rafDelay(20);
     }
   } else {
     await animateMove(tok,v);
@@ -3391,20 +3081,18 @@ async function doMove(pid,tid,v){
   }
   if(captured) bonus=true;
   renderTokens();await rafDelay(60);
-  } catch(e) {
-    console.warn("doMove animation error:", e);
-  } finally {
-    _animating=false;
-  }
+  _animating=false;
   const movesPayload = [];
   const finalTok = tokOf(pid, tid);
   if(finalTok){
     const moveType = (finalTok.step === 1 && v === 6) ? "open" : "move";
     movesPayload.push({ pid, tid, type: moveType, finalStep: finalTok.step });
   }
+  // Only include tokens that were captured (sent home) during THIS move.
+  // capturedPids was collected during the capture phase above.
   G.tokens.forEach(t => {
     if(t.pid === pid && t.tid === tid) return; // the token we just moved
-    if(t.step === 0 && _capturedTids.has(`${t.pid}-${t.tid}`)){
+    if(t.step === 0 && capturedPids.has(t.pid)){
       movesPayload.push({ pid: t.pid, tid: t.tid, type: "home", finalStep: 0 });
     }
   });
@@ -3415,7 +3103,7 @@ async function doMove(pid,tid,v){
     moves: movesPayload,
     movedPid: pid,
     movedTid: tid
-  }).catch(e => { console.error("doMove pushGameState failed:",e); });
+  }).catch(e => { _animating=false; console.error("doMove pushGameState failed:",e); });
 }
 function nextTurn(same, wasSix){
   G.rolled=false;_rolling=false;G.diceVal=null;G.waiting=false;
@@ -3429,8 +3117,25 @@ function nextTurn(same, wasSix){
     while(tries < layout.length){
       const nextSeat = layout[nextIdx];
       const p = PLAYERS[nextSeat];
-      const pid = ((p && p.id) != null ? (p && p.id) : nextSeat);
-      if(p && p.active && !G.placements.includes(pid) && !toksOf(nextSeat).every(t=>t.step>=STEP_DONE)){
+      if(p && p.active && !toksOf(nextSeat).every(t=>t.step>=STEP_DONE)){
+        G.turn = nextSeat;
+        break;
+      }
+      nextIdx = (nextIdx + 1) % layout.length;
+      tries++;
+    }
+    if(tries >= layout.length) return;
+  } else if(!same && !wasSix){
+    // normal non-six, no capture bonus — sixes streak broken, turn advances
+    G.sixes=0;
+    const layout = SEAT_LAYOUT_ACTIVE;
+    const curIdx = layout.indexOf(G.turn);
+    let tries = 0;
+    let nextIdx = (curIdx + 1) % layout.length;
+    while(tries < layout.length){
+      const nextSeat = layout[nextIdx];
+      const p = PLAYERS[nextSeat];
+      if(p && p.active && !toksOf(nextSeat).every(t=>t.step>=STEP_DONE)){
         G.turn = nextSeat;
         break;
       }
@@ -3439,26 +3144,17 @@ function nextTurn(same, wasSix){
     }
     if(tries >= layout.length) return;
   }
-  // same=true → bonus turn, turn nahi badlega
-  // non-six capture/finish bonus pe bhi sixes streak reset hoti hai
-  if(same && !wasSix){ G.sixes=0; }
   if(same){
     const pid=G.turn;
     if(dAcc.busy[pid]) dAcc.busy[pid]=false;
   }
   syncUI();
-  // Pre-compute MY_SEAT's dice roll — animation khatam hone ke BAAD compute karo
-  // taki smartRng ka heavy scan animation frame ke saath compete na kare.
-  // Worker ko turn-start pe immediately precompute pe lagao
-  if(G.turn === MY_SEAT && !G.over){
-    setTimeout(()=>{ _triggerPrecompute(MY_SEAT); }, DICE_DUR_MS + 80);
-  }
 }
 function endGame(){
   G.over=true;
   const medals=["🥇","🥈","🥉","4️⃣"];
   const lines=G.placements.map((pid,i)=>{
-    const name = pid === MY_SEAT ? "You" : ((PLAYERS[pid] && PLAYERS[pid].label)||`P${pid}`);
+    const name = pid === MY_SEAT ? "You" : (PLAYERS[pid]?.label||`P${pid}`);
     const dColor = getDisplayColorForSeat(pid);
     const colorNames = {[BLUE]:"Blue",[PINK]:"Pink",[YELLOW]:"Yellow",[GREEN]:"Green"};
     const colorName = colorNames[dColor] || "";
@@ -3470,7 +3166,7 @@ function endGame(){
   const winColorEmoji = winColor===BLUE?"🔵":winColor===PINK?"🔴":winColor===YELLOW?"🟡":"🟢";
   const heading = isIWinner
     ? `🎉 You Win! ${winColorEmoji}`
-    : `🎉 ${(PLAYERS[winner] && PLAYERS[winner].label)||"Winner"} Wins!`;
+    : `🎉 ${PLAYERS[winner]?.label||"Winner"} Wins!`;
   if(isIWinner) SFX.win(); else SFX.lose();
   document.getElementById("win-msg").textContent=heading;
   document.getElementById("win-places").textContent=lines.join("\n");
@@ -3599,9 +3295,7 @@ window.toggleChat = function(){
   const inp = document.getElementById("chat-input");
   if(_chatOpen){
     panel.classList.add("open");
-    // Don't hide top-bar if win screen is showing — home button must stay accessible
-    const winVisible = (document.getElementById("win") && document.getElementById("win").classList.contains("show"));
-    if(topBar && !winVisible) topBar.style.display = "none";
+    if(topBar) topBar.style.display = "none";
     _unreadCount = 0;
     updateChatBadge();
     setTimeout(()=>{ scrollChatBottom(); }, 300);
@@ -3677,7 +3371,7 @@ function appendChatMessage(msg, isHistory){
   }
   if(!isHistory) scrollChatBottom();
   if(!isHistory && !isMine && msg.type !== "system"){
-    const senderPid = msg.seat != null ? msg.seat : null;
+    const senderPid = msg.seat ?? null;
     if(senderPid !== null){
       const bubble = document.getElementById(`chatbubble-${senderPid}`);
       if(bubble){
@@ -3855,19 +3549,9 @@ async function _doLoadAndStartGame(){
   }
 }
 function bindBtn(id, fn){
-  var el = document.getElementById(id);
-  if(!el){ return; }
-  var _tapped = false;
-  el.addEventListener("touchend", function(e){
-    e.preventDefault();
-    _tapped = true;
-    fn(e);
-    setTimeout(function(){ _tapped = false; }, 600);
-  });
-  el.addEventListener("click", function(e){
-    if(_tapped){ return; }
-    fn(e);
-  });
+  const el = document.getElementById(id);
+  if(el) el.addEventListener("click", fn);
+  else console.warn("Button not found:", id);
 }
 bindBtn("btn-create-room", ()=>window.showCreateRoom());
 bindBtn("btn-join-room",   ()=>window.showJoinRoom());
@@ -3890,7 +3574,7 @@ window.launchTestMode = function(){
   PLAYERS = [];
   const names = ["P1","P2","P3","YOU"];
   for(let seat=0;seat<4;seat++){
-    PLAYERS.push({id:seat,seat,color:SEAT_COLOR[seat],label:names[seat],active:true,human:seat===3,isBot:seat!==3});
+    PLAYERS.push({id:seat,seat,color:SEAT_COLOR[seat],label:names[seat],active:true,human:seat===3});
   }
   G = {
     turn: 3,
@@ -3900,44 +3584,25 @@ window.launchTestMode = function(){
     over: false,
     sixes: 0,
     tokens: Array.from({length:16},(_,i)=>({pid:Math.floor(i/4),tid:i%4,step:0})),
-    placements: [],
-    turnStartedAt: Date.now()
+    placements: []
   };
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   _cacheValid = false;
   MY_SLOT = SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT);
-  try {
-    document.getElementById("lobby").style.display = "none";
-    document.getElementById("game-wrap").style.display = "inline-flex";
-    document.getElementById("top-bar").style.display = "flex";
-    buildBoard();
-    buildPlayers();
-    _rbReset();
-    PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
-    applyBoardRotation();
-    setSyncStatus("ok");
-    refreshUI();
-    renderTokens();
-    updateTurnBanner();
-    showToast("Test Mode — You are Blue (seat 3)");
-  } catch(e) {
-    console.error("launchTestMode error:", e);
-    document.getElementById("lobby").style.display = "flex";
-    document.getElementById("game-wrap").style.display = "none";
-    document.getElementById("top-bar").style.display = "none";
-    showToast("❌ Test Mode failed: " + e.message);
-    return;
-  }
-  // In test mode ROOM_CODE is null so amIElderPlayer() always returns false.
-  // Run a local bot scheduler that polls and drives non-human turns directly.
-  (function _testBotLoop(){
-    if(G.over) return;
-    if(G.turn !== MY_SEAT && !G.rolled && !G.waiting && !_rolling && !_animating){
-      const seat = G.turn;
-      if((PLAYERS[seat] && PLAYERS[seat].isBot)) _doBotTurn(seat);
-    }
-    setTimeout(_testBotLoop, 600);
-  })();
+  document.getElementById("lobby").style.display = "none";
+  document.getElementById("game-wrap").style.display = "inline-flex";
+  document.getElementById("top-bar").style.display = "flex";
+  buildBoard();
+  buildPlayers();
+  _rbReset();
+  PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
+  applyBoardRotation();
+  setSyncStatus("ok");
+  _gameLoaded = true; // required: syncGameState + timer guards check this
+  refreshUI();
+  renderTokens();
+  updateTurnBanner();
+  showToast("Test Mode — You are Blue (seat 3)");
 };
 bindBtn("btn-resume",       ()=>window.togglePause());
 bindBtn("btn-leave-pause",  ()=>window.leaveToLobby());
