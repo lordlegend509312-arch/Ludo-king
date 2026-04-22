@@ -727,7 +727,7 @@ async function loadAndStartGame(){
   if(MY_SLOT < 0) MY_SLOT = 0;
   buildBoard();
   buildPlayers();
-  _rbReset();
+  _sdeReset();
   smartDice.targetPids.clear();
   Object.keys(_timerExpireCount).forEach(k=>delete _timerExpireCount[k]);
   _botVotes = {};
@@ -1722,56 +1722,355 @@ const LAND={1:{rx:0,ry:0},2:{rx:0,ry:-90},3:{rx:-90,ry:0},4:{rx:90,ry:0},5:{rx:0
 const dAcc={rx:{},ry:{},busy:{},last:{}};
 const _domCache={banner:null,pbg:{},lbl:{},box:{},ptok:{},d3d:{},dcube:{},pdw:{},tbar:{}};
 function rng(){if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(1);while(true){crypto.getRandomValues(a);if(a[0]<252)return(a[0]%6)+1;}}return Math.floor(Math.random()*6)+1;}
-const _rb = { consecutiveAssisted:{}, totalAssists:{}, lastCutRoll:{} };
-function _rbReset(){[0,1,2,3].forEach(pid=>{_rb.consecutiveAssisted[pid]=0;_rb.totalAssists[pid]=0;_rb.lastCutRoll[pid]=0;});}
-_rbReset();
-function _rbNotifyCut(victimPid){if(PLAYERS[victimPid]&&PLAYERS[victimPid].human)_rb.lastCutRoll[victimPid]=2;}
-function _rbAssess(pid){
-  if(!PLAYERS[pid]||!PLAYERS[pid].human) return null;
+// ═══════════════════════════════════════════════════════════════
+// SMART DICE ENGINE v2 — Full Spec Implementation
+// Experience control (not outcome control). Anti-detection built in.
+// ═══════════════════════════════════════════════════════════════
+const _sde = {
+  // Per-player state
+  recentRolls:    {0:[],1:[],2:[],3:[]}, // last 3 rolls per player
+  killStreakCount: {0:0,1:0,2:0,3:0},    // consecutive kills suffered
+  killStreakTurns: {0:0,1:0,2:0,3:0},    // turns remaining for anti-frustration boost
+  consecutiveHelpful: {0:0,1:0,2:0,3:0},// consecutive turns where bias helped
+  cooldowns: {
+    kill:    {0:0,1:0,2:0,3:0},
+    escape:  {0:0,1:0,2:0,3:0},
+    nearHome:{0:0,1:0,2:0,3:0},
+    locked:  {0:false,1:false,2:false,3:false}, // true = had first 6 already
+  },
+  turnCount: {0:0,1:0,2:0,3:0},          // total turns played
+  // Streak tracking: turns since last kill/entry/major-move
+  noProgressTurns:{0:0,1:0,2:0,3:0},
+};
+
+function _sdeReset(){
+  [0,1,2,3].forEach(p=>{
+    _sde.recentRolls[p]=[];
+    _sde.killStreakCount[p]=0;
+    _sde.killStreakTurns[p]=0;
+    _sde.consecutiveHelpful[p]=0;
+    _sde.cooldowns.kill[p]=0;
+    _sde.cooldowns.escape[p]=0;
+    _sde.cooldowns.nearHome[p]=0;
+    _sde.cooldowns.locked[p]=false;
+    _sde.turnCount[p]=0;
+    _sde.noProgressTurns[p]=0;
+  });
+}
+_sdeReset();
+
+// Called after a kill happens — notify victim for anti-frustration
+function _rbNotifyCut(victimPid){
+  if(!PLAYERS[victimPid]||!PLAYERS[victimPid].active) return;
+  _sde.killStreakCount[victimPid]++;
+  if(_sde.killStreakCount[victimPid]>=2){
+    _sde.killStreakTurns[victimPid]=2;
+    _sde.killStreakCount[victimPid]=0;
+  }
+}
+
+// Compute per-player score as per spec
+function _sdePlayerScore(pid){
+  const toks=toksOf(pid);
+  let score=0;
+  toks.forEach(t=>{
+    const prog = t.step>=STEP_DONE ? 58 : (t.step===0 ? 0 : Math.min(t.step,58));
+    const rc=t.step>0&&t.step<STEP_DONE?getCell(pid,t.step):null;
+    const isSafe=rc?SAFE.has(`${rc[0]}-${rc[1]}`):false;
+    const finished=t.step>=STEP_DONE;
+    score += prog + (isSafe?5:0) + (finished?15:0);
+  });
+  return score;
+}
+
+// Gap band → rubberband tier
+function _sdeGapBand(gap){
+  if(gap<=10) return 0;       // neutral
+  if(gap<=25) return 1;       // slightly behind
+  if(gap<=45) return 2;       // clearly behind
+  if(gap<=70) return 3;       // heavily behind
+  return 4;                   // critical
+}
+
+// Sample from a weighted distribution [p1..p6], values must sum ~1
+function _sdeSampleDist(dist){
+  const r=Math.random();
+  let cum=0;
+  for(let i=0;i<6;i++){cum+=dist[i];if(r<cum) return i+1;}
+  return 6;
+}
+
+// Clamp probability between MIN and MAX per spec
+function _sdeClamp(dist){
+  const MIN=0.05,MAX=0.45;
+  // First pass: clamp each
+  let totalExcess=0,totalDeficit=0;
+  const clamped=dist.map(v=>{
+    if(v>MAX){totalExcess+=v-MAX;return MAX;}
+    if(v<MIN){totalDeficit+=MIN-v;return MIN;}
+    return v;
+  });
+  // Redistribute excess to non-maxed, deficit from non-mined
+  // Simple renorm: just normalise to sum 1
+  const sum=clamped.reduce((a,b)=>a+b,0);
+  return clamped.map(v=>v/sum);
+}
+
+// Main rubberband entry point — returns biased roll or null (null = use pure rng)
+function rubberbandRng(pid){
+  if(!PLAYERS[pid]||!PLAYERS[pid].active) return null;
+
+  _sde.turnCount[pid]++;
+
+  // ── Anti-Detection: 25% pure random injection ──
+  if(Math.random()<0.25) return null;
+
   const myToks=toksOf(pid);
   const activePids=PLAYERS.filter(p=>p.active).map(p=>p.id);
-  const homeCount=(p)=>toksOf(p).filter(t=>t.step===0).length;
-  const boardCount=(p)=>toksOf(p).filter(t=>t.step>0&&t.step<STEP_STRETCH_START).length;
-  const stretchCount=(p)=>toksOf(p).filter(t=>t.step>=STEP_STRETCH_START&&t.step<STEP_DONE).length;
-  const doneCount=(p)=>toksOf(p).filter(t=>t.step>=STEP_DONE).length;
-  const myHome=homeCount(pid),myBoard=boardCount(pid),myStretch=stretchCount(pid),myDone=doneCount(pid);
-  if((_rb.totalAssists[pid]||0)>=8) return null;
-  if(myDone>=2) return null;
   const opponents=activePids.filter(p=>p!==pid);
-  const maxOppDone=opponents.length>0?Math.max(...opponents.map(doneCount)):0;
-  const myOnBoard=myBoard+myStretch;
-  const isRoughlyEqual=maxOppDone===myDone&&myHome<=2&&myOnBoard>=1;
-  if(maxOppDone>=3&&myDone===0){if((_rb.consecutiveAssisted[pid]||0)>=2) return null;return{sixChanceNum:1,sixChanceDen:4,maxConsec:2};}
-  if((_rb.lastCutRoll[pid]||0)>0) return{sixChanceNum:2,sixChanceDen:8,maxConsec:99};
-  if(myHome===4){
-    if((_rb.consecutiveAssisted[pid]||0)>=4) return null;
-    const oppsWithTwoInStretch=opponents.filter(p=>stretchCount(p)>=2).length;
-    if(opponents.length>=2&&oppsWithTwoInStretch>=opponents.length) return{sixChanceNum:4,sixChanceDen:9,maxConsec:4};
-    return{sixChanceNum:2,sixChanceDen:9,maxConsec:4};
+
+  // ── Score gap calculation ──
+  const myScore=_sdePlayerScore(pid);
+  const oppScores=opponents.map(p=>_sdePlayerScore(p));
+  const leaderScore=oppScores.length>0?Math.max(...oppScores):myScore;
+  const gap=leaderScore-myScore;
+  const band=_sdeGapBand(gap);
+
+  // Token counts
+  const homeCount=(p)=>toksOf(p).filter(t=>t.step===0).length;
+  const doneCount=(p)=>toksOf(p).filter(t=>t.step>=STEP_DONE).length;
+  const myHome=homeCount(pid);
+  const allLocked=myHome===4;
+
+  // Enemy positions on board (step>0 & <DONE)
+  const enemySteps={}; // pid->steps[]
+  opponents.forEach(op=>{
+    enemySteps[op]=toksOf(op).filter(t=>t.step>0&&t.step<STEP_DONE).map(t=>t.step);
+  });
+
+  // Build base distribution (uniform 1/6 each)
+  const dist=[1/6,1/6,1/6,1/6,1/6,1/6]; // index = face-1
+
+  // ─────────────────────────────────────────────
+  // CONDITION PRIORITY SYSTEM
+  // Max 2 major + 1 minor applied per roll
+  // Priority: Kill > Escape > NearHome > AllLocked > Behind > StreakFix > RepControl
+  // ─────────────────────────────────────────────
+  let majorsApplied=0, minorsApplied=1; // minors start at 1 (repetition always applies)
+  const blockSix=(G.sixes||0)>=2;
+
+  // ── CONDITION I: Early Game Boost (first 2 rounds = first ~8 turns total) ──
+  if(_sde.turnCount[pid]<=2){
+    dist[5]+=10/100; dist[4]+=5/100;
+    dist[0]-=5/100; dist[1]-=5/100; dist[2]-=3/100; dist[3]-=2/100;
   }
-  if(myHome===3&&(myBoard===1||myStretch===1)){
-    const boardTok=myToks.find(t=>t.step>0&&t.step<STEP_STRETCH_START);
-    const stretchTok=myToks.find(t=>t.step>=STEP_STRETCH_START&&t.step<STEP_DONE);
-    const activeTok=boardTok||stretchTok;
-    if(activeTok&&activeTok.step<10){if((_rb.consecutiveAssisted[pid]||0)>=3) return null;return{sixChanceNum:2,sixChanceDen:8,maxConsec:3};}
+
+  // ── CONDITION H: Repetition Control ──
+  const recent=_sde.recentRolls[pid];
+  if(recent.length>=3){
+    const last3=[recent[recent.length-1],recent[recent.length-2],recent[recent.length-3]];
+    if(last3[0]===last3[1]&&last3[1]===last3[2]){
+      const rep=last3[0]-1;
+      dist[rep]-=10/100;
+    }
   }
-  if(isRoughlyEqual) return null;
-  return null;
-}
-function _rbBiasedRoll(sixChanceNum,sixChanceDen){
-  const threshold=Math.round((sixChanceNum/sixChanceDen)*252);
-  if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(1);crypto.getRandomValues(a);if(a[0]<threshold) return 6;while(true){crypto.getRandomValues(a);if(a[0]<250) return(a[0]%5)+1;}}
-  if(Math.random()<sixChanceNum/sixChanceDen) return 6;
-  return Math.floor(Math.random()*5)+1;
-}
-function rubberbandRng(pid){
-  const config=_rbAssess(pid);
-  if(!config){_rb.consecutiveAssisted[pid]=0;return null;}
-  if((_rb.lastCutRoll[pid]||0)>0) _rb.lastCutRoll[pid]--;
-  const val=_rbBiasedRoll(config.sixChanceNum,config.sixChanceDen);
-  _rb.consecutiveAssisted[pid]=(_rb.consecutiveAssisted[pid]||0)+1;
-  _rb.totalAssists[pid]=(_rb.totalAssists[pid]||0)+1;
-  return val;
+
+  // ── CONDITION J: Anti-Frustration (rage control) ──
+  if(_sde.killStreakTurns[pid]>0){
+    _sde.killStreakTurns[pid]--;
+    // Boost escape/safe numbers — add +12% spread across 4,5,6
+    dist[3]+=4/100; dist[4]+=4/100; dist[5]+=4/100;
+    dist[0]-=4/100; dist[1]-=4/100; dist[2]-=4/100;
+    // This is a minor
+  }
+
+  // ── CONDITION A: All Tokens Locked ──
+  if(allLocked && !_sde.cooldowns.locked[pid] && majorsApplied<2){
+    if(!blockSix){dist[5]+=15/100;}
+    dist[0]-=3/100; dist[1]-=3/100; dist[2]-=3/100; dist[3]-=3/100; dist[4]-=3/100;
+    majorsApplied++;
+    // Cooldown: until first 6 rolled — tracked in notifyRoll
+  }
+
+  // ── CONDITION B: No Progress Streak ──
+  if(_sde.noProgressTurns[pid]>=3 && minorsApplied<2){
+    // Boost "useful" numbers (depends on board state, use 4,5,6 as proxy)
+    dist[3]+=3/100; dist[4]+=3/100; dist[5]+=4/100;
+    dist[0]-=2/100; dist[1]-=2/100; dist[2]-=2/100; dist[3]-=2/100;
+    minorsApplied++;
+  }
+
+  // ── CONDITION E: Kill Opportunity (highest priority major) ──
+  // Find dice value that would land on an enemy (non-safe) cell
+  let killVal=null;
+  if(_sde.cooldowns.kill[pid]<=0){
+    for(let v=1;v<=6;v++){
+      if(blockSix&&v===6) continue;
+      const mv=movable(pid,v);
+      for(const tok of mv){
+        const toStep=tok.step===0?1:tok.step+v;
+        if(toStep>STEP_MAIN_END||toStep<=0) continue;
+        const rc=getCell(pid,toStep);
+        if(!rc) continue;
+        const ck=`${rc[0]}-${rc[1]}`;
+        if(SAFE.has(ck)) continue;
+        // Check if any enemy is here
+        let hasEnemy=false;
+        opponents.forEach(op=>{
+          toksOf(op).forEach(ot=>{
+            if(ot.step<=0||ot.step>=STEP_DONE) return;
+            const orc=getCell(op,ot.step);
+            if(orc&&orc[0]===rc[0]&&orc[1]===rc[1]) hasEnemy=true;
+          });
+        });
+        if(hasEnemy){killVal=v;break;}
+      }
+      if(killVal!==null) break;
+    }
+  }
+  if(killVal!==null && majorsApplied<2){
+    const boost=band>0?15:10;
+    dist[killVal-1]+=boost/100;
+    dist[0]-=2/100; dist[1]-=2/100; dist[2]-=2/100; dist[3]-=2/100; dist[4]-=1/100;
+    majorsApplied++;
+  }
+
+  // ── CONDITION F: Danger Escape ──
+  let escapeVal=null;
+  if(_sde.cooldowns.escape[pid]<=0 && majorsApplied<2){
+    // Check if any of my tokens is unsafe and enemy is within 1-6 behind
+    for(let v=1;v<=6;v++){
+      if(blockSix&&v===6) continue;
+      const mv=movable(pid,v);
+      for(const tok of mv){
+        if(tok.step<=0) continue;
+        const rc=getCell(pid,tok.step);
+        if(!rc) continue;
+        const ck=`${rc[0]}-${rc[1]}`;
+        if(SAFE.has(ck)) continue; // already safe, no need to escape
+        // Check enemy within 1-6 behind this token
+        let danger=false;
+        opponents.forEach(op=>{
+          toksOf(op).forEach(ot=>{
+            if(ot.step<=0||ot.step>=STEP_DONE) return;
+            // rough: check if enemy progress is within 6 of mine (simplified)
+            if(Math.abs(ot.step-tok.step)<=6&&ot.step<tok.step) danger=true;
+          });
+        });
+        if(danger){escapeVal=v;break;}
+      }
+      if(escapeVal!==null) break;
+    }
+  }
+  if(escapeVal!==null && killVal===null && majorsApplied<2){
+    // Only if kill not already applied (lower priority than kill)
+    const boost=band>0?12:8;
+    dist[escapeVal-1]+=boost/100;
+    dist[0]-=2/100; dist[1]-=2/100; dist[2]-=2/100;
+    majorsApplied++;
+    _sde.cooldowns.escape[pid]=1;
+  }
+
+  // ── CONDITION G: Near Home Precision ──
+  let nearHomeVal=null;
+  if(_sde.cooldowns.nearHome[pid]<=0 && majorsApplied<2){
+    for(let v=1;v<=6;v++){
+      if(blockSix&&v===6) continue;
+      const mv=movable(pid,v);
+      for(const tok of mv){
+        const distToHome=STEP_DONE-tok.step;
+        if(distToHome<=6&&distToHome>0&&tok.step+v===STEP_DONE){
+          nearHomeVal=v; break;
+        }
+      }
+      if(nearHomeVal!==null) break;
+    }
+    if(!nearHomeVal){
+      // Any token within 6 of home
+      myToks.forEach(tok=>{
+        if(tok.step>=STEP_STRETCH_START&&tok.step<STEP_DONE){
+          const distToHome=STEP_DONE-tok.step;
+          if(distToHome<=6){
+            for(let v=1;v<=6;v++){
+              if(blockSix&&v===6) continue;
+              if(tok.step+v<=STEP_DONE){nearHomeVal=v;break;}
+            }
+          }
+        }
+      });
+    }
+  }
+  if(nearHomeVal!==null && majorsApplied<2){
+    const boost=band>0?18:10;
+    dist[nearHomeVal-1]+=boost/100;
+    dist[0]-=2/100; dist[1]-=2/100; dist[2]-=2/100; dist[3]-=2/100;
+    majorsApplied++;
+    _sde.cooldowns.nearHome[pid]=2;
+  }
+
+  // ── CONDITION C: Behind System (rubber band) ──
+  if(band>0 && majorsApplied<2){
+    // Apply only 70% of turns (anti-detection)
+    if(Math.random()<0.70){
+      if(band===1){dist[3]+=4/100;dist[4]+=4/100;dist[5]+=4/100;dist[0]-=3/100;dist[1]-=3/100;}
+      else if(band===2){if(!blockSix)dist[5]+=10/100;dist[4]+=7/100;dist[3]+=5/100;dist[0]-=5/100;dist[1]-=5/100;dist[2]-=6/100;}
+      else if(band===3){if(!blockSix)dist[5]+=16/100;dist[4]+=10/100;dist[3]+=6/100;dist[0]-=5/100;dist[1]-=5/100;dist[2]-=7/100;dist[3]-=4/100;}
+      else if(band===4){if(!blockSix)dist[5]+=22/100;dist[4]+=12/100;// exact useful +15% spread
+        dist[3]+=5/100;dist[0]-=7/100;dist[1]-=7/100;dist[2]-=8/100;dist[3]-=5/100;}
+      majorsApplied++;
+    }
+  }
+
+  // ── CONDITION D: Leading Player Nerf ──
+  const myGapFromSecond=myScore-Math.max(0,...oppScores.filter((_,i)=>oppScores[i]<myScore));
+  if(gap<0&&Math.abs(gap)>=15){// I am leader
+    dist[5]-=8/100; dist[4]-=5/100;
+    dist[0]+=3/100; dist[1]+=2/100;
+  }
+
+  // ── Chaos Rule: 10% chance flip expected result ──
+  if(Math.random()<0.10){
+    // Rotate distribution by 3 (flip high/low)
+    const tmp=[...dist];
+    for(let i=0;i<6;i++) dist[i]=tmp[5-i];
+  }
+
+  // ── Pattern Break: 3rd consecutive helpful bias disabled ──
+  if(_sde.consecutiveHelpful[pid]>=2){
+    // Reset to near-uniform
+    for(let i=0;i<6;i++) dist[i]=1/6;
+    _sde.consecutiveHelpful[pid]=0;
+    return null; // pure random
+  }
+
+  // Clamp all values
+  const finalDist=_sdeClamp(dist);
+
+  // If blockSix, zero out 6 and renorm
+  if(blockSix){
+    finalDist[5]=0;
+    const s=finalDist.reduce((a,b)=>a+b,0);
+    for(let i=0;i<5;i++) finalDist[i]/=s;
+    finalDist[5]=0;
+  }
+
+  const result=_sdeSampleDist(finalDist);
+
+  // Track for pattern break
+  _sde.consecutiveHelpful[pid]++;
+
+  // Track recent rolls for repetition control
+  _sde.recentRolls[pid].push(result);
+  if(_sde.recentRolls[pid].length>5) _sde.recentRolls[pid].shift();
+
+  // Locked boost cooldown: once first 6 rolled while all locked, disable
+  if(allLocked && result===6) _sde.cooldowns.locked[pid]=true;
+
+  // Tick down cooldowns
+  if(_sde.cooldowns.kill[pid]>0) _sde.cooldowns.kill[pid]--;
+  if(_sde.cooldowns.nearHome[pid]>0) _sde.cooldowns.nearHome[pid]--;
+
+  return result;
 }
 const smartDice={targetPids:new Set()};
 const forceDice={};
@@ -3028,10 +3327,16 @@ async function doMove(pid,tid,v){
         capturePromises.push(sendHomeFast(enemy));
         capturedPids.add(enemy.pid);
         captured=true;
+        _sde.noProgressTurns[pid]=0; // kill = progress
+        _sde.cooldowns.kill[pid]=2; // 2-turn kill cooldown per spec
       }
       if(capturePromises.length>0) await Promise.all(capturePromises);
     }
   }
+  // Track no-progress streak for SDE condition B
+  {const _wasEntry=(tok.step===0&&v===6),_wasMajor=(v>3&&tok.step>0);
+  if(_wasEntry||_wasMajor){_sde.noProgressTurns[pid]=0;}else{_sde.noProgressTurns[pid]=(_sde.noProgressTurns[pid]||0)+1;}}
+
   if(tok.step===0&&v===6){
     const [spawnHr,spawnHc]=getHomeCornerBySeat(tok.pid);
     const spawnStart=baseCirclePx(spawnHr,spawnHc,tok.tid);
@@ -3602,7 +3907,7 @@ window.launchTestMode = function(){
   document.getElementById("top-bar").style.display = "flex";
   buildBoard();
   buildPlayers();
-  _rbReset();
+  _sdeReset();
   PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
   applyBoardRotation();
   setSyncStatus("ok");
