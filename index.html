@@ -271,7 +271,7 @@ function _setAuthReady(){
   _authResolvers.forEach(r => r());
   _authResolvers = [];
 }
-const _authTimeout = setTimeout(_setAuthReady, 5000);
+const _authTimeout = setTimeout(_setAuthReady, 1500);
 auth.onAuthStateChanged((user) => {
   clearTimeout(_authTimeout);
   _setAuthReady();
@@ -287,11 +287,22 @@ auth.signInAnonymously().catch((err) => {
 });
 const _connRef = db.ref(".info/connected");
 let _wasConnected = null; // null = never connected yet, false = was connected but dropped, true = connected
+// If Firebase never fires connected=true within 3s, mark as offline so lobby buttons still work
+const _connFallbackTimer = setTimeout(()=>{
+  if(_wasConnected === null){
+    _wasConnected = false;
+    const lobbyDot = document.getElementById("lobby-conn-dot");
+    const lobbyTxt = document.getElementById("lobby-conn-text");
+    if(lobbyDot){ lobbyDot.style.background = "#FFD600"; }
+    if(lobbyTxt){ lobbyTxt.textContent = "Offline mode (no server)"; lobbyTxt.style.color = "#FFD600"; }
+  }
+}, 3000);
 _connRef.on("value", snap => {
   const connected = snap.val() === true;
   const lobbyDot = document.getElementById("lobby-conn-dot");
   const lobbyTxt = document.getElementById("lobby-conn-text");
   if(connected){
+    clearTimeout(_connFallbackTimer);
     if(lobbyDot){ lobbyDot.style.background = "#00C853"; }
     if(lobbyTxt){ lobbyTxt.textContent = "Server connected ✓"; lobbyTxt.style.color = "#00C853"; }
     if(_wasConnected === false){
@@ -653,6 +664,11 @@ const SEAT_LAYOUTS = {
 };
 window.createRoom = async function(numPlayers){
   closeModals();
+  // If Firebase is unavailable (stub active), block online room creation
+  if(window.firebase && window.firebase._stub){
+    showToast("❌ No server — use Test Mode instead");
+    return;
+  }
   showToast("Connecting to server...");
   try { await waitForAuth(); } catch(e){ showToast("⚠️ Auth error — check internet"); return; }
   NUM_PLAYERS = numPlayers;
@@ -699,6 +715,10 @@ window.createRoom = async function(numPlayers){
   listenRoom();
 };
 window.joinRoom = async function(){
+  if(window.firebase && window.firebase._stub){
+    showToast("❌ No server — use Test Mode instead");
+    return;
+  }
   await waitForAuth();
   showToast("Connecting...");
   const code = document.getElementById("join-code-input").value.trim().toUpperCase();
@@ -3886,19 +3906,28 @@ window.launchTestMode = function(){
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   _cacheValid = false;
   MY_SLOT = SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT);
-  document.getElementById("lobby").style.display = "none";
-  document.getElementById("game-wrap").style.display = "inline-flex";
-  document.getElementById("top-bar").style.display = "flex";
-  buildBoard();
-  buildPlayers();
-  _rbReset();
-  PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
-  applyBoardRotation();
-  setSyncStatus("ok");
-  refreshUI();
-  renderTokens();
-  updateTurnBanner();
-  showToast("Test Mode — You are Blue (seat 3)");
+  try {
+    document.getElementById("lobby").style.display = "none";
+    document.getElementById("game-wrap").style.display = "inline-flex";
+    document.getElementById("top-bar").style.display = "flex";
+    buildBoard();
+    buildPlayers();
+    _rbReset();
+    PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
+    applyBoardRotation();
+    setSyncStatus("ok");
+    refreshUI();
+    renderTokens();
+    updateTurnBanner();
+    showToast("Test Mode — You are Blue (seat 3)");
+  } catch(e) {
+    console.error("launchTestMode error:", e);
+    document.getElementById("lobby").style.display = "flex";
+    document.getElementById("game-wrap").style.display = "none";
+    document.getElementById("top-bar").style.display = "none";
+    showToast("❌ Test Mode failed: " + e.message);
+    return;
+  }
   // In test mode ROOM_CODE is null so amIElderPlayer() always returns false.
   // Run a local bot scheduler that polls and drives non-human turns directly.
   (function _testBotLoop(){
