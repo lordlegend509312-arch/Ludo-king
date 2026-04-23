@@ -1031,13 +1031,20 @@ function _applySyncGameState(data){
                 await rafDelay(40);
               }
               const steps = finalStep - tok.step;
-              if(steps > 0 && steps <= 6){
+              // FIX: finalStep < tok.step means this is a stale/out-of-order queued event
+              // (e.g. 6+6+5 where token already moved past this event's finalStep).
+              // Skip animation — token is already ahead, don't snap back.
+              if(steps < 0){
+                console.log(`[ANIM] Skipping stale move — tok.step:${tok.step} > finalStep:${finalStep}, steps:${steps}`);
+              } else if(steps === 0){
+                console.log(`[ANIM] steps=0, no animation needed tok.step:${tok.step} finalStep:${finalStep}`);
+              } else if(steps > 0 && steps <= 6){
                 await animateMove(tok, steps);
                 if(tok.step >= STEP_DONE) SFX.tokenDone();
               } else if(steps > 6 && dice != null && dice >= 1 && dice <= 6){
                 // Multiple intermediate moves missed — snap to pre-last-move, animate last
                 console.log(`[ANIM] steps>6 snap — steps:${steps} tok.step:${tok.step} finalStep:${finalStep} dice:${dice}`);
-                const snapStep = Math.max(1, finalStep - dice);
+                const snapStep = Math.max(tok.step + 1, finalStep - dice);
                 if(snapStep > tok.step && snapStep < finalStep){
                   tok.step = snapStep;
                   renderTokens();
@@ -1047,7 +1054,7 @@ function _applySyncGameState(data){
                 if(animSteps > 0 && animSteps <= 6){
                   await animateMove(tok, animSteps);
                   if(tok.step >= STEP_DONE) SFX.tokenDone();
-                } else {
+                } else if(animSteps > 0){
                   tok.step = finalStep;
                   renderTokens();
                   await rafDelay(60);
