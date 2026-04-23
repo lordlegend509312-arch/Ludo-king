@@ -960,20 +960,8 @@ function _applySyncGameState(data){
     }
     const applyFinalState = () => {
       const prevTurn = G.turn;
-      if(data.tokens) G.tokens = JSON.parse(JSON.stringify(data.tokens));
-      G.turn       = data.turn;
-      G.rolled     = false;
-      G.waiting    = false;
-      G.diceVal    = null;
-      G.sixes      = data.sixes      || 0;
-      _applyPlacements(data.placements);
-      G.over       = data.over       || false;
-      _animating   = false;
-      // Force timer restart if turn changed
-      if(G.turn !== prevTurn) _lastTimerTurn = -1;
-      // FIX: Clear any stale pending move/roll events from same player — they are
-      // outdated once final state is applied (e.g. 6+6+any background sync case).
-      // Without this, a queued stale move would snap the token back to wrong position.
+      // FIX: Clear stale pending move/roll events from same player first
+      // (e.g. 6+6+any background sync — stale queued events would snap token back)
       if(rolledBy != null){
         const beforeLen = _syncAnimPending.length;
         _syncAnimPending = _syncAnimPending.filter(p =>
@@ -984,6 +972,26 @@ function _applySyncGameState(data){
           console.log(`[SYNC] applyFinalState cleared ${beforeLen - afterLen} stale event(s) for seat:${rolledBy} | queueLen now:${afterLen}`);
         }
       }
+      // FIX: Only overwrite G.tokens when queue is empty — if more moves are pending
+      // (e.g. 6+6+5 queued), don't overwrite token positions yet or steps=0 and
+      // pending animations will have nothing to animate.
+      const hasPendingMoves = _syncAnimPending.some(p => p.action === "move" && p.actionBy === rolledBy);
+      if(data.tokens && !hasPendingMoves){
+        G.tokens = JSON.parse(JSON.stringify(data.tokens));
+        console.log(`[SYNC] applyFinalState: G.tokens updated (no pending moves)`);
+      } else if(hasPendingMoves){
+        console.log(`[SYNC] applyFinalState: G.tokens NOT updated — pending moves still in queue`);
+      }
+      G.turn       = data.turn;
+      G.rolled     = false;
+      G.waiting    = false;
+      G.diceVal    = null;
+      G.sixes      = data.sixes      || 0;
+      _applyPlacements(data.placements);
+      G.over       = data.over       || false;
+      _animating   = false;
+      // Force timer restart if turn changed
+      if(G.turn !== prevTurn) _lastTimerTurn = -1;
       if(G.over && !document.getElementById("win").classList.contains("show")){
         endGame(); return;
       }
