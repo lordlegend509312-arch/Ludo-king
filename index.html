@@ -681,7 +681,7 @@ function listenRoom(){
   };
   gameStatusRef.on('value', cb2);
   _listeners.push(()=>gameStatusRef.off('value', cb2));
-  let _lastProcessedTs = 0;
+  const _processedTsLocal = new Set();
   const cb3 = snap=>{
     if(!snap.exists()) return;
     const data = snap.val();
@@ -699,10 +699,16 @@ function listenRoom(){
       return;
     }
     if(data && G.over === false){
-      // Deduplicate by timestamp — if we already processed this exact push, skip
       const ts = data.timestamp || 0;
-      if(ts && ts === _lastProcessedTs) return;
-      if(ts) _lastProcessedTs = ts;
+      // Deduplicate — same timestamp = same push, skip if already processed
+      if(ts && _processedTsLocal.has(ts)) return;
+      if(ts){
+        _processedTsLocal.add(ts);
+        if(_processedTsLocal.size > 20){
+          const oldest = [..._processedTsLocal].slice(0, _processedTsLocal.size - 20);
+          oldest.forEach(t => _processedTsLocal.delete(t));
+        }
+      }
       syncGameState(data);
     }
   };
@@ -858,6 +864,7 @@ function _flushSyncPending(){
 }
 let _syncAnimPending = []; // FIX: queue instead of single slot — prevents dropped rapid updates
 let _lastProcessedTs = 0; // tracks last Firebase timestamp to prevent stale re-processing
+const _processedTs = new Set(); // dedup set — prevents same event processing twice
 const _lastSeenDice = {}; // per-seat: last dice value seen from roll event
 function syncGameState(data, _forceApply){
   if(!_gameLoaded){ return; }
@@ -886,6 +893,9 @@ function syncGameState(data, _forceApply){
         }
         _syncAnimPending.splice(rollIdx, 1);
       }
+      // Dedup by timestamp — same event can re-fire on Firebase reconnect
+      const ts = data.timestamp;
+      if(ts && _syncAnimPending.some(p => p.timestamp === ts && p.actionBy === data.actionBy)) return;
       _syncAnimPending.push(data);
       console.log(`[SYNC] move queued for seat:${data.actionBy} dice:${data.dice ?? data.diceVal} | queueLen now:${_syncAnimPending.length}`);
     } else if(data.action === "skip"){
