@@ -867,10 +867,18 @@ function syncGameState(data, _forceApply){
     if(data.action === "move"){
       // move events must NEVER be dropped — always queue them
       // remove any pending roll from same player (move supersedes roll)
+      // BUT first rescue the diceVal from the roll event if move is missing it
       const rollIdx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === data.actionBy);
-      if(rollIdx >= 0) _syncAnimPending.splice(rollIdx, 1);
+      if(rollIdx >= 0){
+        const pendingRoll = _syncAnimPending[rollIdx];
+        const rescuedDice = pendingRoll.dice ?? pendingRoll.diceVal;
+        if(rescuedDice != null && (data.dice == null && data.diceVal == null)){
+          data = { ...data, dice: rescuedDice, diceVal: rescuedDice };
+        }
+        _syncAnimPending.splice(rollIdx, 1);
+      }
       _syncAnimPending.push(data);
-      console.log(`[SYNC] move queued for seat:${data.actionBy} dice:${data.diceVal} | queueLen now:${_syncAnimPending.length}`);
+      console.log(`[SYNC] move queued for seat:${data.actionBy} dice:${data.dice ?? data.diceVal} | queueLen now:${_syncAnimPending.length}`);
     } else if(data.action === "skip"){
       // skip supersedes pending roll from same player
       const rollIdx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === data.actionBy);
@@ -919,7 +927,7 @@ function _applySyncGameState(data){
     return;
   }
   const action   = data.action || data.lastAction;
-  const dice     = data.dice   ?? data.diceVal;
+  const dice     = data.dice ?? data.diceVal ?? (action === "move" ? G.diceVal : null);
   const rolledBy = data.actionBy;
   if(action === "roll"){
     if(rolledBy !== null && rolledBy !== undefined){
