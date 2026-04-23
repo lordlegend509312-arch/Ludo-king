@@ -3231,7 +3231,13 @@ function afterRoll(pid,v){
     return;
   }
   if(shouldAutoMove(mv,v)){
-    setTimeout(()=>doMove(pid,mv[0].tid,v),80);
+    // Push roll event first so opponent clients see dice animation,
+    // then trigger move after a short delay to ensure roll is written first
+    const rollPush = pushGameState({ action:"roll", dice:v, selectable:[] });
+    const moveTid = mv[0].tid;
+    Promise.race([rollPush, rafDelay(120)]).then(()=>{
+      setTimeout(()=>doMove(pid,moveTid,v),80);
+    });
     return;
   }
   G.waiting=true;
