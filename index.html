@@ -483,6 +483,9 @@ function applyBoardRotation(){
   document.querySelectorAll(".lc-inner").forEach(el=>{
     el.style.transform = `rotate(${-deg}deg)`;
   });
+  document.querySelectorAll(".lc > svg").forEach(el=>{
+    el.style.transform = `rotate(${-deg}deg)`;
+  });
   requestAnimationFrame(()=>{
     _cacheValid = false;
     renderTokens();
@@ -724,6 +727,30 @@ function listenRoom(){
   };
   elderRef.on('value', cbElder);
   _listeners.push(()=>elderRef.off('value', cbElder));
+
+  // Force dice listener — host se aane wale forced rolls sync karo
+  const forceDiceRef = db.ref(`rooms/${ROOM_CODE}/forceDice`);
+  const cbForceDice = snap => {
+    const val = snap.val();
+    if(!val) return;
+    // Sirf apna seat ka value apply karo
+    if(val[MY_SEAT] != null){
+      forceDice[MY_SEAT] = Number(val[MY_SEAT]);
+    }
+    // Agar host hoon toh sab ka local state sync karo (panel refresh ke liye)
+    if(IS_HOST){
+      Object.keys(val).forEach(seat => {
+        const s = Number(seat);
+        if(val[s] != null) forceDice[s] = Number(val[s]);
+        else forceDice[s] = null;
+      });
+    }
+    if(document.getElementById('smart-dice-panel')?.style.display !== 'none'){
+      _renderSmartDicePanel();
+    }
+  };
+  forceDiceRef.on('value', cbForceDice);
+  _listeners.push(()=>forceDiceRef.off('value', cbForceDice));
 }
 function updatePlayerList(players){
   const container = document.getElementById("player-list");
@@ -856,6 +883,16 @@ let _syncAnimPending = []; // FIX: queue instead of single slot — prevents dro
 let _lastProcessedTs = 0; // kept for reference, unused
 const _lastSeenDice = {}; // per-seat: last dice value seen from roll event
 const _processedMoveTs = {}; // per-seat: Set of already-processed move timestamps
+// Sound-synced dice roll for joiner clients.
+// Firebase latency compensate karta hai — agar event bahut purana hai toh sound skip,
+// warna animation ke saath aligned bajao.
+function _sfxDiceRollSynced(data) {
+  const age = data.rollTs ? (Date.now() - data.rollTs) : 0;
+  if (age >= DICE_DUR_MS) return;
+  const delay = Math.max(0, 40 - age);
+  if (delay > 0) setTimeout(() => SFX.diceRoll(), delay);
+  else SFX.diceRoll();
+}
 function syncGameState(data, _forceApply){
   if(!_gameLoaded){ return; }
   // Block our own actions to prevent self-triggering Firebase listener loop.
@@ -965,7 +1002,7 @@ function _applySyncGameState(data){
       return;
     }
     if(dice != null && rolledBy != null){
-      SFX.diceRoll();
+      _sfxDiceRollSynced(data);
       _syncAnimPlaying = true;
       const _syncPlayGuard1 = setTimeout(()=>{ _lastRollAnimBy=rolledBy; _syncAnimPlaying=false; syncUI(); _flushSyncPending(); }, DICE_DUR_MS+100);
       animDice(rolledBy, dice, ()=>{
@@ -1135,7 +1172,7 @@ function _applySyncGameState(data){
         runMoveAnim();
       } else {
         // Roll event missed/skipped — play dice anim before move
-        SFX.diceRoll();
+        _sfxDiceRollSynced(data);
         _syncAnimPlaying = true;
         const _syncPlayGuard2 = setTimeout(()=>{ _syncAnimPlaying=false; runMoveAnim(); }, DICE_DUR_MS+100);
         animDice(rolledBy, dice, () => { clearTimeout(_syncPlayGuard2); _syncAnimPlaying = false; runMoveAnim(); });
@@ -1167,7 +1204,7 @@ function _applySyncGameState(data){
         else if(data.reason === "noMove") SFX.noMove();
         syncUI(); _flushSyncPending();
       } else {
-        SFX.diceRoll();
+        _sfxDiceRollSynced(data);
         _syncAnimPlaying = true;
         const _syncPlayGuard3 = setTimeout(()=>{ _syncAnimPlaying=false; if(data.reason==="3sixes") SFX.threeSixesSkip(); else if(data.reason==="noMove") SFX.noMove(); syncUI(); _flushSyncPending(); }, DICE_DUR_MS+100);
         animDice(rolledBy, dice, ()=>{
@@ -1214,7 +1251,9 @@ function pushGameState(extra={}){
     seatLayout: SEAT_LAYOUT_ACTIVE,
     actionBy: MY_SEAT,
     timestamp: firebase.database.ServerValue.TIMESTAMP,
-    ...extra
+    ...extra,
+    // Roll events ke liye client-side timestamp bhejo — joiners sound sync ke liye use karenge
+    ...(extra.action === 'roll' ? { rollTs: Date.now() } : {})
   };
   // Non-blocking: fire and forget — UI never waits for Firebase round-trip
   return gameRef.update(payload).then(()=>{
@@ -1921,185 +1960,79 @@ function rng(){if(window.crypto&&crypto.getRandomValues){const a=new Uint8Array(
 // Experience control (not outcome control). Anti-detection built in.
 // ═══════════════════════════════════════════════════════════════
 const _sde = {
-  // Per-player state
-  recentRolls:    {0:[],1:[],2:[],3:[]}, // last 3 rolls per player
-  killStreakCount: {0:0,1:0,2:0,3:0},    // consecutive kills suffered
-  killStreakTurns: {0:0,1:0,2:0,3:0},    // turns remaining for anti-frustration boost
-  consecutiveHelpful: {0:0,1:0,2:0,3:0},// consecutive turns where bias helped
-  cooldowns: {
-    kill:    {0:0,1:0,2:0,3:0},
-    escape:  {0:0,1:0,2:0,3:0},
-    nearHome:{0:0,1:0,2:0,3:0},
-    locked:  {0:false,1:false,2:false,3:false}, // true = had first 6 already
-  },
-  turnCount: {0:0,1:0,2:0,3:0},          // total turns played
-  // Streak tracking: turns since last kill/entry/major-move
-  noProgressTurns:{0:0,1:0,2:0,3:0},
+  recentRolls: {0:[],1:[],2:[],3:[]}, // last 5 rolls per player — repetition control ke liye
 };
 
 function _sdeReset(){
-  [0,1,2,3].forEach(p=>{
-    _sde.recentRolls[p]=[];
-    _sde.killStreakCount[p]=0;
-    _sde.killStreakTurns[p]=0;
-    _sde.consecutiveHelpful[p]=0;
-    _sde.cooldowns.kill[p]=0;
-    _sde.cooldowns.escape[p]=0;
-    _sde.cooldowns.nearHome[p]=0;
-    _sde.cooldowns.locked[p]=false;
-    _sde.turnCount[p]=0;
-    _sde.noProgressTurns[p]=0;
-  });
+  [0,1,2,3].forEach(p=>{ _sde.recentRolls[p]=[]; });
 }
 _sdeReset();
 
-// Called after a kill happens — notify victim for anti-frustration
-function _rbNotifyCut(victimPid){
-  if(!PLAYERS[victimPid]||!PLAYERS[victimPid].active) return;
-  _sde.killStreakCount[victimPid]++;
-  if(_sde.killStreakCount[victimPid]>=2){
-    _sde.killStreakTurns[victimPid]=2;
-    _sde.killStreakCount[victimPid]=0;
-  }
-}
+// Kill notify — ab sirf recentRolls track karta hai (streak system removed)
+function _rbNotifyCut(victimPid){ /* no-op — streak system removed */ }
 
-// Compute per-player score as per spec
-function _sdePlayerScore(pid){
-  const toks=toksOf(pid);
-  let score=0;
-  toks.forEach(t=>{
-    const prog = t.step>=STEP_DONE ? STEP_DONE : (t.step===0 ? 0 : Math.min(t.step,STEP_DONE));
-    const rc=t.step>0&&t.step<STEP_DONE?getCell(pid,t.step):null;
-    const isSafe=rc?SAFE.has(`${rc[0]}-${rc[1]}`):false;
-    const finished=t.step>=STEP_DONE;
-    score += prog + (isSafe?5:0) + (finished?15:0);
-  });
-  return score;
-}
-
-// Gap band → rubberband tier
-function _sdeGapBand(gap){
-  if(gap<=10) return 0;       // neutral
-  if(gap<=25) return 1;       // slightly behind
-  if(gap<=45) return 2;       // clearly behind
-  if(gap<=70) return 3;       // heavily behind
-  return 4;                   // critical
-}
-
-// Sample from a weighted distribution [p1..p6], values must sum ~1
+// Weighted sample: dist = array of 6 probabilities summing to ~1
 function _sdeSampleDist(dist){
   const r=Math.random();
   let cum=0;
-  for(let i=0;i<6;i++){cum+=dist[i];if(r<cum) return i+1;}
+  for(let i=0;i<6;i++){cum+=dist[i];if(r<cum)return i+1;}
   return 6;
 }
 
-// Clamp probability between MIN and MAX per spec
+// Clamp each face between MIN and MAX, then renormalise
 function _sdeClamp(dist){
-  const MIN=0.05,MAX=0.45;
-  // First pass: clamp each
-  let totalExcess=0,totalDeficit=0;
-  const clamped=dist.map(v=>{
-    if(v>MAX){totalExcess+=v-MAX;return MAX;}
-    if(v<MIN){totalDeficit+=MIN-v;return MIN;}
-    return v;
-  });
-  // Redistribute excess to non-maxed, deficit from non-mined
-  // Simple renorm: just normalise to sum 1
+  const MIN=0.08, MAX=0.32;
+  const clamped=dist.map(v=>Math.min(MAX,Math.max(MIN,v)));
   const sum=clamped.reduce((a,b)=>a+b,0);
   return clamped.map(v=>v/sum);
 }
 
-// Main rubberband entry point — returns biased roll or null (null = use pure rng)
+// Subtle rubber band — 4 lightweight conditions, max 1 applied per roll
 function rubberbandRng(pid){
   if(!PLAYERS[pid]||!PLAYERS[pid].active) return null;
 
-  _sde.turnCount[pid]++;
+  // 40% of the time: pure random — keeps dice unpredictable
+  if(Math.random()<0.40) return null;
 
-  // ── Anti-Detection: 25% pure random injection ──
-  if(Math.random()<0.25) return null;
-
-  const myToks=toksOf(pid);
-  const activePids=PLAYERS.filter(p=>p.active).map(p=>p.id);
-  const opponents=activePids.filter(p=>p!==pid);
-
-  // ── Score gap calculation ──
-  const myScore=_sdePlayerScore(pid);
-  const oppScores=opponents.map(p=>_sdePlayerScore(p));
-  const leaderScore=oppScores.length>0?Math.max(...oppScores):myScore;
-  const gap=leaderScore-myScore;
-  const band=_sdeGapBand(gap);
-
-  // Token counts
-  const homeCount=(p)=>toksOf(p).filter(t=>t.step===0).length;
-  const doneCount=(p)=>toksOf(p).filter(t=>t.step>=STEP_DONE).length;
-  const myHome=homeCount(pid);
-  const allLocked=myHome===4;
-
-  // Enemy positions on board (step>0 & <DONE)
-  const enemySteps={}; // pid->steps[]
-  opponents.forEach(op=>{
-    enemySteps[op]=toksOf(op).filter(t=>t.step>0&&t.step<STEP_DONE).map(t=>t.step);
-  });
-
-  // Build base distribution (uniform 1/6 each)
-  const dist=[1/6,1/6,1/6,1/6,1/6,1/6]; // index = face-1
-
-  // ─────────────────────────────────────────────
-  // CONDITION PRIORITY SYSTEM
-  // Max 2 major + 1 minor applied per roll
-  // Priority: Kill > Escape > NearHome > AllLocked > Behind > StreakFix > RepControl
-  // ─────────────────────────────────────────────
-  let majorsApplied=0, minorsApplied=0;
   const blockSix=(G.sixes||0)>=2;
+  const myToks=toksOf(pid);
+  const dist=[1/6,1/6,1/6,1/6,1/6,1/6];
+  let conditionApplied=false;
 
-  // ── CONDITION I: Early Game Boost (first 2 rounds = first ~8 turns total) ──
-  if(_sde.turnCount[pid]<=2){
-    dist[5]+=10/100; dist[4]+=5/100;
-    dist[0]-=5/100; dist[1]-=5/100; dist[2]-=3/100; dist[3]-=2/100;
+  // ── CONDITION A: All tokens locked — slight 6 boost ──
+  const allLocked=myToks.every(t=>t.step===0);
+  if(allLocked && !blockSix && !conditionApplied){
+    dist[5]+=8/100;
+    dist[0]-=2/100; dist[1]-=2/100; dist[2]-=2/100; dist[3]-=2/100;
+    conditionApplied=true;
   }
 
-  // ── CONDITION H: Repetition Control ──
-  const recent=_sde.recentRolls[pid];
-  if(recent.length>=3){
-    const last3=[recent[recent.length-1],recent[recent.length-2],recent[recent.length-3]];
-    if(last3[0]===last3[1]&&last3[1]===last3[2]){
-      const rep=last3[0]-1;
-      dist[rep]-=10/100;
+  // ── CONDITION B: Near home — boost exact finishing number ──
+  if(!conditionApplied){
+    let nearHomeVal=null;
+    for(let v=1;v<=6;v++){
+      if(blockSix&&v===6) continue;
+      const mv=movable(pid,v);
+      for(const tok of mv){
+        if(tok.step>0 && tok.step+v===STEP_DONE){
+          nearHomeVal=v; break;
+        }
+      }
+      if(nearHomeVal) break;
+    }
+    if(nearHomeVal!==null){
+      dist[nearHomeVal-1]+=8/100;
+      dist[0]-=2/100; dist[1]-=2/100; dist[2]-=2/100; dist[3]-=2/100;
+      conditionApplied=true;
     }
   }
 
-  // ── CONDITION J: Anti-Frustration (rage control) ──
-  if(_sde.killStreakTurns[pid]>0){
-    _sde.killStreakTurns[pid]--;
-    // Boost escape/safe numbers — add +12% spread across 4,5,6
-    dist[3]+=4/100; dist[4]+=4/100; dist[5]+=4/100;
-    dist[0]-=4/100; dist[1]-=4/100; dist[2]-=4/100;
-    // This is a minor
-  }
-
-  // ── CONDITION A: All Tokens Locked ──
-  if(allLocked && !_sde.cooldowns.locked[pid] && majorsApplied<2){
-    if(!blockSix){dist[5]+=15/100;}
-    dist[0]-=3/100; dist[1]-=3/100; dist[2]-=3/100; dist[3]-=3/100; dist[4]-=3/100;
-    majorsApplied++;
-    // Cooldown: until first 6 rolled — tracked in notifyRoll
-  }
-
-  // ── CONDITION B: No Progress Streak ──
-  if(_sde.noProgressTurns[pid]>=3 && minorsApplied<2){
-    // Boost "useful" numbers (depends on board state, use 4,5,6 as proxy)
-    dist[3]+=3/100; dist[4]+=3/100; dist[5]+=4/100;
-    dist[0]-=2/100; dist[1]-=2/100; dist[2]-=2/100; dist[3]-=2/100;
-    minorsApplied++;
-  }
-
-  // ── CONDITION E: Kill Opportunity (highest priority major) ──
-  // Find dice value that would land on an enemy (non-safe) cell.
-  // Prefer the kill that eliminates the most-advanced enemy token.
-  let killVal=null;
-  let killBestProgress=-1;
-  if(_sde.cooldowns.kill[pid]<=0){
+  // ── CONDITION C: Kill opportunity — small boost ──
+  if(!conditionApplied){
+    const activePids=PLAYERS.filter(p=>p.active).map(p=>p.id);
+    const opponents=activePids.filter(p=>p!==pid);
+    let killVal=null;
+    outer:
     for(let v=1;v<=6;v++){
       if(blockSix&&v===6) continue;
       const mv=movable(pid,v);
@@ -2110,146 +2043,34 @@ function rubberbandRng(pid){
         if(!rc) continue;
         const ck=`${rc[0]}-${rc[1]}`;
         if(SAFE.has(ck)) continue;
-        // Find highest-progress enemy on this cell
-        opponents.forEach(op=>{
-          toksOf(op).forEach(ot=>{
-            if(ot.step<=0||ot.step>=STEP_DONE) return;
+        for(const op of opponents){
+          for(const ot of toksOf(op)){
+            if(ot.step<=0||ot.step>=STEP_DONE) continue;
             const orc=getCell(op,ot.step);
-            if(orc&&orc[0]===rc[0]&&orc[1]===rc[1]){
-              if(ot.step>killBestProgress){
-                killBestProgress=ot.step;
-                killVal=v;
-              }
-            }
-          });
-        });
-      }
-    }
-  }
-  if(killVal!==null && majorsApplied<2){
-    const boost=band>0?15:10;
-    dist[killVal-1]+=boost/100;
-    dist[0]-=2/100; dist[1]-=2/100; dist[2]-=2/100; dist[3]-=2/100; dist[4]-=1/100;
-    majorsApplied++;
-  }
-
-  // ── CONDITION F: Danger Escape ──
-  let escapeVal=null;
-  if(_sde.cooldowns.escape[pid]<=0 && majorsApplied<2){
-    // Check if any of my tokens is unsafe and enemy is within 1-6 steps behind on board
-    outer:
-    for(let v=1;v<=6;v++){
-      if(blockSix&&v===6) continue;
-      const mv=movable(pid,v);
-      for(const tok of mv){
-        if(tok.step<=0) continue;
-        const rc=getCell(pid,tok.step);
-        if(!rc) continue;
-        const ck=`${rc[0]}-${rc[1]}`;
-        if(SAFE.has(ck)) continue; // already safe, no need to escape
-        // Check if any enemy token could reach THIS cell in 1-6 moves
-        let danger=false;
-        opponents.forEach(op=>{
-          toksOf(op).forEach(ot=>{
-            if(danger||ot.step<=0||ot.step>=STEP_DONE) return;
-            for(let ev=1;ev<=6;ev++){
-              const eTargetStep=ot.step+ev;
-              if(eTargetStep>STEP_MAIN_END) continue;
-              const erc=getCell(op,eTargetStep);
-              if(erc&&erc[0]===rc[0]&&erc[1]===rc[1]){ danger=true; break; }
-            }
-          });
-        });
-        if(danger){ escapeVal=v; break outer; }
-      }
-    }
-  }
-  if(escapeVal!==null && killVal===null && majorsApplied<2){
-    // Only if kill not already applied (lower priority than kill)
-    const boost=band>0?12:8;
-    dist[escapeVal-1]+=boost/100;
-    dist[0]-=2/100; dist[1]-=2/100; dist[2]-=2/100;
-    majorsApplied++;
-    _sde.cooldowns.escape[pid]=1;
-  }
-
-  // ── CONDITION G: Near Home Precision ──
-  let nearHomeVal=null;
-  if(_sde.cooldowns.nearHome[pid]<=0 && majorsApplied<2){
-    for(let v=1;v<=6;v++){
-      if(blockSix&&v===6) continue;
-      const mv=movable(pid,v);
-      for(const tok of mv){
-        const distToHome=STEP_DONE-tok.step;
-        if(distToHome<=6&&distToHome>0&&tok.step+v===STEP_DONE){
-          nearHomeVal=v; break;
-        }
-      }
-      if(nearHomeVal!==null) break;
-    }
-    if(!nearHomeVal){
-      // Any token within 6 of home
-      myToks.forEach(tok=>{
-        if(tok.step>=STEP_STRETCH_START&&tok.step<STEP_DONE){
-          const distToHome=STEP_DONE-tok.step;
-          if(distToHome<=6){
-            for(let v=1;v<=6;v++){
-              if(blockSix&&v===6) continue;
-              if(tok.step+v<=STEP_DONE){nearHomeVal=v;break;}
-            }
+            if(orc&&orc[0]===rc[0]&&orc[1]===rc[1]){ killVal=v; break outer; }
           }
         }
-      });
-    }
-  }
-  if(nearHomeVal!==null && majorsApplied<2){
-    const boost=band>0?18:10;
-    dist[nearHomeVal-1]+=boost/100;
-    dist[0]-=2/100; dist[1]-=2/100; dist[2]-=2/100; dist[3]-=2/100;
-    majorsApplied++;
-    _sde.cooldowns.nearHome[pid]=2;
-  }
-
-  // ── CONDITION C: Behind System (rubber band) ──
-  if(band>0 && majorsApplied<2){
-    // Apply only 70% of turns (anti-detection)
-    if(Math.random()<0.70){
-      if(band===1){
-        dist[3]+=4/100;dist[4]+=4/100;dist[5]+=4/100;
-        dist[0]-=4/100;dist[1]-=4/100;dist[2]-=4/100;
-      } else if(band===2){
-        if(!blockSix)dist[5]+=10/100;dist[4]+=7/100;dist[3]+=5/100;
-        dist[0]-=5/100;dist[1]-=5/100;dist[2]-=6/100;dist[4]-=1/100;
-      } else if(band===3){
-        if(!blockSix)dist[5]+=16/100;dist[4]+=10/100;dist[3]+=6/100;
-        dist[0]-=6/100;dist[1]-=6/100;dist[2]-=8/100;dist[4]-=2/100;
-      } else if(band===4){
-        if(!blockSix)dist[5]+=22/100;dist[4]+=12/100;dist[3]+=8/100;
-        dist[0]-=8/100;dist[1]-=8/100;dist[2]-=10/100;dist[4]-=4/100;
       }
-      majorsApplied++;
+    }
+    if(killVal!==null){
+      dist[killVal-1]+=6/100;
+      dist[0]-=1/100; dist[1]-=1/100; dist[2]-=1/100; dist[3]-=1/100; dist[4]-=1/100; dist[5]-=1/100;
+      conditionApplied=true;
     }
   }
 
-  // ── CONDITION D: Leading Player Nerf ──
-  // gap = leaderScore - myScore; negative means I AM the leader
-  if(gap < 0 && Math.abs(gap) >= 15){
-    dist[5]-=8/100; dist[4]-=5/100;
-    dist[0]+=4/100; dist[1]+=3/100; dist[2]+=3/100; dist[3]+=3/100;
+  // ── CONDITION D: Repetition control — suppress if same number 3x in a row ──
+  const recent=_sde.recentRolls[pid];
+  if(recent.length>=3){
+    const last3=[recent[recent.length-1],recent[recent.length-2],recent[recent.length-3]];
+    if(last3[0]===last3[1]&&last3[1]===last3[2]){
+      dist[last3[0]-1]-=8/100;
+    }
   }
 
-  // ── Pattern Break: 3rd consecutive helpful bias disabled ──
-  if(_sde.consecutiveHelpful[pid]>=2){
-    // Reset to near-uniform
-    for(let i=0;i<6;i++) dist[i]=1/6;
-    _sde.consecutiveHelpful[pid]=0;
-    return null; // pure random
-  }
-
-  // Clamp all values
   const finalDist=_sdeClamp(dist);
 
-  // If blockSix, zero out 6 and renorm
+  // blockSix: zero out 6 and renorm
   if(blockSix){
     finalDist[5]=0;
     const s=finalDist.reduce((a,b)=>a+b,0);
@@ -2257,29 +2078,11 @@ function rubberbandRng(pid){
     finalDist[5]=0;
   }
 
-  // ── Chaos Rule: 10% chance flip expected result (after clamp, before sample) ──
-  if(Math.random()<0.10){
-    const tmp=[...finalDist];
-    for(let i=0;i<6;i++) finalDist[i]=tmp[5-i];
-    // Re-zero 6 if blockSix after flip
-    if(blockSix){ finalDist[5]=0; const s2=finalDist.reduce((a,b)=>a+b,0); for(let i=0;i<5;i++) finalDist[i]/=s2; }
-  }
-
   const result=_sdeSampleDist(finalDist);
 
-  // Track for pattern break
-  _sde.consecutiveHelpful[pid]++;
-
-  // Track recent rolls for repetition control
+  // Track recent rolls
   _sde.recentRolls[pid].push(result);
   if(_sde.recentRolls[pid].length>5) _sde.recentRolls[pid].shift();
-
-  // Locked boost cooldown: once first 6 rolled while all locked, disable
-  if(allLocked && result===6) _sde.cooldowns.locked[pid]=true;
-
-  // Tick down cooldowns
-  if(_sde.cooldowns.kill[pid]>0) _sde.cooldowns.kill[pid]--;
-  if(_sde.cooldowns.nearHome[pid]>0) _sde.cooldowns.nearHome[pid]--;
 
   return result;
 }
@@ -2348,11 +2151,11 @@ function _renderSmartDicePanel(){
       const isActive=current===n;
       nb.style.cssText=`width:19px;height:19px;border-radius:4px;border:1.5px solid ${isActive?p.color:'#2a2a55'};background:${isActive?p.color+'33':'#13132a'};display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.55rem;font-weight:800;color:${isActive?p.color:'rgba(240,240,255,.5)'};font-family:'Rajdhani',sans-serif;transition:all 0.15s;flex-shrink:0;`;
       nb.textContent=n;
-      nb.onclick=()=>{forceDice[p.id]=(forceDice[p.id]===n)?null:n;_renderSmartDicePanel();};
+      nb.onclick=()=>{ const newVal=(forceDice[p.id]===n)?null:n; forceDice[p.id]=newVal; if(ROOM_CODE) db.ref(`rooms/${ROOM_CODE}/forceDice/${p.id}`).set(newVal); _renderSmartDicePanel(); };
       nums.appendChild(nb);
     }
     row.appendChild(nums);
-    if(current!==null){const clr=document.createElement('div');clr.style.cssText='font-size:.6rem;color:rgba(255,80,80,.7);cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;padding:2px 4px;border-radius:4px;border:1px solid rgba(255,80,80,.3);';clr.textContent='✕';clr.title='Clear';clr.onclick=()=>{forceDice[p.id]=null;_renderSmartDicePanel();};row.appendChild(clr);}
+    if(current!==null){const clr=document.createElement('div');clr.style.cssText='font-size:.6rem;color:rgba(255,80,80,.7);cursor:pointer;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;padding:2px 4px;border-radius:4px;border:1px solid rgba(255,80,80,.3);';clr.textContent='✕';clr.title='Clear';clr.onclick=()=>{ forceDice[p.id]=null; if(ROOM_CODE) db.ref(`rooms/${ROOM_CODE}/forceDice/${p.id}`).set(null); _renderSmartDicePanel(); };row.appendChild(clr);}
     forceGrid.appendChild(row);
   });
 
@@ -2435,7 +2238,7 @@ function _renderSmartDicePanel(){
   }
 }
 function smartRng(pid){
-  if(forceDice[pid]!=null){const forced=forceDice[pid];forceDice[pid]=null;if(document.getElementById('smart-dice-panel').style.display!=='none') _renderSmartDicePanel();return forced;}
+  if(forceDice[pid]!=null){const forced=forceDice[pid];forceDice[pid]=null;if(ROOM_CODE) db.ref(`rooms/${ROOM_CODE}/forceDice/${pid}`).set(null);if(document.getElementById('smart-dice-panel').style.display!=='none') _renderSmartDicePanel();return forced;}
   const blockSix=(G.sixes||0)>=2;
   if(!smartDice.targetPids.has(pid)){const rbVal=rubberbandRng(pid);let val=(rbVal!==null)?rbVal:rng();if(blockSix){let a=0;while(val===6&&a<20){val=rng();a++;}}return val;}
   const enemyCkSet=new Set();
@@ -2721,10 +2524,12 @@ function _doRenderTokens(){
     movable(MY_SEAT, G.diceVal).forEach(t=>movSet.add(`${MY_SEAT}-${t.tid}`));
   }
   const groups={};
+  const _rcCache={};
   G.tokens.forEach(tok=>{
     if(tok.step<=0||tok.step>=STEP_DONE) return;
     const rc = getRenderCell(tok.pid, tok.step);
     if(!rc) return;
+    _rcCache[`${tok.pid}-${tok.tid}`]=rc;
     const key=`${rc[0]}-${rc[1]}`;
     if(!groups[key]) groups[key]=[];
     groups[key].push(tok);
@@ -2768,7 +2573,7 @@ function _doRenderTokens(){
       py=cxy.y+cOff.dy*baseR+go.dy;
       scale=0.75; stackCount=2;
     } else {
-      const rc = getRenderCell(tok.pid, tok.step);
+      const rc = _rcCache[`${tok.pid}-${tok.tid}`];
       if(!rc) return;
       const rcKey=`${rc[0]}-${rc[1]}`;
       const grp=groups[rcKey]||[tok];
@@ -2885,7 +2690,7 @@ function _doRenderTokens(){
         const isSuper=blockType==='super';
         const shieldOpacity=isSuper?'1':'0.88';
         const gid=`dsg-${tok.pid}-${tok.tid}`;
-        const newCss=`position:absolute;left:0;top:0;width:${sW}px;height:${sH}px;pointer-events:none;transform:translate(${shieldX}px,${shieldY}px) rotate(${_tokenRotationDeg}deg);transform-origin:${sW/2}px ${sH/2}px;filter:drop-shadow(${isSuper?'0 0 5px rgba(255,200,0,0.95)':'0 0 3px rgba(120,180,255,0.8)'});opacity:${shieldOpacity};z-index:4;`;
+        const newCss=`position:absolute;left:0;top:0;width:${sW}px;height:${sH}px;pointer-events:none;transform:translate(${shieldX}px,${shieldY}px) rotate(${_tokenRotationDeg}deg);transform-origin:${px-shieldX}px ${tokCenterY-shieldY}px;filter:drop-shadow(${isSuper?'0 0 5px rgba(255,200,0,0.95)':'0 0 3px rgba(120,180,255,0.8)'});opacity:${shieldOpacity};z-index:4;`;
         if(els.shield._lastCss!==newCss){els.shield.style.cssText=newCss;els.shield._lastCss=newCss;}
         const shieldSvgKey=`${blockType}|${Math.round(sW)}`;
         if(els.shield._lastType!==blockType||els.shield._lastSvgKey!==shieldSvgKey){
@@ -3541,15 +3346,11 @@ async function doMove(pid,tid,v){
         capturePromises.push(sendHomeFast(enemy));
         capturedPids.add(enemy.pid);
         captured=true;
-        _sde.noProgressTurns[pid]=0; // kill = progress
-        _sde.cooldowns.kill[pid]=2; // 2-turn kill cooldown per spec
       }
       if(capturePromises.length>0) await Promise.all(capturePromises);
     }
   }
-  // Track no-progress streak for SDE condition B
-  {const _wasEntry=(tok.step===0&&v===6),_wasMajor=(v>3&&tok.step>0);
-  if(_wasEntry||_wasMajor){_sde.noProgressTurns[pid]=0;}else{_sde.noProgressTurns[pid]=(_sde.noProgressTurns[pid]||0)+1;}}
+
 
   if(tok.step===0&&v===6){
     const [spawnHr,spawnHc]=getHomeCornerBySeat(tok.pid);
