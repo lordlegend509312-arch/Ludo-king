@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="mobile-web-app-capable" content="yes"/>
-<title>Ludo King — Online Multiplayer v43</title>
+<title>Ludo King — Online Multiplayer v44</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
@@ -966,7 +966,16 @@ function _applySyncGameState(data){
       // (when queue is empty) will correctly set final token state.
       const hasPendingMoves = rolledBy != null && _syncAnimPending.some(p => p.action === "move" && p.actionBy === rolledBy);
       if(data.tokens && !hasPendingMoves){
-        G.tokens = JSON.parse(JSON.stringify(data.tokens));
+        // SAFE MERGE: never move a token backwards — keep max(current, incoming) step
+        const incoming = JSON.parse(JSON.stringify(data.tokens));
+        incoming.forEach(ip => {
+          const cur = G.tokens.find(t => t.pid === ip.pid && t.tid === ip.tid);
+          if(cur && ip.step < cur.step){
+            console.log(`[SYNC] applyFinalState: guarding backward snap pid:${ip.pid} tid:${ip.tid} incoming:${ip.step} current:${cur.step}`);
+            ip.step = cur.step;
+          }
+        });
+        G.tokens = incoming;
         console.log(`[SYNC] applyFinalState: tokens updated, pending:0`);
       } else if(hasPendingMoves){
         console.log(`[SYNC] applyFinalState: tokens deferred — ${_syncAnimPending.filter(p=>p.action==="move"&&p.actionBy===rolledBy).length} move(s) pending for seat:${rolledBy}`);
