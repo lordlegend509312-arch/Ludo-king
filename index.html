@@ -699,16 +699,6 @@ function listenRoom(){
       return;
     }
     if(data && G.over === false){
-      const ts = data.timestamp || 0;
-      // Deduplicate — same timestamp = same push, skip if already processed
-      if(ts && _processedTsLocal.has(ts)) return;
-      if(ts){
-        _processedTsLocal.add(ts);
-        if(_processedTsLocal.size > 20){
-          const oldest = [..._processedTsLocal].slice(0, _processedTsLocal.size - 20);
-          oldest.forEach(t => _processedTsLocal.delete(t));
-        }
-      }
       syncGameState(data);
     }
   };
@@ -863,9 +853,9 @@ function _flushSyncPending(){
   syncGameState(next);
 }
 let _syncAnimPending = []; // FIX: queue instead of single slot — prevents dropped rapid updates
-let _lastProcessedTs = 0; // tracks last Firebase timestamp to prevent stale re-processing
-const _processedTs = new Set(); // dedup set — prevents same event processing twice
+let _lastProcessedTs = 0; // kept for reference, unused
 const _lastSeenDice = {}; // per-seat: last dice value seen from roll event
+const _processedMoveTs = {}; // per-seat: Set of already-processed move timestamps
 function syncGameState(data, _forceApply){
   if(!_gameLoaded){ return; }
   // Block our own actions to prevent self-triggering Firebase listener loop.
@@ -881,23 +871,33 @@ function syncGameState(data, _forceApply){
   if(_syncAnimPlaying || _animating){
     console.log(`[SYNC] Queuing — action:${data.action} actionBy:${data.actionBy} ts:${data.timestamp} | animating:${_animating} syncAnimPlaying:${_syncAnimPlaying} | queueLen:${_syncAnimPending.length}`);
     if(data.action === "move"){
-      // move events must NEVER be dropped — always queue them
-      // remove any pending roll from same player (move supersedes roll)
-      // BUT first rescue the diceVal from the roll event if move is missing it
-      const rollIdx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === data.actionBy);
+      // Dedup — same Firebase event can re-fire after animation, track processed ts per seat
+      const ts = data.timestamp;
+      const seat = data.actionBy;
+      if(!_processedMoveTs[seat]) _processedMoveTs[seat] = new Set();
+      if(ts && _processedMoveTs[seat].has(ts)){
+        console.log(`[SYNC] move duplicate skipped ts:${ts}`);
+        return;
+      }
+      if(ts) _processedMoveTs[seat].add(ts);
+      // Rescue dice from pending roll if missing
+      const rollIdx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === seat);
       if(rollIdx >= 0){
-        const pendingRoll = _syncAnimPending[rollIdx];
-        const rescuedDice = pendingRoll.dice ?? pendingRoll.diceVal;
-        if(rescuedDice != null && (data.dice == null && data.diceVal == null)){
+        const rescuedDice = _syncAnimPending[rollIdx].dice ?? _syncAnimPending[rollIdx].diceVal;
+        if(rescuedDice != null && data.dice == null && data.diceVal == null){
           data = { ...data, dice: rescuedDice, diceVal: rescuedDice };
         }
         _syncAnimPending.splice(rollIdx, 1);
       }
-      // Dedup by timestamp — same event can re-fire on Firebase reconnect
-      const ts = data.timestamp;
-      if(ts && _syncAnimPending.some(p => p.timestamp === ts && p.actionBy === data.actionBy)) return;
-      _syncAnimPending.push(data);
-      console.log(`[SYNC] move queued for seat:${data.actionBy} dice:${data.dice ?? data.diceVal} | queueLen now:${_syncAnimPending.length}`);
+      // Insert in timestamp order so 6+6+5 always plays in correct sequence
+      let insertIdx = _syncAnimPending.length;
+      for(let i = 0; i < _syncAnimPending.length; i++){
+        if(_syncAnimPending[i].action === "move" && (_syncAnimPending[i].timestamp || 0) > (ts || 0)){
+          insertIdx = i; break;
+        }
+      }
+      _syncAnimPending.splice(insertIdx, 0, data);
+      console.log(`[SYNC] move queued for seat:${seat} dice:${data.dice ?? data.diceVal} ts:${ts} | queueLen now:${_syncAnimPending.length}`);
     } else if(data.action === "skip"){
       // skip supersedes pending roll from same player
       const rollIdx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === data.actionBy);
@@ -1316,6 +1316,8 @@ window.leaveToLobby = async function(){
   _pendingSync = [];
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
   _rolling = false; _animating = false; _onlineSeats = new Set();
+  Object.keys(_processedMoveTs).forEach(k => delete _processedMoveTs[k]);
+  Object.keys(_lastSeenDice).forEach(k => delete _lastSeenDice[k]);
   _lastTimerTurn = -1;
   _cachedElderResult = null; _cachedElderOnlineSet = '';
   _forcedElderSeat = null;
