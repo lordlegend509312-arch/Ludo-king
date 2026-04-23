@@ -653,7 +653,7 @@ window.joinRoom = async function(){
 };
 let _gameStarted = false;
 let _gameStartLock = false; // FIX 5: mutex so cb2 and cb3 can't both fire _doLoadAndStartGame
-let _pendingSync = null;
+let _pendingSync = []; // queue of sync events received before game fully loaded
 function listenRoom(){
   const cb1 = snap=>{
     const players = snap.val() || {};
@@ -693,7 +693,9 @@ function listenRoom(){
       return;
     }
     if(data && _gameStarted && !_gameLoaded){
-      _pendingSync = data;
+      // Queue all events received during load — don't overwrite
+      const ts = data.timestamp || 0;
+      if(!_pendingSync.some(p => p.timestamp === ts)) _pendingSync.push(data);
       return;
     }
     if(data && G.over === false){
@@ -856,12 +858,19 @@ function _flushSyncPending(){
 }
 let _syncAnimPending = []; // FIX: queue instead of single slot — prevents dropped rapid updates
 let _lastProcessedTs = 0; // tracks last Firebase timestamp to prevent stale re-processing
+const _lastSeenDice = {}; // per-seat: last dice value seen from roll event
 function syncGameState(data, _forceApply){
   if(!_gameLoaded){ return; }
   // Block our own actions to prevent self-triggering Firebase listener loop.
   // Exception: _forceApply=true is used by the fresh-pull on timer expiry to
   // unconditionally catch up with server state regardless of who pushed last.
   if(!_forceApply && data.actionBy === MY_SEAT) return;
+  // Track last dice per seat so move events can recover it even if snapshot is missing it
+  const _rawDice = data.dice ?? data.diceVal;
+  if(data.action === "roll" && _rawDice != null) _lastSeenDice[data.actionBy] = _rawDice;
+  if(data.action === "move" && _rawDice == null && _lastSeenDice[data.actionBy] != null){
+    data = { ...data, dice: _lastSeenDice[data.actionBy], diceVal: _lastSeenDice[data.actionBy] };
+  }
   if(_syncAnimPlaying || _animating){
     console.log(`[SYNC] Queuing — action:${data.action} actionBy:${data.actionBy} ts:${data.timestamp} | animating:${_animating} syncAnimPlaying:${_syncAnimPlaying} | queueLen:${_syncAnimPending.length}`);
     if(data.action === "move"){
@@ -1294,7 +1303,7 @@ window.leaveToLobby = async function(){
   _listeners = [];
   _gameStarted = false;
   _gameStartLock = false;
-  _pendingSync = null;
+  _pendingSync = [];
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
   _rolling = false; _animating = false; _onlineSeats = new Set();
   _lastTimerTurn = -1;
@@ -1328,7 +1337,7 @@ window.leaveRoom = async function(){
   _listeners = [];
   _gameStarted = false;
   _gameStartLock = false;
-  _pendingSync = null;
+  _pendingSync = [];
   if(ROOM_CODE && MY_SEAT !== null){
     await db.ref(`rooms/${ROOM_CODE}/players/${MY_SEAT}/online`).set(false);
   }
@@ -4048,10 +4057,10 @@ async function _doLoadAndStartGame(){
   listenChat();
   listenPlayerPresence();
   listenHostOnline();
-  if(_pendingSync){
-    const pending = _pendingSync;
-    _pendingSync = null;
-    if(G.over === false) syncGameState(pending);
+  if(_pendingSync.length > 0){
+    const pending = _pendingSync.slice();
+    _pendingSync = [];
+    pending.forEach(p => { if(G.over === false) syncGameState(p); });
   }
 }
 function bindBtn(id, fn){
