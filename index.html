@@ -1020,6 +1020,9 @@ function _applySyncGameState(data){
                 const oppLayer = document.getElementById('tokens-layer');
                 await jumpStep(_tokEls[spawnKey].wrap, _tokEls[spawnKey].shadow, spawnStart.x, spawnStart.y, entryXY.x, entryXY.y, BASE_W2, oppColor, cp2, oppLayer);
               }
+            } else if(type === "open" && tok.step >= 1){
+              // Duplicate open event — token already spawned, skip silently
+              console.log(`[ANIM] Duplicate open ignored — pid:${pid} tid:${tid} tok.step already:${tok.step}`);
             } else if(type === "move"){
               // tok.step === 0 means open event was missed (e.g. 6+6+5, only last push received)
               // Snap token to pre-last-move position first, then animate last dice
