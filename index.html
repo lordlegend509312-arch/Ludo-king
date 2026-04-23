@@ -3231,13 +3231,11 @@ function afterRoll(pid,v){
     return;
   }
   if(shouldAutoMove(mv,v)){
-    // Push roll event first so opponent clients see dice animation,
-    // then trigger move after a short delay to ensure roll is written first
-    const rollPush = pushGameState({ action:"roll", dice:v, selectable:[] });
+    // Push roll event first so opponent clients see full dice animation,
+    // then wait DICE_DUR_MS before triggering move — matches opponent animation duration
+    pushGameState({ action:"roll", dice:v, selectable:[] });
     const moveTid = mv[0].tid;
-    Promise.race([rollPush, rafDelay(120)]).then(()=>{
-      setTimeout(()=>doMove(pid,moveTid,v),80);
-    });
+    setTimeout(()=>doMove(pid,moveTid,v), DICE_DUR_MS + 80);
     return;
   }
   G.waiting=true;
@@ -4164,6 +4162,7 @@ applyPerfMode();
   <div style="display:flex;align-items:center;padding:6px 10px;background:#111;gap:8px;">
     <span style="color:#FFD700;font-size:12px;font-weight:bold;">🐛 DEBUG LOG</span>
     <button onclick="document.getElementById('dbg-log').innerHTML=''" style="font-size:10px;padding:2px 8px;background:#333;color:#fff;border:1px solid #555;border-radius:4px;">Clear</button>
+    <button id="dbg-copy-btn" onclick="(function(){const lines=[...document.getElementById('dbg-log').children].map(l=>l.textContent).join('\n');const btn=document.getElementById('dbg-copy-btn');if(navigator.clipboard){navigator.clipboard.writeText(lines).then(()=>{btn.textContent='✅ Copied!';setTimeout(()=>btn.textContent='📋 Copy All',1500);});}else{const ta=document.createElement('textarea');ta.value=lines;ta.style.cssText='position:fixed;opacity:0;';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);btn.textContent='✅ Copied!';setTimeout(()=>btn.textContent='📋 Copy All',1500);}})()" style="font-size:10px;padding:2px 8px;background:#1a3a1a;color:#0f0;border:1px solid #0f0;border-radius:4px;">📋 Copy All</button>
     <button onclick="document.getElementById('dbg-panel').style.display='none'" style="font-size:10px;padding:2px 8px;background:#333;color:#fff;border:1px solid #555;border-radius:4px;margin-left:auto;">Close</button>
   </div>
   <div id="dbg-log" style="overflow-y:auto;flex:1;padding:6px 10px;font-size:11px;color:#0f0;line-height:1.6;"></div>
