@@ -2885,7 +2885,7 @@ function _doRenderTokens(){
         const isSuper=blockType==='super';
         const shieldOpacity=isSuper?'1':'0.88';
         const gid=`dsg-${tok.pid}-${tok.tid}`;
-        const newCss=`position:absolute;left:0;top:0;width:${sW}px;height:${sH}px;pointer-events:none;transform:translate(${shieldX}px,${shieldY}px);filter:drop-shadow(${isSuper?'0 0 5px rgba(255,200,0,0.95)':'0 0 3px rgba(120,180,255,0.8)'});opacity:${shieldOpacity};z-index:4;`;
+        const newCss=`position:absolute;left:0;top:0;width:${sW}px;height:${sH}px;pointer-events:none;transform:translate(${shieldX}px,${shieldY}px) rotate(${_tokenRotationDeg}deg);transform-origin:${sW/2}px ${sH/2}px;filter:drop-shadow(${isSuper?'0 0 5px rgba(255,200,0,0.95)':'0 0 3px rgba(120,180,255,0.8)'});opacity:${shieldOpacity};z-index:4;`;
         if(els.shield._lastCss!==newCss){els.shield.style.cssText=newCss;els.shield._lastCss=newCss;}
         const shieldSvgKey=`${blockType}|${Math.round(sW)}`;
         if(els.shield._lastType!==blockType||els.shield._lastSvgKey!==shieldSvgKey){
