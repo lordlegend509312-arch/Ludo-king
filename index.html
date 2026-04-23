@@ -960,27 +960,16 @@ function _applySyncGameState(data){
     }
     const applyFinalState = () => {
       const prevTurn = G.turn;
-      // FIX: Clear stale pending move/roll events from same player first
-      // (e.g. 6+6+any background sync — stale queued events would snap token back)
-      if(rolledBy != null){
-        const beforeLen = _syncAnimPending.length;
-        _syncAnimPending = _syncAnimPending.filter(p =>
-          !(p.actionBy === rolledBy && (p.action === "move" || p.action === "roll"))
-        );
-        const afterLen = _syncAnimPending.length;
-        if(beforeLen !== afterLen){
-          console.log(`[SYNC] applyFinalState cleared ${beforeLen - afterLen} stale event(s) for seat:${rolledBy} | queueLen now:${afterLen}`);
-        }
-      }
-      // FIX: Only overwrite G.tokens when queue is empty — if more moves are pending
-      // (e.g. 6+6+5 queued), don't overwrite token positions yet or steps=0 and
-      // pending animations will have nothing to animate.
-      const hasPendingMoves = _syncAnimPending.some(p => p.action === "move" && p.actionBy === rolledBy);
+      // FIX: Only overwrite G.tokens when no more move events are pending for this player.
+      // If 6+6+5 happened, queue has 2 moves — don't overwrite tok positions or
+      // pending animations will see steps=0 and skip. Last move's applyFinalState
+      // (when queue is empty) will correctly set final token state.
+      const hasPendingMoves = rolledBy != null && _syncAnimPending.some(p => p.action === "move" && p.actionBy === rolledBy);
       if(data.tokens && !hasPendingMoves){
         G.tokens = JSON.parse(JSON.stringify(data.tokens));
-        console.log(`[SYNC] applyFinalState: G.tokens updated (no pending moves)`);
+        console.log(`[SYNC] applyFinalState: tokens updated, pending:0`);
       } else if(hasPendingMoves){
-        console.log(`[SYNC] applyFinalState: G.tokens NOT updated — pending moves still in queue`);
+        console.log(`[SYNC] applyFinalState: tokens deferred — ${_syncAnimPending.filter(p=>p.action==="move"&&p.actionBy===rolledBy).length} move(s) pending for seat:${rolledBy}`);
       }
       G.turn       = data.turn;
       G.rolled     = false;
