@@ -155,6 +155,16 @@
   </div>
 </div>
 
+<!-- Sound Tester Panel (10-tap easter egg) -->
+<div id="sfx-tester" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9000;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div style="color:var(--gold);font-size:1.1rem;font-weight:900;font-family:'Rajdhani',sans-serif;letter-spacing:2px;">🔊 SOUND TESTER</div>
+      <button onclick="document.getElementById('sfx-tester').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1;">✕</button>
+    </div>
+    <div id="sfx-btn-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+  </div>
+</div>
 
 <div id="game-wrap">
   <div class="prow" id="top-row" style="align-items:center;"></div>
@@ -259,7 +269,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-
 <script>
 // If Firebase CDN failed (e.g. offline), install a stub so game still runs
 if(!window.firebase){
@@ -297,7 +306,6 @@ const SFX = (() => {
   let _masterGain = null;
   const _buffers = {};
   const _pending = []; // sounds queued before ctx ready
-  const _extraQueue = []; // sounds.js wale sounds — unlock ke baad decode karo
 
   function _getCtx(){
     if(!_ctx){
@@ -309,32 +317,20 @@ const SFX = (() => {
     return _ctx;
   }
 
-  // First user touch/click — resume ctx and ensure all sounds are decoded.
-  // _initSounds() may have already run from init() — _load() is safe to re-call
-  // because it only re-decodes if the buffer isn't already in _buffers.
+  // First user touch/click — create+resume ctx, then decode sounds
   let _unlocked = false;
   async function _unlock(){
     if(_unlocked) return;
     _unlocked = true;
     const ctx = _getCtx();
     if(ctx.state === 'suspended') await ctx.resume();
-    // Re-run to catch any buffers that failed before gesture (iOS silent fail)
     await _initSounds();
-    // sounds.js ke extra sounds jo unlock se pehle register hue — ab decode karo
-    for(const {name, b64, vol, rate} of _extraQueue){
-      await _load(name, b64);
-      SFX[name] = () => _play(name, vol, rate);
-    }
-    _extraQueue.length = 0;
   }
 
-  // Decode base64 WAV/MP3 string → AudioBuffer, store by name.
-  // Idempotent — skips re-decoding if buffer already loaded successfully.
+  // Decode base64 WAV/MP3 string → AudioBuffer, store by name
   async function _load(name, b64){
-    if(_buffers[name]) return; // already loaded, skip
     try {
       const ctx = _getCtx();
-      if(ctx.state === 'suspended') await ctx.resume();
       const bin = atob(b64);
       const bytes = new Uint8Array(bin.length);
       for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
@@ -350,18 +346,15 @@ const SFX = (() => {
     if(!buf){ return; }
     try {
       const ctx = _getCtx();
-      const _doPlay = () => {
-        const src = ctx.createBufferSource();
-        src.buffer = buf;
-        src.playbackRate.value = rate;
-        const gain = ctx.createGain();
-        gain.gain.value = vol;
-        src.connect(gain);
-        gain.connect(_masterGain);
-        src.start(0);
-      };
-      if(ctx.state === 'suspended'){ ctx.resume().then(_doPlay); return; }
-      _doPlay();
+      if(ctx.state === 'suspended'){ ctx.resume(); return; }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = rate;
+      const gain = ctx.createGain();
+      gain.gain.value = vol;
+      src.connect(gain);
+      gain.connect(_masterGain);
+      src.start(0);
     } catch(e){}
   }
 
@@ -397,55 +390,207 @@ const SFX = (() => {
   }
 
   // Init — register unlock on first gesture (iOS/Android AudioContext requirement)
-  // Do NOT call _initSounds() here — AudioContext created before gesture will be
-  // suspended and decodeAudioData will silently fail on mobile/Safari.
-  // Instead, _unlock() will call _initSounds() after the first user gesture.
+  // Aur saare sounds lobby mein hi preload karo
   function init(){
-    const _handleGesture = () => _unlock();
-    document.addEventListener('touchstart', _handleGesture, {passive:true});
-    document.addEventListener('touchend',   _handleGesture, {passive:true});
-    document.addEventListener('click',      _handleGesture, {passive:true});
-    document.addEventListener('keydown',    _handleGesture, {passive:true});
+    document.addEventListener('touchstart', _unlock, {once:true});
+    document.addEventListener('touchend',   _unlock, {once:true});
+    document.addEventListener('click',      _unlock, {once:true});
+    _initSounds();
   }
 
   const noop = () => {};
 
   return {
     init,
-    unlock: _unlock,
     toggleMute,
     isMuted: () => _muted,
     // ── Triggers ──
     diceRoll:      () => _play('dice', 1.0),
-    rolledSix:     () => _play('dice', 1.2, 1.15),       // slightly higher pitch for six
-    noMove:        () => _play('capture', 0.5, 0.6),     // low thud — no valid move
-    threeSixesSkip:() => _play('capture', 0.7, 0.5),     // deep thud — penalised skip
+    rolledSix:     () => _play('dice', 1.0),
+    noMove: () => {
+      if(_muted) return;
+      const ctx = _getCtx();
+      if(!ctx || ctx.state==='suspended') return;
+      // Short low thud — "nope"
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(180, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.18);
+      gain.gain.setValueAtTime(0.28, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+      osc.connect(gain); gain.connect(_masterGain);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.25);
+    },
+    threeSixesSkip: () => {
+      if(_muted) return;
+      const ctx = _getCtx();
+      if(!ctx || ctx.state==='suspended') return;
+      // Descending triple buzz — "too greedy!"
+      [0, 0.10, 0.20].forEach((delay, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(300 - i*60, ctx.currentTime + delay);
+        gain.gain.setValueAtTime(0.22, ctx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.12);
+        osc.connect(gain); gain.connect(_masterGain);
+        osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.15);
+      });
+    },
     tokenStep:     () => _play('step', 0.8),
-    tokenSpawn:    () => _play('step', 1.0, 1.4),        // bright high click — token enters board
+    tokenSpawn: () => {
+      if(_muted) return;
+      const ctx = _getCtx();
+      if(!ctx || ctx.state==='suspended') return;
+      // Quick rising pop — token enters board
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(280, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(560, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.28, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+      osc.connect(gain); gain.connect(_masterGain);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.20);
+    },
     tokenCapture:  () => _play('capture', 1.0, 1.5),
-    homeStretch:   () => _play('star', 0.7, 0.85),       // softer star chime — entering home stretch
+    homeStretch: () => {
+      if(_muted) return;
+      const ctx = _getCtx();
+      if(!ctx || ctx.state==='suspended') return;
+      // Ascending two-note chime — "almost there!"
+      [[523.25, 0], [783.99, 0.14]].forEach(([freq, delay]) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+        gain.gain.linearRampToValueAtTime(0.22, ctx.currentTime + delay + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.32);
+        osc.connect(gain); gain.connect(_masterGain);
+        osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.35);
+      });
+    },
     safeStar:      () => _play('star', 1.0),
     tokenDone:     () => _play('done', 1.0),
-    reverseWalk:   () => _play('step', 0.5, 0.7),        // low reversed-feeling step
+    reverseWalk:   noop,
+    rankUp: () => {
+      if(_muted) return;
+      const ctx = _getCtx();
+      if(!ctx || ctx.state==='suspended') return;
+      // Short celebratory two-note rise
+      [[659.25, 0], [1046.50, 0.12]].forEach(([freq, delay]) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+        gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + delay + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.28);
+        osc.connect(gain); gain.connect(_masterGain);
+        osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.30);
+      });
+    },
+    lastPlace: () => {
+      if(_muted) return;
+      const ctx = _getCtx();
+      if(!ctx || ctx.state==='suspended') return;
+      // Sad trombone-ish descend
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(350, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 0.55);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.60);
+      osc.connect(gain); gain.connect(_masterGain);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.65);
+    },
+    win: () => {
+      if(_muted) return;
+      const ctx = _getCtx();
+      if(!ctx || ctx.state==='suspended') return;
+      // Triumphant ascending fanfare: C5 E5 G5 C6
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      const times = [0, 0.12, 0.24, 0.38];
+      const durs  = [0.18, 0.18, 0.18, 0.55];
+      notes.forEach((freq, i) => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, ctx.currentTime + times[i]);
+        gain.gain.linearRampToValueAtTime(0.38, ctx.currentTime + times[i] + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + times[i] + durs[i]);
+        osc.connect(gain);
+        gain.connect(_masterGain);
+        osc.start(ctx.currentTime + times[i]);
+        osc.stop(ctx.currentTime + times[i] + durs[i]);
+      });
+      // Extra sparkle layer — high sine shimmer
+      [1318.5, 1567.98].forEach((freq, i) => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, ctx.currentTime + 0.38 + i*0.08);
+        gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.40 + i*0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.75 + i*0.08);
+        osc.connect(gain);
+        gain.connect(_masterGain);
+        osc.start(ctx.currentTime + 0.38 + i*0.08);
+        osc.stop(ctx.currentTime + 0.80 + i*0.08);
+      });
+    },
+    lose: () => {
+      if(_muted) return;
+      const ctx = _getCtx();
+      if(!ctx || ctx.state==='suspended') return;
+      // Sad descending: G4 E4 C4 B3
+      const notes = [392.00, 329.63, 261.63, 246.94];
+      const times = [0, 0.18, 0.36, 0.54];
+      const durs  = [0.22, 0.22, 0.22, 0.55];
+      notes.forEach((freq, i) => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, ctx.currentTime + times[i]);
+        gain.gain.linearRampToValueAtTime(0.28, ctx.currentTime + times[i] + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + times[i] + durs[i]);
+        osc.connect(gain);
+        gain.connect(_masterGain);
+        osc.start(ctx.currentTime + times[i]);
+        osc.stop(ctx.currentTime + times[i] + durs[i]);
+      });
+    },
     gameStart:     () => _play('gamestart', 1.0),
-    chatPing:      () => _play('step', 0.6, 1.6),        // short bright tick for chat
-    rankUp:        () => _play('done', 1.0),
-    lastPlace:     () => _play('capture', 0.8, 0.7),
+    chatPing: () => {
+      if(_muted) return;
+      const ctx = _getCtx();
+      if(!ctx || ctx.state==='suspended') return;
+      // Soft notification ding
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 1046.50; // C6
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.30);
+      osc.connect(gain); gain.connect(_masterGain);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.32);
+    },
     // sounds.js ke liye public hook — registerExtra('win', base64str) call karo
     registerExtra(name, b64, vol=1.0, rate=1.0) {
-      if(_unlocked){
-        // Already unlocked — seedha decode karo
-        _load(name, b64).then(() => { SFX[name] = () => _play(name, vol, rate); });
-      } else {
-        // Unlock se pehle call hua — queue mein daal, _unlock() mein process hoga
-        _extraQueue.push({name, b64, vol, rate});
-      }
+      _load(name, b64).then(() => {
+        SFX[name] = () => _play(name, vol, rate);
+      });
     },
   };
 })();
 </script>
 <script>document.addEventListener("DOMContentLoaded", function(){
-SFX.init(); // Lobby pe hi init karo — har mode ke liye
 const firebaseConfig = {
   apiKey: "AIzaSyCCbwUS-MK4Ic8Tyd_FIBOQTwdfP0kZ_YM",
   authDomain: "ludo-king-ka-baap.firebaseapp.com",
@@ -960,9 +1105,7 @@ async function loadAndStartGame(){
   const _myColorNames={[BLUE]:"Blue",[PINK]:"Pink",[YELLOW]:"Yellow",[GREEN]:"Green"};
   showToast("Game started! You are "+(_myColorNames[SEAT_COLOR[MY_SEAT]]||""));
   saveSession();
-  // SFX.init() already called on DOMContentLoaded — calling again re-registers {once:true}
-  // listeners unnecessarily. Just unlock to ensure AudioContext is resumed.
-  SFX.unlock();
+  SFX.init();
   SFX.gameStart();
   _gameLoaded = true;
 }
@@ -1552,9 +1695,9 @@ function _updateOfflineBadge(seat, isOffline){
   const mainTxt = document.getElementById(`offmain-${seat}`);
   if(mainTxt){
     if(myVote){
-      mainTxt.innerHTML = 'Tap to vote';
+      mainTxt.textContent = '✓ Voted';
     } else {
-      mainTxt.innerHTML = 'Tap to vote';
+      mainTxt.textContent = 'Tap to vote';
     }
   }
   const txt = document.getElementById(`offtxt-${seat}`);
@@ -3251,6 +3394,7 @@ function stopTurnTimer(){
   if(!Array.isArray(PLAYERS) || !PLAYERS.length) return;
   try {
     const seat = _timerSeat >= 0 ? _timerSeat : -1;
+    _timerSeat = -1; // reset immediately — DOM ops ke throw hone par bhi stale nahi rahega
     if(seat >= 0){
       const bar = _domCache.tbar[seat] || document.getElementById(`tbar-${seat}`);
       if(bar){
@@ -3260,7 +3404,6 @@ function stopTurnTimer(){
         bar.style.stroke = 'none';  // turn khatam — line hide
       }
     }
-    _timerSeat = -1;
   } catch(e) {}
 }
 async function _onTurnTimerExpired(seat){
@@ -3530,9 +3673,7 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer,visualSc
     const tipDY = tipFromCenter * Math.cos(rad);
     const dx=endX-startX, dy=endY-startY;
     if(layer && !PERF_MODE && (++_trailSkip%3===0))spawnTrailDot(startX,startY,color,layer);
-    // Play step sound at ~55% through the jump arc (peak of the hop)
-    const STEP_SOUND_RATIO = 0.55;
-    setTimeout(()=>SFX.tokenStep(), Math.round(JUMP_MS * STEP_SOUND_RATIO));
+    setTimeout(()=>SFX.tokenStep(), Math.round(JUMP_MS * 0.55));
     let _lastShadowKey='';
     function tick(now){
       if(!t0) t0=now;
@@ -3933,13 +4074,7 @@ function endGame(){
     : isIWinner
       ? `🎉 You Win! ${winColorEmoji}`
       : `💩 ${loserName} Lost!`;
-  // Play sounds.js win fanfare if registered via registerExtra('win', ...).
-  // This was the root cause of "game finish pe koi sound nahi" — SFX.win existed
-  // in sounds.js but was never called anywhere in endGame().
-  if(typeof SFX.win === 'function') SFX.win();
-  if(isIWinner) SFX.rankUp?.();
-  else if(isILoser) SFX.lastPlace?.();
-  else SFX.rankUp?.(); // 2nd / 3rd place — not a loss, play a positive sound
+  if(isIWinner) SFX.win(); else SFX.lose();
   document.getElementById("win-msg").textContent=heading;
   // Build Neon Arcade ranking card
   (function(){
@@ -4085,6 +4220,8 @@ if(window.visualViewport){
 }
 let _chatToggleTs = 0;
 window.toggleChat = function(){
+  // Chat sirf in-game kaam karta hai — lobby mein nahi
+  if(!ROOM_CODE || !_gameLoaded) return;
   const now = Date.now();
   if(now - _chatToggleTs < 600) return;
   _chatToggleTs = now;
@@ -4406,7 +4543,6 @@ window.launchTestMode = function(){
   applyBoardRotation();
   setSyncStatus("ok");
   _gameLoaded = true; // required: syncGameState + timer guards check this
-  SFX.unlock(); // button tap = user gesture, AudioContext resume karo
   refreshUI();
   renderTokens();
   updateTurnBanner();
@@ -4414,6 +4550,7 @@ window.launchTestMode = function(){
   _scrub.pid = 3;
   _scrub.tid = null;
   showToast("Test Mode — You are Blue (seat 3)");
+  SFX.init();
 };
 bindBtn("btn-resume",       ()=>window.togglePause());
 bindBtn("btn-leave-pause",  ()=>window.leaveToLobby());
@@ -4466,17 +4603,51 @@ if(_rcDisplay){
 }
 bindBtn("btn-mute", ()=>SFX.toggleMute());
 
-// ── Crown Easter Egg — 10 taps ──
+// ── Crown Easter Egg — 10 taps = Sound Tester ──
 (function(){
   let _taps = 0, _tapTimer = null;
   const crown = document.getElementById('lobby-crown');
   if(!crown) return;
   const crownTarget = crown.parentElement || crown;
 
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9000;';
-  overlay.addEventListener('click', ()=>{ overlay.style.display='none'; });
-  document.body.appendChild(overlay);
+  const SFX_LIST = [
+    { name: 'Dice Roll',      fn: ()=>SFX.diceRoll() },
+    { name: 'Token Step',     fn: ()=>SFX.tokenStep() },
+    { name: 'Token Capture',  fn: ()=>SFX.tokenCapture() },
+    { name: 'Safe Star',      fn: ()=>SFX.safeStar() },
+    { name: 'Token Done',     fn: ()=>SFX.tokenDone() },
+    { name: 'Home Stretch',   fn: ()=>SFX.homeStretch() },
+    { name: 'Token Spawn',    fn: ()=>SFX.tokenSpawn() },
+    { name: 'No Move',        fn: ()=>SFX.noMove() },
+    { name: '3 Sixes Skip',   fn: ()=>SFX.threeSixesSkip() },
+    { name: 'Game Start',     fn: ()=>SFX.gameStart() },
+    { name: 'Chat Ping',      fn: ()=>SFX.chatPing() },
+    { name: 'Rank Up',        fn: ()=>SFX.rankUp?.() },
+    { name: 'Last Place',     fn: ()=>SFX.lastPlace?.() },
+    { name: 'Win',            fn: ()=>SFX.win() },
+    { name: 'Lose',           fn: ()=>SFX.lose() },
+  ];
+
+  function buildPanel(){
+    const grid = document.getElementById('sfx-btn-grid');
+    if(!grid || grid.childElementCount > 0) return;
+    SFX_LIST.forEach(s => {
+      const btn = document.createElement('button');
+      btn.textContent = s.name;
+      btn.style.cssText = `
+        padding:10px 8px;background:var(--surface2);border:1.5px solid var(--border2);
+        border-radius:10px;color:var(--text);font-size:.78rem;font-weight:700;
+        font-family:'Nunito',sans-serif;cursor:pointer;transition:all 0.12s;text-align:center;
+      `;
+      btn.addEventListener('click', ()=>{
+        s.fn();
+        btn.style.borderColor = 'var(--gold)';
+        btn.style.background = 'rgba(245,197,24,.15)';
+        setTimeout(()=>{ btn.style.borderColor='var(--border2)'; btn.style.background='var(--surface2)'; }, 400);
+      });
+      grid.appendChild(btn);
+    });
+  }
 
   crownTarget.addEventListener('click', ()=>{
     _taps++;
@@ -4484,7 +4655,8 @@ bindBtn("btn-mute", ()=>SFX.toggleMute());
     _tapTimer = setTimeout(()=>{ _taps = 0; }, 800);
     if(_taps >= 10){
       _taps = 0;
-      overlay.style.display = 'block';
+      buildPanel();
+      document.getElementById('sfx-tester').style.display = 'flex';
     }
   });
 })();
