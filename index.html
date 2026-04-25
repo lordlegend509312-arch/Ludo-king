@@ -429,8 +429,8 @@ const SFX = (() => {
     reverseWalk:   noop,
     gameStart:     () => _play('gamestart', 1.0),
     chatPing:      noop,
-    rankUp:        noop,
-    lastPlace:     noop,
+    rankUp:        () => _play('done', 1.0),
+    lastPlace:     () => _play('capture', 0.8, 0.7),
     // sounds.js ke liye public hook — registerExtra('win', base64str) call karo
     registerExtra(name, b64, vol=1.0, rate=1.0) {
       _load(name, b64).then(() => {
@@ -4469,10 +4469,10 @@ bindBtn("btn-mute", ()=>SFX.toggleMute());
     { name: '3 Sixes Skip',   fn: ()=>SFX.threeSixesSkip() },
     { name: 'Game Start',     fn: ()=>SFX.gameStart() },
     { name: 'Chat Ping',      fn: ()=>SFX.chatPing() },
-    { name: 'Rank Up',        fn: ()=>SFX.rankUp?.() },
-    { name: 'Last Place',     fn: ()=>SFX.lastPlace?.() },
-    { name: 'Win',            fn: ()=>SFX.rankUp?.() },
-    { name: 'Lose',           fn: ()=>SFX.lastPlace?.() },
+    { name: 'Rank Up',        fn: ()=>SFX.rankUp() },
+    { name: 'Last Place',     fn: ()=>SFX.lastPlace() },
+    { name: 'Win',            fn: ()=>SFX.rankUp() },
+    { name: 'Lose',           fn: ()=>SFX.lastPlace() },
   ];
 
   function buildPanel(){
@@ -4504,6 +4504,10 @@ bindBtn("btn-mute", ()=>SFX.toggleMute());
     if(_taps >= 10){
       _taps = 0;
       SFX.init();
+      // sounds.js ko re-trigger karo agar available hai
+      if(typeof window.attachSounds === 'function') {
+        setTimeout(()=>window.attachSounds(), 200);
+      }
       buildPanel();
       document.getElementById('sfx-tester').style.display = 'flex';
     }
