@@ -259,7 +259,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="sounds.js"></script>
+
 <script>
 // If Firebase CDN failed (e.g. offline), install a stub so game still runs
 if(!window.firebase){
@@ -397,15 +397,15 @@ const SFX = (() => {
   }
 
   // Init — register unlock on first gesture (iOS/Android AudioContext requirement)
-  // Also kick off _initSounds() immediately — on desktop (Chrome/Firefox) AudioContext
-  // is not suspended so decoding succeeds right away. On iOS/Safari the ctx will be
-  // suspended and decodeAudioData may fail silently, but _unlock() will retry after
-  // the first user gesture, ensuring buffers are loaded before any sound is needed.
+  // Do NOT call _initSounds() here — AudioContext created before gesture will be
+  // suspended and decodeAudioData will silently fail on mobile/Safari.
+  // Instead, _unlock() will call _initSounds() after the first user gesture.
   function init(){
-    document.addEventListener('touchstart', _unlock, {once:true});
-    document.addEventListener('touchend',   _unlock, {once:true});
-    document.addEventListener('click',      _unlock, {once:true});
-    _initSounds();
+    const _handleGesture = () => _unlock();
+    document.addEventListener('touchstart', _handleGesture, {passive:true});
+    document.addEventListener('touchend',   _handleGesture, {passive:true});
+    document.addEventListener('click',      _handleGesture, {passive:true});
+    document.addEventListener('keydown',    _handleGesture, {passive:true});
   }
 
   const noop = () => {};
