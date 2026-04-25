@@ -404,6 +404,7 @@ const SFX = (() => {
 
   return {
     init,
+    unlock: _unlock,
     toggleMute,
     isMuted: () => _muted,
     // ── Triggers ──
@@ -4383,6 +4384,7 @@ window.launchTestMode = function(){
   setSyncStatus("ok");
   _gameLoaded = true; // required: syncGameState + timer guards check this
   SFX.init();
+  SFX.unlock(); // AudioContext resume karo — button click gesture ke andar hai
   SFX.gameStart();
   refreshUI();
   renderTokens();
