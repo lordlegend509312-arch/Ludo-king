@@ -356,14 +356,7 @@ const SFX = (() => {
         src.start(0);
       };
       if(ctx.state === 'suspended'){ ctx.resume().then(_doPlay); return; }
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.playbackRate.value = rate;
-      const gain = ctx.createGain();
-      gain.gain.value = vol;
-      src.connect(gain);
-      gain.connect(_masterGain);
-      src.start(0);
+      _doPlay();
     } catch(e){}
   }
 
@@ -399,12 +392,13 @@ const SFX = (() => {
   }
 
   // Init — register unlock on first gesture (iOS/Android AudioContext requirement)
-  // Aur saare sounds lobby mein hi preload karo
+  // _unlock() already calls _initSounds() after ctx is ready — don't call it here
+  // (calling _initSounds() before first gesture creates a suspended ctx on iOS/Safari
+  //  and the decodeAudioData calls silently fail, leaving _buffers empty)
   function init(){
     document.addEventListener('touchstart', _unlock, {once:true});
     document.addEventListener('touchend',   _unlock, {once:true});
     document.addEventListener('click',      _unlock, {once:true});
-    _initSounds();
   }
 
   const noop = () => {};
@@ -416,18 +410,18 @@ const SFX = (() => {
     isMuted: () => _muted,
     // ── Triggers ──
     diceRoll:      () => _play('dice', 1.0),
-    rolledSix:     () => _play('dice', 1.0),
-    noMove:        noop,
-    threeSixesSkip:noop,
+    rolledSix:     () => _play('dice', 1.2, 1.15),       // slightly higher pitch for six
+    noMove:        () => _play('capture', 0.5, 0.6),     // low thud — no valid move
+    threeSixesSkip:() => _play('capture', 0.7, 0.5),     // deep thud — penalised skip
     tokenStep:     () => _play('step', 0.8),
-    tokenSpawn:    noop,
+    tokenSpawn:    () => _play('step', 1.0, 1.4),        // bright high click — token enters board
     tokenCapture:  () => _play('capture', 1.0, 1.5),
-    homeStretch:   noop,
+    homeStretch:   () => _play('star', 0.7, 0.85),       // softer star chime — entering home stretch
     safeStar:      () => _play('star', 1.0),
     tokenDone:     () => _play('done', 1.0),
-    reverseWalk:   noop,
+    reverseWalk:   () => _play('step', 0.5, 0.7),        // low reversed-feeling step
     gameStart:     () => _play('gamestart', 1.0),
-    chatPing:      noop,
+    chatPing:      () => _play('step', 0.6, 1.6),        // short bright tick for chat
     rankUp:        () => _play('done', 1.0),
     lastPlace:     () => _play('capture', 0.8, 0.7),
     // sounds.js ke liye public hook — registerExtra('win', base64str) call karo
@@ -959,7 +953,9 @@ async function loadAndStartGame(){
   const _myColorNames={[BLUE]:"Blue",[PINK]:"Pink",[YELLOW]:"Yellow",[GREEN]:"Green"};
   showToast("Game started! You are "+(_myColorNames[SEAT_COLOR[MY_SEAT]]||""));
   saveSession();
-  SFX.init();
+  // SFX.init() already called on DOMContentLoaded — calling again re-registers {once:true}
+  // listeners unnecessarily. Just unlock to ensure AudioContext is resumed.
+  SFX.unlock();
   SFX.gameStart();
   _gameLoaded = true;
 }
@@ -3527,7 +3523,9 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer,visualSc
     const tipDY = tipFromCenter * Math.cos(rad);
     const dx=endX-startX, dy=endY-startY;
     if(layer && !PERF_MODE && (++_trailSkip%3===0))spawnTrailDot(startX,startY,color,layer);
-    setTimeout(()=>SFX.tokenStep(), Math.round(JUMP_MS * 0.55));
+    // Play step sound at ~55% through the jump arc (peak of the hop)
+    const STEP_SOUND_RATIO = 0.55;
+    setTimeout(()=>SFX.tokenStep(), Math.round(JUMP_MS * STEP_SOUND_RATIO));
     let _lastShadowKey='';
     function tick(now){
       if(!t0) t0=now;
@@ -3928,7 +3926,13 @@ function endGame(){
     : isIWinner
       ? `🎉 You Win! ${winColorEmoji}`
       : `💩 ${loserName} Lost!`;
-  if(isIWinner) SFX.rankUp?.(); else SFX.lastPlace?.();
+  // Play sounds.js win fanfare if registered via registerExtra('win', ...).
+  // This was the root cause of "game finish pe koi sound nahi" — SFX.win existed
+  // in sounds.js but was never called anywhere in endGame().
+  if(typeof SFX.win === 'function') SFX.win();
+  if(isIWinner) SFX.rankUp?.();
+  else if(isILoser) SFX.lastPlace?.();
+  else SFX.rankUp?.(); // 2nd / 3rd place — not a loss, play a positive sound
   document.getElementById("win-msg").textContent=heading;
   // Build Neon Arcade ranking card
   (function(){
