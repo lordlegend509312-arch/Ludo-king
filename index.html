@@ -332,6 +332,7 @@ const SFX = (() => {
   async function _load(name, b64){
     try {
       const ctx = _getCtx();
+      if(ctx.state === 'suspended') await ctx.resume();
       const bin = atob(b64);
       const bytes = new Uint8Array(bin.length);
       for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
@@ -4488,7 +4489,7 @@ bindBtn("btn-mute", ()=>SFX.toggleMute());
       `;
       btn.addEventListener('click', ()=>{
         SFX.init(); // ensure unlocked on every tap
-        setTimeout(()=>s.fn(), 80); // small delay for ctx to resume
+        setTimeout(()=>s.fn(), 150); // small delay for ctx to resume
         btn.style.borderColor = 'var(--gold)';
         btn.style.background = 'rgba(245,197,24,.15)';
         setTimeout(()=>{ btn.style.borderColor='var(--border2)'; btn.style.background='var(--surface2)'; }, 400);
@@ -4504,10 +4505,6 @@ bindBtn("btn-mute", ()=>SFX.toggleMute());
     if(_taps >= 10){
       _taps = 0;
       SFX.init();
-      // sounds.js ko re-trigger karo agar available hai
-      if(typeof window.attachSounds === 'function') {
-        setTimeout(()=>window.attachSounds(), 200);
-      }
       buildPanel();
       document.getElementById('sfx-tester').style.display = 'flex';
     }
