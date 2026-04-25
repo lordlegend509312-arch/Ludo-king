@@ -269,6 +269,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="sounds.js"></script>
 <script>
 // If Firebase CDN failed (e.g. offline), install a stub so game still runs
 if(!window.firebase){
@@ -426,66 +427,6 @@ const SFX = (() => {
     safeStar:      () => _play('star', 1.0),
     tokenDone:     () => _play('done', 1.0),
     reverseWalk:   noop,
-    win: () => {
-      if(_muted) return;
-      const ctx = _getCtx();
-      if(!ctx) return;
-      if(ctx.state==='suspended'){ ctx.resume().then(()=>SFX.win()); return; }
-      // Triumphant ascending fanfare: C5 E5 G5 C6
-      const notes = [523.25, 659.25, 783.99, 1046.50];
-      const times = [0, 0.12, 0.24, 0.38];
-      const durs  = [0.18, 0.18, 0.18, 0.55];
-      notes.forEach((freq, i) => {
-        const osc  = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0, ctx.currentTime + times[i]);
-        gain.gain.linearRampToValueAtTime(0.38, ctx.currentTime + times[i] + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + times[i] + durs[i]);
-        osc.connect(gain);
-        gain.connect(_masterGain);
-        osc.start(ctx.currentTime + times[i]);
-        osc.stop(ctx.currentTime + times[i] + durs[i]);
-      });
-      // Extra sparkle layer — high sine shimmer
-      [1318.5, 1567.98].forEach((freq, i) => {
-        const osc  = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0, ctx.currentTime + 0.38 + i*0.08);
-        gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.40 + i*0.08);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.75 + i*0.08);
-        osc.connect(gain);
-        gain.connect(_masterGain);
-        osc.start(ctx.currentTime + 0.38 + i*0.08);
-        osc.stop(ctx.currentTime + 0.80 + i*0.08);
-      });
-    },
-    lose: () => {
-      if(_muted) return;
-      const ctx = _getCtx();
-      if(!ctx) return;
-      if(ctx.state==='suspended'){ ctx.resume().then(()=>SFX.lose()); return; }
-      // Sad descending: G4 E4 C4 B3
-      const notes = [392.00, 329.63, 261.63, 246.94];
-      const times = [0, 0.18, 0.36, 0.54];
-      const durs  = [0.22, 0.22, 0.22, 0.55];
-      notes.forEach((freq, i) => {
-        const osc  = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0, ctx.currentTime + times[i]);
-        gain.gain.linearRampToValueAtTime(0.28, ctx.currentTime + times[i] + 0.04);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + times[i] + durs[i]);
-        osc.connect(gain);
-        gain.connect(_masterGain);
-        osc.start(ctx.currentTime + times[i]);
-        osc.stop(ctx.currentTime + times[i] + durs[i]);
-      });
-    },
     gameStart:     () => _play('gamestart', 1.0),
     chatPing:      noop,
     rankUp:        noop,
@@ -3983,7 +3924,7 @@ function endGame(){
     : isIWinner
       ? `🎉 You Win! ${winColorEmoji}`
       : `💩 ${loserName} Lost!`;
-  if(isIWinner) SFX.win(); else SFX.lose();
+  if(isIWinner) SFX.rankUp?.(); else SFX.lastPlace?.();
   document.getElementById("win-msg").textContent=heading;
   // Build Neon Arcade ranking card
   (function(){
@@ -4530,8 +4471,8 @@ bindBtn("btn-mute", ()=>SFX.toggleMute());
     { name: 'Chat Ping',      fn: ()=>SFX.chatPing() },
     { name: 'Rank Up',        fn: ()=>SFX.rankUp?.() },
     { name: 'Last Place',     fn: ()=>SFX.lastPlace?.() },
-    { name: 'Win',            fn: ()=>SFX.win() },
-    { name: 'Lose',           fn: ()=>SFX.lose() },
+    { name: 'Win',            fn: ()=>SFX.rankUp?.() },
+    { name: 'Lose',           fn: ()=>SFX.lastPlace?.() },
   ];
 
   function buildPanel(){
@@ -4562,9 +4503,8 @@ bindBtn("btn-mute", ()=>SFX.toggleMute());
     _tapTimer = setTimeout(()=>{ _taps = 0; }, 800);
     if(_taps >= 10){
       _taps = 0;
+      SFX.init();
       buildPanel();
-      SFX.init(); // unlock AudioContext + load buffers if not already done
-      // Force unlock on next gesture — tester button clicks will work
       document.getElementById('sfx-tester').style.display = 'flex';
     }
   });
