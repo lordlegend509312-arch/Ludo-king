@@ -366,6 +366,8 @@ const SFX = (() => {
     await _load('star', _STAR_B64);
     await _load('done', _DONE_B64);
     await _load('gamestart', _GAMESTART_B64);
+    await _load('win',  _win_B64);
+    await _load('lose', _lose_B64);
   }
 
   // ── Public API ──
@@ -463,8 +465,8 @@ const SFX = (() => {
     tokenDone:     () => _play('done', 1.0),
     reverseWalk:   noop,
 
-    win: () => {},
-    lose: () => {},
+    win:  () => _play('win',  1.0),
+    lose: () => _play('lose', 1.0),
     gameStart:     () => _play('gamestart', 1.0),
     chatPing: () => {
       if(_muted) return;
@@ -3868,20 +3870,21 @@ async function doMove(pid,tid,v){
         G.over=true;
         _animating=false;
         await pushGameState({lastAction:"win"});
-        // Last place sound — 3 player mein 3rd, 4 player mein 4th
         const totalActive = PLAYERS.filter(p=>p.active).length;
         const myRank = G.placements.length; // 1-indexed rank of last finisher
-        if(myRank >= totalActive) {
-          SFX.lastPlace();
-        } else {
-          // Game end pe 3rd place (4-player)
-          SFX.rankUp(myRank);
-        }
+        // 4p: 1st/2nd/3rd → win, 4th → lose
+        // 3p: 1st/2nd → win, 3rd → lose
+        // 2p: 1st → win, 2nd → lose
+        const gameOverWinLimit = totalActive >= 4 ? 3 : totalActive >= 3 ? 2 : 1;
+        if(myRank <= gameOverWinLimit) SFX.win(); else SFX.lose();
         endGame();return;
       }
-      // 1st ya 2nd place mila — game chal raha hai
-      const myRankMid = G.placements.length; // 1-indexed
-      SFX.rankUp(myRankMid);
+      // Mid-game placement sound
+      const myRankMid = G.placements.length; // 1-indexed (1=1st, 2=2nd, ...)
+      const totalActiveMid = PLAYERS.filter(p=>p.active).length;
+      // 4p: 1st & 2nd → win | 3p: 1st & 2nd → win | 2p: 1st → win
+      const midWinLimit = totalActiveMid >= 4 ? 2 : totalActiveMid >= 3 ? 2 : 1;
+      if(myRankMid <= midWinLimit) SFX.win();
       // All tokens finished — no bonus, UNLESS a capture also happened on
       // this same move (edge case: finishing step passes through an enemy).
       bonus = captured ? true : false;
@@ -3979,7 +3982,7 @@ function endGame(){
     : isIWinner
       ? `🎉 You Win! ${winColorEmoji}`
       : `💩 ${loserName} Lost!`;
-  if(isIWinner) SFX.win(); else SFX.lose();
+  // (sound already played in the game-over branch before endGame() was called)
   document.getElementById("win-msg").textContent=heading;
   // Build Neon Arcade ranking card
   (function(){
