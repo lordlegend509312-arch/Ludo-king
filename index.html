@@ -155,16 +155,6 @@
   </div>
 </div>
 
-<!-- Sound Tester Panel (10-tap easter egg) -->
-<div id="sfx-tester" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9000;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
-  <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <div style="color:var(--gold);font-size:1.1rem;font-weight:900;font-family:'Rajdhani',sans-serif;letter-spacing:2px;">🔊 SOUND TESTER</div>
-      <button onclick="document.getElementById('sfx-tester').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1;">✕</button>
-    </div>
-    <div id="sfx-btn-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
-  </div>
-</div>
 
 <div id="game-wrap">
   <div class="prow" id="top-row" style="align-items:center;"></div>
@@ -4392,6 +4382,8 @@ window.launchTestMode = function(){
   applyBoardRotation();
   setSyncStatus("ok");
   _gameLoaded = true; // required: syncGameState + timer guards check this
+  SFX.init();
+  SFX.gameStart();
   refreshUI();
   renderTokens();
   updateTurnBanner();
@@ -4451,52 +4443,17 @@ if(_rcDisplay){
 }
 bindBtn("btn-mute", ()=>SFX.toggleMute());
 
-// ── Crown Easter Egg — 10 taps = Sound Tester ──
+// ── Crown Easter Egg — 10 taps ──
 (function(){
   let _taps = 0, _tapTimer = null;
   const crown = document.getElementById('lobby-crown');
   if(!crown) return;
   const crownTarget = crown.parentElement || crown;
 
-  const SFX_LIST = [
-    { name: 'Dice Roll',      fn: ()=>SFX.diceRoll() },
-    { name: 'Token Step',     fn: ()=>SFX.tokenStep() },
-    { name: 'Token Capture',  fn: ()=>SFX.tokenCapture() },
-    { name: 'Safe Star',      fn: ()=>SFX.safeStar() },
-    { name: 'Token Done',     fn: ()=>SFX.tokenDone() },
-    { name: 'Home Stretch',   fn: ()=>SFX.homeStretch() },
-    { name: 'Token Spawn',    fn: ()=>SFX.tokenSpawn() },
-    { name: 'No Move',        fn: ()=>SFX.noMove() },
-    { name: '3 Sixes Skip',   fn: ()=>SFX.threeSixesSkip() },
-    { name: 'Game Start',     fn: ()=>SFX.gameStart() },
-    { name: 'Chat Ping',      fn: ()=>SFX.chatPing() },
-    { name: 'Rank Up',        fn: ()=>SFX.rankUp() },
-    { name: 'Last Place',     fn: ()=>SFX.lastPlace() },
-    { name: 'Win',            fn: ()=>SFX.rankUp() },
-    { name: 'Lose',           fn: ()=>SFX.lastPlace() },
-  ];
-
-  function buildPanel(){
-    const grid = document.getElementById('sfx-btn-grid');
-    if(!grid || grid.childElementCount > 0) return;
-    SFX_LIST.forEach(s => {
-      const btn = document.createElement('button');
-      btn.textContent = s.name;
-      btn.style.cssText = `
-        padding:10px 8px;background:var(--surface2);border:1.5px solid var(--border2);
-        border-radius:10px;color:var(--text);font-size:.78rem;font-weight:700;
-        font-family:'Nunito',sans-serif;cursor:pointer;transition:all 0.12s;text-align:center;
-      `;
-      btn.addEventListener('click', ()=>{
-        SFX.init(); // ensure unlocked on every tap
-        setTimeout(()=>s.fn(), 150); // small delay for ctx to resume
-        btn.style.borderColor = 'var(--gold)';
-        btn.style.background = 'rgba(245,197,24,.15)';
-        setTimeout(()=>{ btn.style.borderColor='var(--border2)'; btn.style.background='var(--surface2)'; }, 400);
-      });
-      grid.appendChild(btn);
-    });
-  }
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9000;';
+  overlay.addEventListener('click', ()=>{ overlay.style.display='none'; });
+  document.body.appendChild(overlay);
 
   crownTarget.addEventListener('click', ()=>{
     _taps++;
@@ -4504,9 +4461,7 @@ bindBtn("btn-mute", ()=>SFX.toggleMute());
     _tapTimer = setTimeout(()=>{ _taps = 0; }, 800);
     if(_taps >= 10){
       _taps = 0;
-      SFX.init();
-      buildPanel();
-      document.getElementById('sfx-tester').style.display = 'flex';
+      overlay.style.display = 'block';
     }
   });
 })();
