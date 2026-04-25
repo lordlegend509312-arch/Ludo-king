@@ -4532,7 +4532,8 @@ bindBtn("btn-mute", ()=>SFX.toggleMute());
         font-family:'Nunito',sans-serif;cursor:pointer;transition:all 0.12s;text-align:center;
       `;
       btn.addEventListener('click', ()=>{
-        s.fn();
+        SFX.init(); // ensure unlocked on every tap
+        setTimeout(()=>s.fn(), 80); // small delay for ctx to resume
         btn.style.borderColor = 'var(--gold)';
         btn.style.background = 'rgba(245,197,24,.15)';
         setTimeout(()=>{ btn.style.borderColor='var(--border2)'; btn.style.background='var(--surface2)'; }, 400);
@@ -4548,6 +4549,8 @@ bindBtn("btn-mute", ()=>SFX.toggleMute());
     if(_taps >= 10){
       _taps = 0;
       buildPanel();
+      SFX.init(); // unlock AudioContext + load buffers if not already done
+      // Force unlock on next gesture — tester button clicks will work
       document.getElementById('sfx-tester').style.display = 'flex';
     }
   });
