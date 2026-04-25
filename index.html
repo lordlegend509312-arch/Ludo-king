@@ -297,6 +297,7 @@ const SFX = (() => {
   let _masterGain = null;
   const _buffers = {};
   const _pending = []; // sounds queued before ctx ready
+  const _extraQueue = []; // sounds.js wale sounds — unlock ke baad decode karo
 
   function _getCtx(){
     if(!_ctx){
@@ -316,6 +317,12 @@ const SFX = (() => {
     const ctx = _getCtx();
     if(ctx.state === 'suspended') await ctx.resume();
     await _initSounds();
+    // sounds.js ke extra sounds jo unlock se pehle register hue — ab decode karo
+    for(const {name, b64, vol, rate} of _extraQueue){
+      await _load(name, b64);
+      SFX[name] = () => _play(name, vol, rate);
+    }
+    _extraQueue.length = 0;
   }
 
   // Decode base64 WAV/MP3 string → AudioBuffer, store by name
@@ -404,7 +411,6 @@ const SFX = (() => {
 
   return {
     init,
-    unlock: _unlock,
     toggleMute,
     isMuted: () => _muted,
     // ── Triggers ──
@@ -425,9 +431,13 @@ const SFX = (() => {
     lastPlace:     () => _play('capture', 0.8, 0.7),
     // sounds.js ke liye public hook — registerExtra('win', base64str) call karo
     registerExtra(name, b64, vol=1.0, rate=1.0) {
-      _load(name, b64).then(() => {
-        SFX[name] = () => _play(name, vol, rate);
-      });
+      if(_unlocked){
+        // Already unlocked — seedha decode karo
+        _load(name, b64).then(() => { SFX[name] = () => _play(name, vol, rate); });
+      } else {
+        // Unlock se pehle call hua — queue mein daal, _unlock() mein process hoga
+        _extraQueue.push({name, b64, vol, rate});
+      }
     },
   };
 })();
@@ -4383,9 +4393,6 @@ window.launchTestMode = function(){
   applyBoardRotation();
   setSyncStatus("ok");
   _gameLoaded = true; // required: syncGameState + timer guards check this
-  SFX.init();
-  SFX.unlock(); // AudioContext resume karo — button click gesture ke andar hai
-  SFX.gameStart();
   refreshUI();
   renderTokens();
   updateTurnBanner();
