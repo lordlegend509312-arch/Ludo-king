@@ -156,15 +156,7 @@
 </div>
 
 <!-- Sound Tester Panel (10-tap easter egg) -->
-<div id="sfx-tester" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9000;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
-  <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:12px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <div style="color:var(--gold);font-size:1.1rem;font-weight:900;font-family:'Rajdhani',sans-serif;letter-spacing:2px;">🔊 SOUND TESTER</div>
-      <button onclick="document.getElementById('sfx-tester').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1;">✕</button>
-    </div>
-    <div id="sfx-btn-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
-  </div>
-</div>
+
 
 <div id="game-wrap">
   <div class="prow" id="top-row" style="align-items:center;"></div>
@@ -475,38 +467,7 @@ const SFX = (() => {
     safeStar:      () => _play('star', 1.0),
     tokenDone:     () => _play('done', 1.0),
     reverseWalk:   noop,
-    rankUp: () => {
-      if(_muted) return;
-      const ctx = _getCtx();
-      if(!ctx || ctx.state==='suspended') return;
-      // Short celebratory two-note rise
-      [[659.25, 0], [1046.50, 0.12]].forEach(([freq, delay]) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0, ctx.currentTime + delay);
-        gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + delay + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.28);
-        osc.connect(gain); gain.connect(_masterGain);
-        osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.30);
-      });
-    },
-    lastPlace: () => {
-      if(_muted) return;
-      const ctx = _getCtx();
-      if(!ctx || ctx.state==='suspended') return;
-      // Sad trombone-ish descend
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(350, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 0.55);
-      gain.gain.setValueAtTime(0.25, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.60);
-      osc.connect(gain); gain.connect(_masterGain);
-      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.65);
-    },
+
     win: () => {
       if(_muted) return;
       const ctx = _getCtx();
@@ -583,8 +544,11 @@ const SFX = (() => {
     },
     // sounds.js ke liye public hook — registerExtra('win', base64str) call karo
     registerExtra(name, b64, vol=1.0, rate=1.0) {
+      const _q = [];
+      SFX[name] = () => _q.push(1); // decode hone tak queue karo
       _load(name, b64).then(() => {
         SFX[name] = () => _play(name, vol, rate);
+        _q.forEach(() => _play(name, vol, rate)); // queued calls flush karo
       });
     },
   };
@@ -4603,63 +4567,6 @@ if(_rcDisplay){
 }
 bindBtn("btn-mute", ()=>SFX.toggleMute());
 
-// ── Crown Easter Egg — 10 taps = Sound Tester ──
-(function(){
-  let _taps = 0, _tapTimer = null;
-  const crown = document.getElementById('lobby-crown');
-  if(!crown) return;
-  const crownTarget = crown.parentElement || crown;
-
-  const SFX_LIST = [
-    { name: 'Dice Roll',      fn: ()=>SFX.diceRoll() },
-    { name: 'Token Step',     fn: ()=>SFX.tokenStep() },
-    { name: 'Token Capture',  fn: ()=>SFX.tokenCapture() },
-    { name: 'Safe Star',      fn: ()=>SFX.safeStar() },
-    { name: 'Token Done',     fn: ()=>SFX.tokenDone() },
-    { name: 'Home Stretch',   fn: ()=>SFX.homeStretch() },
-    { name: 'Token Spawn',    fn: ()=>SFX.tokenSpawn() },
-    { name: 'No Move',        fn: ()=>SFX.noMove() },
-    { name: '3 Sixes Skip',   fn: ()=>SFX.threeSixesSkip() },
-    { name: 'Game Start',     fn: ()=>SFX.gameStart() },
-    { name: 'Chat Ping',      fn: ()=>SFX.chatPing() },
-    { name: 'Rank Up',        fn: ()=>SFX.rankUp?.() },
-    { name: 'Last Place',     fn: ()=>SFX.lastPlace?.() },
-    { name: 'Win',            fn: ()=>SFX.win() },
-    { name: 'Lose',           fn: ()=>SFX.lose() },
-  ];
-
-  function buildPanel(){
-    const grid = document.getElementById('sfx-btn-grid');
-    if(!grid || grid.childElementCount > 0) return;
-    SFX_LIST.forEach(s => {
-      const btn = document.createElement('button');
-      btn.textContent = s.name;
-      btn.style.cssText = `
-        padding:10px 8px;background:var(--surface2);border:1.5px solid var(--border2);
-        border-radius:10px;color:var(--text);font-size:.78rem;font-weight:700;
-        font-family:'Nunito',sans-serif;cursor:pointer;transition:all 0.12s;text-align:center;
-      `;
-      btn.addEventListener('click', ()=>{
-        s.fn();
-        btn.style.borderColor = 'var(--gold)';
-        btn.style.background = 'rgba(245,197,24,.15)';
-        setTimeout(()=>{ btn.style.borderColor='var(--border2)'; btn.style.background='var(--surface2)'; }, 400);
-      });
-      grid.appendChild(btn);
-    });
-  }
-
-  crownTarget.addEventListener('click', ()=>{
-    _taps++;
-    clearTimeout(_tapTimer);
-    _tapTimer = setTimeout(()=>{ _taps = 0; }, 800);
-    if(_taps >= 10){
-      _taps = 0;
-      buildPanel();
-      document.getElementById('sfx-tester').style.display = 'flex';
-    }
-  });
-})();
 bindBtn("btn-perf", ()=>togglePerfMode());
 applyPerfMode();
 }); // end DOMContentLoaded
@@ -4705,5 +4612,6 @@ applyPerfMode();
   };
 })();
 </script>
+<script src="sounds.js"></script>
 </body>
 </html>
