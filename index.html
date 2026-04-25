@@ -444,6 +444,7 @@ const SFX = (() => {
 })();
 </script>
 <script>document.addEventListener("DOMContentLoaded", function(){
+SFX.init(); // Lobby pe hi init karo — har mode ke liye
 const firebaseConfig = {
   apiKey: "AIzaSyCCbwUS-MK4Ic8Tyd_FIBOQTwdfP0kZ_YM",
   authDomain: "ludo-king-ka-baap.firebaseapp.com",
@@ -4394,8 +4395,7 @@ window.launchTestMode = function(){
   applyBoardRotation();
   setSyncStatus("ok");
   _gameLoaded = true; // required: syncGameState + timer guards check this
-  SFX.init();
-  SFX.unlock();
+  SFX.unlock(); // button tap = user gesture, AudioContext resume karo
   refreshUI();
   renderTokens();
   updateTurnBanner();
