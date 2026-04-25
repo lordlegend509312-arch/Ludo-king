@@ -329,17 +329,20 @@ const SFX = (() => {
       for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
       const buf = await ctx.decodeAudioData(bytes.buffer.slice(0));
       _buffers[name] = buf;
-    } catch(e){ console.warn('SFX load failed:', name, e); }
+      console.log('[SFX] ✅ loaded: ' + name);
+    } catch(e){ console.warn('SFX load failed: ' + name + ' — ' + e); }
   }
 
   // Play pre-decoded buffer — near zero CPU at trigger time
   function _play(name, vol=1.0, rate=1.0){
     if(_muted) return;
     const buf = _buffers[name];
-    if(!buf){ return; }
+    if(!buf){ console.log('[SFX] ❌ buffer missing: ' + name); return; }
     try {
-      const ctx = _getCtx();
-      if(ctx.state === 'suspended'){ ctx.resume().then(()=>_play(name,vol,rate)); return; }
+      if(!_ctx){ console.log('[SFX] ❌ no context yet: ' + name); return; }
+      const ctx = _ctx;
+      if(ctx.state === 'suspended'){ console.log('[SFX] ⏸ suspended, resuming for: ' + name); ctx.resume().then(()=>_play(name,vol,rate)); return; }
+      console.log('[SFX] ▶ ' + name);
       const src = ctx.createBufferSource();
       src.buffer = buf;
       src.playbackRate.value = rate;
@@ -1655,6 +1658,7 @@ window.voteForBot = async function(seat){
   if(seat === MY_SEAT) return;
   if(PLAYERS[seat]?.isBot) return;
   if((_botVotes[seat]||{})[MY_SEAT]) return;
+  console.log('[VOTE] voting for seat ' + seat);
   const badge = document.getElementById(`offbadge-${seat}`);
   if(badge) badge.classList.add('voted');
   navigator.vibrate && navigator.vibrate(18);
@@ -1678,6 +1682,7 @@ window.voteForBot = async function(seat){
 };
 function _activateBot(seat){
   if(!PLAYERS[seat]) return;
+  console.log('[VOTE] activating bot for seat ' + seat);
   PLAYERS[seat].isBot = true;
   const lbl = document.getElementById(`lbl-${seat}`);
   if(lbl){ const bl = lbl.querySelector('.bot-label'); if(bl) bl.remove(); }
@@ -3892,7 +3897,8 @@ async function doMove(pid,tid,v){
         // 3p: 1st/2nd → win, 3rd → lose
         // 2p: 1st → win, 2nd → lose
         const gameOverWinLimit = totalActive >= 4 ? 3 : totalActive >= 3 ? 2 : 1;
-        if(myRank <= gameOverWinLimit) SFX.win(); else SFX.lose();
+        console.log('[GAME] game over — rank:' + myRank + ' total:' + totalActive + ' limit:' + gameOverWinLimit);
+        if(myRank <= gameOverWinLimit){ console.log('[SFX] calling win'); SFX.win(); } else { console.log('[SFX] calling lose'); SFX.lose(); }
         endGame();return;
       }
       // Mid-game placement sound
@@ -4560,16 +4566,39 @@ applyPerfMode();
     while(el.children.length > _maxLogs) el.removeChild(el.firstChild);
     el.scrollTop = el.scrollHeight;
   };
-  // Override console.log to also show in panel
-  const _origLog = console.log.bind(console);
+  // Override console.log/warn/error to also show in panel
+  const _origLog   = console.log.bind(console);
+  const _origWarn  = console.warn.bind(console);
+  const _origError = console.error.bind(console);
+  const _toStr = args => args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
   console.log = function(...args){
     _origLog(...args);
-    const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-    if(msg.startsWith('[SYNC]') || msg.startsWith('[ANIM]')){
-      const color = msg.startsWith('[ANIM]') ? '#00bfff' : '#FFD700';
+    const msg = _toStr(args);
+    let color = '#0f0';
+    if(msg.startsWith('[SYNC]'))  color = '#FFD700';
+    if(msg.startsWith('[ANIM]'))  color = '#00bfff';
+    if(msg.startsWith('[SFX]'))   color = '#ff69b4';
+    if(msg.startsWith('[GAME]'))  color = '#00e5ff';
+    if(msg.startsWith('[VOTE]'))  color = '#c084fc';
+    if(msg.startsWith('[SYNC]') || msg.startsWith('[ANIM]') || msg.startsWith('[SFX]') || msg.startsWith('[GAME]') || msg.startsWith('[VOTE]')){
       window._dbgLog(msg, color);
     }
   };
+  console.warn = function(...args){
+    _origWarn(...args);
+    window._dbgLog('⚠️ ' + _toStr(args), '#FFA500');
+  };
+  console.error = function(...args){
+    _origError(...args);
+    window._dbgLog('❌ ' + _toStr(args), '#FF4444');
+  };
+  // Uncaught errors bhi catch karo
+  window.addEventListener('error', e => {
+    window._dbgLog('❌ UNCAUGHT: ' + e.message + ' (' + (e.filename||'').split('/').pop() + ':' + e.lineno + ')', '#FF4444');
+  });
+  window.addEventListener('unhandledrejection', e => {
+    window._dbgLog('❌ PROMISE: ' + (e.reason?.message || String(e.reason)), '#FF4444');
+  });
 })();
 </script>
 <script src="sounds.js"></script>
