@@ -363,14 +363,14 @@ const SFX = (() => {
 
   // Load all sounds at init
   async function _initSounds(){
-    await _load('dice', _DICE_B64);
-    await _load('step', _STEP_B64);
-    await _load('capture', _CAPTURE_B64);
-    await _load('star', _STAR_B64);
-    await _load('done', _DONE_B64);
-    await _load('gamestart', _GAMESTART_B64);
-    await _load('win',  _win_B64);
-    await _load('lose', _lose_B64);
+    _load('dice', _DICE_B64);
+    _load('step', _STEP_B64);
+    _load('capture', _CAPTURE_B64);
+    _load('star', _STAR_B64);
+    _load('done', _DONE_B64);
+    _load('gamestart', _GAMESTART_B64);
+    _load('win',  _win_B64);
+    _load('lose', _lose_B64);
   }
 
   // ── Public API ──
