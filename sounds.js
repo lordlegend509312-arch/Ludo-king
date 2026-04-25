@@ -20,5 +20,6 @@
     }
   }
 
+  window.attachSounds = attachSounds;
   attachSounds();
 })();
