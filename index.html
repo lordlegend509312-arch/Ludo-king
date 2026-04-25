@@ -339,7 +339,7 @@ const SFX = (() => {
     if(!buf){ return; }
     try {
       const ctx = _getCtx();
-      if(ctx.state === 'suspended'){ ctx.resume(); return; }
+      if(ctx.state === 'suspended'){ ctx.resume().then(()=>_play(name,vol,rate)); return; }
       const src = ctx.createBufferSource();
       src.buffer = buf;
       src.playbackRate.value = rate;
@@ -1578,6 +1578,10 @@ function listenPlayerPresence(){
       if(online){
         _timerExpireCount[seat] = 0;
         _updateOfflineBadge(seat, false);
+        // Fix: clear stale votes when player comes back online
+        if(amIElderPlayer() && ROOM_CODE && !PLAYERS[seat]?.isBot){
+          db.ref(`rooms/${ROOM_CODE}/botVotes/${seat}`).remove().catch(()=>{});
+        }
       }
     };
     ref.on('value', cb);
@@ -1635,9 +1639,10 @@ function listenBotVotes(){
       if(PLAYERS[seat]?.isBot) return;
       const votes = Object.keys(_botVotes[seat]||{}).length;
       const activePlayers = SEAT_LAYOUT_ACTIVE.filter(s=>PLAYERS[s]?.active&&s!==seat);
-      const needed = Math.ceil(activePlayers.length / 2);
+      const needed = Math.ceil(activePlayers.length * 2 / 3) || 1; // Fix: proper majority (3p→2, 4p→2)
       if(votes >= needed && votes > 0){
         _activateBot(seat);
+        return; // Fix: badge already set inside _activateBot, skip to avoid flicker
       }
       _updateOfflineBadge(seat, (_timerExpireCount[seat]||0) >= EXPIRE_COUNT_FOR_VOTE);
     });
@@ -1646,13 +1651,24 @@ function listenBotVotes(){
   _listeners.push(()=>ref.off('value', cb));
 }
 window.voteForBot = async function(seat){
-  if(MY_SEAT === null || !ROOM_CODE) return;
+  if(MY_SEAT === null) return;
   if(seat === MY_SEAT) return;
   if(PLAYERS[seat]?.isBot) return;
   if((_botVotes[seat]||{})[MY_SEAT]) return;
   const badge = document.getElementById(`offbadge-${seat}`);
   if(badge) badge.classList.add('voted');
   navigator.vibrate && navigator.vibrate(18);
+  // Fix: test mode (no ROOM_CODE) — apply vote locally
+  if(!ROOM_CODE){
+    _botVotes[seat] = _botVotes[seat] || {};
+    _botVotes[seat][MY_SEAT] = true;
+    const activePlayers = SEAT_LAYOUT_ACTIVE.filter(s=>PLAYERS[s]?.active&&s!==seat);
+    const needed = Math.ceil(activePlayers.length * 2 / 3) || 1;
+    const votes = Object.keys(_botVotes[seat]).length;
+    _updateOfflineBadge(seat, (_timerExpireCount[seat]||0) >= EXPIRE_COUNT_FOR_VOTE);
+    if(votes >= needed) _activateBot(seat);
+    return;
+  }
   try{
     await db.ref(`rooms/${ROOM_CODE}/botVotes/${seat}/${MY_SEAT}`).set(true);
   } catch(e){
