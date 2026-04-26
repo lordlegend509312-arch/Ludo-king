@@ -2492,6 +2492,7 @@ function _scrubStep(dir){
     }
     tok.step = tok.step <= 0 ? 1 : Math.min(tok.step + 1, STEP_DONE);
     if(tok.step >= STEP_DONE){
+      SFX.play('done');
       if(G.tokens.filter(t => t.pid === _scrub.pid).every(t => t.step >= STEP_DONE)){
         if(!G.placements.includes(_scrub.pid)){ G.placements.push(_scrub.pid); stampRank(_scrub.pid); }
         const remaining = PLAYERS.filter(p => p.active && !G.placements.includes(p.id));
@@ -2514,6 +2515,7 @@ function _scrubStep(dir){
     }
   }
   renderTokens(); refreshUI(); _scrubRender();
+  SFX.play('step');
 }
 
 function _scrubHoldStart(dir){
@@ -3300,6 +3302,7 @@ async function _doBotTurn(seat){
   // Bot ka dice animation skip — seedha result set karo
   const cube = _domCache.dcube[seat] || document.getElementById(`dcube-${seat}`);
   if(cube){ const tg = LAND[v]; dAcc.rx[seat] = tg.rx; dAcc.ry[seat] = tg.ry; dAcc.last[seat] = v; cube.style.transition = 'none'; cube.style.transform = `rotateX(${tg.rx}deg) rotateY(${tg.ry}deg)`; }
+  SFX.play('dice');
   // Bot dice display update
   const _botDiceEl = document.getElementById(`botdice-${seat}`);
   if(_botDiceEl) _botDiceEl.textContent = v;
@@ -3787,7 +3790,6 @@ async function doMove(pid,tid,v){
         // 2p: 1st → win, 2nd → lose
         const gameOverWinLimit = totalActive >= 4 ? 3 : totalActive >= 3 ? 2 : 1;
         console.log('[GAME] game over — rank:' + myRank + ' total:' + totalActive + ' limit:' + gameOverWinLimit);
-        if(myRank <= gameOverWinLimit){ console.log('[SFX] calling win'); SFX.play('win'); } else { console.log('[SFX] calling lose'); SFX.play('lose'); }
         endGame();return;
       }
       // Mid-game placement sound
@@ -3893,7 +3895,15 @@ function endGame(){
     : isIWinner
       ? `🎉 You Win! ${winColorEmoji}`
       : `💩 ${loserName} Lost!`;
-  // (sound already played in the game-over branch before endGame() was called)
+  // Win/lose sound — play here for all paths (scrubber, syncGameState, doMove already plays it too but that's fine)
+  if(typeof SFX !== 'undefined'){
+    const _totalA = PLAYERS.filter(p=>p.active).length;
+    const _myRankE = G.placements.indexOf(MY_SEAT);
+    const _winLimE = _totalA >= 4 ? 3 : _totalA >= 3 ? 2 : 1;
+    if(_myRankE !== -1){
+      if(_myRankE < _winLimE) SFX.play('win'); else SFX.play('lose');
+    }
+  }
   document.getElementById("win-msg").textContent=heading;
   // Build Neon Arcade ranking card
   (function(){
