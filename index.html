@@ -310,6 +310,9 @@ const SFX = (() => {
     return _ctx;
   }
 
+  // Extra sounds registered by sounds.js before unlock
+  const _extraQueue = []; // {name, b64, vol, rate}
+
   // First user touch/click — create+resume ctx, then decode sounds
   let _unlocked = false;
   async function _unlock(){
@@ -318,6 +321,9 @@ const SFX = (() => {
     const ctx = _getCtx();
     if(ctx.state === 'suspended') await ctx.resume();
     await _initSounds();
+    // sounds.js wale extra sounds bhi ab decode karo
+    for(const s of _extraQueue){ await _load(s.name, s.b64); SFX[s.name] = () => _play(s.name, s.vol, s.rate); }
+    _extraQueue.length = 0;
   }
 
   // Decode base64 WAV/MP3 string → AudioBuffer, store by name
@@ -369,8 +375,6 @@ const SFX = (() => {
     _load('star', _STAR_B64);
     _load('done', _DONE_B64);
     _load('gamestart', _GAMESTART_B64);
-    _load('win',  _win_B64);
-    _load('lose', _lose_B64);
   }
 
   // ── Public API ──
@@ -489,12 +493,14 @@ const SFX = (() => {
 
     // sounds.js ke liye public hook — registerExtra('win', base64str) call karo
     registerExtra(name, b64, vol=1.0, rate=1.0) {
-      const _q = [];
-      SFX[name] = () => _q.push(1); // decode hone tak queue karo
-      _load(name, b64).then(() => {
-        SFX[name] = () => _play(name, vol, rate);
-        _q.forEach(() => _play(name, vol, rate)); // queued calls flush karo
-      });
+      if(!_unlocked){
+        // Unlock nahi hua abhi — queue mein daalo, _unlock pe decode hoga
+        _extraQueue.push({name, b64, vol, rate});
+        SFX[name] = () => {}; // noop tab tak
+      } else {
+        // Already unlocked — seedha load karo
+        _load(name, b64).then(() => { SFX[name] = () => _play(name, vol, rate); });
+      }
     },
   };
 })();
