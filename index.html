@@ -23,14 +23,24 @@ const SFX = (function(){
 
   function _resumeCtx(){
     const ctx = _getCtx();
-    if(ctx.state === 'suspended') ctx.resume();
+    if(ctx.state === 'suspended') ctx.resume().catch(()=>{});
     return ctx;
   }
 
+  // Mobile pe AudioContext sirf user gesture ke baad unlock hota hai
+  function _unlockAudio(){
+    if(!_ctx){ _ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+    if(_ctx.state === 'suspended'){
+      _ctx.resume().then(()=>{ console.log('[SFX] AudioContext unlocked:', _ctx.state); }).catch(()=>{});
+    }
+  }
+  document.addEventListener('touchstart', _unlockAudio, { once: false, passive: true });
+  document.addEventListener('click', _unlockAudio, { once: false, passive: true });
+
   // Called by sounds.js: SFX.registerExtra(name, base64String)
   function registerExtra(name, b64){
-    // Lazy-decode on first play to keep startup fast
     _buffers[name] = { b64, buf: null, loading: false };
+    console.log('[SFX] registered:', name, 'b64 len:', b64 ? b64.length : 0);
   }
 
   function _decode(name, cb){
@@ -39,42 +49,53 @@ const SFX = (function(){
     if(entry.buf){ cb(entry.buf); return; }
     if(entry.loading){ setTimeout(()=>_decode(name,cb), 80); return; }
     entry.loading = true;
+    console.log('[SFX] decoding:', name);
     try{
       const ctx = _getCtx();
-      // base64 → ArrayBuffer
       const bin = atob(entry.b64);
       const bytes = new Uint8Array(bin.length);
       for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
       ctx.decodeAudioData(bytes.buffer, buf=>{
         entry.buf = buf;
         entry.loading = false;
+        console.log('[SFX] decoded OK:', name, 'duration:', buf.duration.toFixed(2)+'s');
         cb(buf);
       }, err=>{
         entry.loading = false;
-        console.warn('[SFX] decode error', name, err);
+        console.warn('[SFX] decode FAILED:', name, err);
       });
     } catch(e){
       entry.loading = false;
-      console.warn('[SFX] registerExtra error', name, e);
+      console.warn('[SFX] decode exception:', name, e);
     }
   }
 
   function play(name, opts){
+    console.log('[SFX] play called:', name, '| muted:', _muted, '| exists:', !!_buffers[name]);
     if(_muted) return;
     const entry = _buffers[name];
-    if(!entry) return;
-    const ctx = _resumeCtx();
-    _decode(name, buf=>{
-      try{
-        const src = ctx.createBufferSource();
-        src.buffer = buf;
-        const gain = ctx.createGain();
-        gain.gain.value = (opts && opts.volume != null) ? opts.volume : 1.0;
-        src.connect(gain);
-        gain.connect(ctx.destination);
-        src.start(ctx.currentTime + (opts && opts.delay || 0));
-      } catch(e){ console.warn('[SFX] play error', name, e); }
-    });
+    if(!entry){ console.warn('[SFX] not found:', name, '| registered:', Object.keys(_buffers)); return; }
+    const ctx = _getCtx();
+    console.log('[SFX] ctx state:', ctx.state);
+    const doPlay = () => {
+      _decode(name, buf=>{
+        try{
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          const gain = ctx.createGain();
+          gain.gain.value = (opts && opts.volume != null) ? opts.volume : 1.0;
+          src.connect(gain);
+          gain.connect(ctx.destination);
+          src.start(ctx.currentTime + (opts && opts.delay || 0));
+          console.log('[SFX] playing:', name);
+        } catch(e){ console.warn('[SFX] play error', name, e); }
+      });
+    };
+    if(ctx.state === 'suspended'){
+      ctx.resume().then(doPlay).catch(e => console.warn('[SFX] resume failed:', e));
+    } else {
+      doPlay();
+    }
   }
 
   function setMuted(v){
