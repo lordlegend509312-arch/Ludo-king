@@ -251,6 +251,33 @@ document.addEventListener('DOMContentLoaded', function(){
     <button class="modal-btn secondary" id="btn-home-confirm-no">Cancel</button>
   </div>
 </div>
+
+<!-- Test Mode: Player Count Selection -->
+<div class="modal-overlay" id="modal-test-players">
+  <div class="modal-box">
+    <div style="font-size:2rem;">🎮</div>
+    <div class="modal-title">Test Mode</div>
+    <div class="modal-sub">Kitne players? (Baaki bots honge)</div>
+    <div style="display:flex;gap:10px;width:100%;margin-top:4px;">
+      <button class="modal-btn" id="btn-test-2p" style="flex:1;">2P</button>
+      <button class="modal-btn" id="btn-test-3p" style="flex:1;">3P</button>
+      <button class="modal-btn" id="btn-test-4p" style="flex:1;">4P</button>
+    </div>
+    <button class="modal-btn secondary" id="btn-test-players-cancel">Cancel</button>
+  </div>
+</div>
+
+<!-- Test Mode: Color Selection -->
+<div class="modal-overlay" id="modal-test-color">
+  <div class="modal-box">
+    <div style="font-size:2rem;">🎨</div>
+    <div class="modal-title">Apna Color Chuno</div>
+    <div class="modal-sub">Tum kaunse token se kheloge?</div>
+    <div id="test-color-options" style="display:flex;flex-direction:column;gap:10px;width:100%;margin-top:4px;"></div>
+    <button class="modal-btn secondary" id="btn-test-color-back">← Back</button>
+  </div>
+</div>
+
 <div id="top-bar">
   <div id="top-bar-left">
     
@@ -830,7 +857,6 @@ window.hostStartGame = async function(){
   const layout = SEAT_LAYOUTS[NUM_PLAYERS] || [0,1,2,3];
   const tokens = [];
   for(const seat of layout){
-    if(!seats.includes(seat)) continue;
     for(let tid=0; tid<4; tid++){
       tokens.push({ pid: seat, tid, step: 0 });
     }
@@ -1400,6 +1426,8 @@ window.leaveToLobby = async function(){
   _cachedElderResult = null; _cachedElderOnlineSet = '';
   _forcedElderSeat = null;
   SEAT_LAYOUT_ACTIVE = [0,1,2,3];
+  // Restore SEAT_COLOR in case test mode swapped it
+  SEAT_COLOR[0]=PINK; SEAT_COLOR[1]=YELLOW; SEAT_COLOR[2]=GREEN; SEAT_COLOR[3]=BLUE;
   _gameLoaded = false;
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   document.getElementById("game-wrap").style.display = "none";
@@ -1576,7 +1604,14 @@ window.voteForBot = async function(seat){
 function _activateBot(seat){
   if(!PLAYERS[seat]) return;
   console.log('[VOTE] activating bot for seat ' + seat);
+  const wasInactive = !PLAYERS[seat].active;
   PLAYERS[seat].isBot = true;
+  PLAYERS[seat].active = true;
+  if(wasInactive){
+    // Panel nahi tha — rebuild karo taki bot panel UI bane
+    buildPlayers();
+    PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
+  }
   const lbl = document.getElementById(`lbl-${seat}`);
   if(lbl){ const bl = lbl.querySelector('.bot-label'); if(bl) bl.remove(); }
   const offBadge = document.getElementById(`offbadge-${seat}`);
@@ -4340,19 +4375,81 @@ bindBtn("btn-leave-waiting",()=>window.leaveRoom());
 bindBtn("btn-join",         ()=>window.joinRoom());
 bindBtn("btn-cancel-join",  ()=>closeModals());
 bindBtn("btn-test-mode", ()=>window.launchTestMode());
+
+// ── Test Mode: 2-Step Setup ─────────────────────────────────────────────────
+let _testNumPlayers = 4;
+
+const _COLOR_INFO = [
+  { seat: 0, name: "Pink",   emoji: "🩷", hex: "#FF2D78" },
+  { seat: 1, name: "Yellow", emoji: "💛", hex: "#FFD600" },
+  { seat: 2, name: "Green",  emoji: "💚", hex: "#00C853" },
+  { seat: 3, name: "Blue",   emoji: "💙", hex: "#00AEEF" },
+];
+
+const _SEAT_LAYOUTS_LOCAL = { 2: [3,1], 3: [3,0,1], 4: [3,0,1,2] };
+
 window.launchTestMode = function(){
-  MY_SEAT = 3;
+  // Step 1: show player count modal
+  document.getElementById("modal-test-players").classList.add("show");
+};
+
+function _testSelectPlayers(n){
+  _testNumPlayers = n;
+  document.getElementById("modal-test-players").classList.remove("show");
+  // Step 2: build color options for seats in this layout
+  const layout = _SEAT_LAYOUTS_LOCAL[n] || [0,1,2,3];
+  const container = document.getElementById("test-color-options");
+  container.innerHTML = "";
+  layout.forEach(seat => {
+    const info = _COLOR_INFO[seat];
+    const btn = document.createElement("button");
+    btn.style.cssText = `width:100%;padding:13px 16px;border:2px solid ${info.hex};border-radius:12px;background:${info.hex}18;color:#fff;font-size:1rem;font-weight:800;font-family:'Nunito',sans-serif;letter-spacing:.5px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all 0.15s;`;
+    btn.innerHTML = `<span style="font-size:1.4rem;">${info.emoji}</span><span>${info.name}</span>`;
+    btn.addEventListener("click", ()=>_testStartGame(n, seat));
+    btn.addEventListener("mouseenter", ()=>{ btn.style.background = info.hex + "33"; btn.style.transform = "scale(1.02)"; });
+    btn.addEventListener("mouseleave", ()=>{ btn.style.background = info.hex + "18"; btn.style.transform = ""; });
+    container.appendChild(btn);
+  });
+  document.getElementById("modal-test-color").classList.add("show");
+}
+
+function _testStartGame(numPlayers, chosenVisualSeat){
+  document.getElementById("modal-test-color").classList.remove("show");
+
+  // ── Color-swap fix ──────────────────────────────────────────────────────
+  // Board rotation only works correctly when MY_SEAT = 3 (bottom, 0 deg).
+  // We swap SEAT_COLOR so the chosen color lands on seat 3, and seat 3's
+  // original color goes to the chosen seat. Board re-draws with new mapping.
+  if(chosenVisualSeat !== 3){
+    const tmp = SEAT_COLOR[3];
+    SEAT_COLOR[3] = SEAT_COLOR[chosenVisualSeat];
+    SEAT_COLOR[chosenVisualSeat] = tmp;
+  }
+
+  MY_SEAT = 3; // always seat 3 — correct rotation (0 deg), tokens work perfectly
   MY_NAME = "YOU";
   IS_HOST = true;
-  NUM_PLAYERS = 4;
-  SEAT_LAYOUT_ACTIVE = [0,1,2,3];
+  NUM_PLAYERS = numPlayers;
+  SEAT_LAYOUT_ACTIVE = _SEAT_LAYOUTS_LOCAL[numPlayers] || [0,1,2,3];
   PLAYERS = [];
-  const names = ["P1","P2","P3","YOU"];
-  for(let seat=0;seat<4;seat++){
-    PLAYERS.push({id:seat,seat,color:SEAT_COLOR[seat],label:names[seat],active:true,human:seat===3});
-  }
+
+  const _colorNameByVal = {[PINK]:"Pink",[YELLOW]:"Yellow",[GREEN]:"Green",[BLUE]:"Blue"};
+  const chosenColorName = _COLOR_INFO[chosenVisualSeat]?.name || "Blue";
+  SEAT_LAYOUT_ACTIVE.forEach((seat, idx) => {
+    const isHuman = seat === 3;
+    const colorName = _colorNameByVal[SEAT_COLOR[seat]] || ("P"+(idx+1));
+    PLAYERS.push({
+      id: seat,
+      seat,
+      color: SEAT_COLOR[seat],
+      label: isHuman ? "YOU" : colorName,
+      active: true,
+      human: isHuman
+    });
+  });
+
   G = {
-    turn: 3,
+    turn: SEAT_LAYOUT_ACTIVE[0],
     diceVal: null,
     rolled: false,
     waiting: false,
@@ -4374,15 +4471,24 @@ window.launchTestMode = function(){
   applyBoardRotation();
   setSyncStatus("ok");
   SFX.play('gamestart');
-  _gameLoaded = true; // required: syncGameState + timer guards check this
+  _gameLoaded = true;
   refreshUI();
   renderTokens();
   updateTurnBanner();
-  // Init scrubber — default to Blue (pid 3 = you)
-  _scrub.pid = 3;
+  _scrub.pid = MY_SEAT;
   _scrub.tid = null;
-  showToast("Test Mode — You are Blue (seat 3)");
-};
+  showToast("Test Mode — "+numPlayers+"P — You are "+chosenColorName);
+}
+
+// Bind new modal buttons
+bindBtn("btn-test-2p", ()=>_testSelectPlayers(2));
+bindBtn("btn-test-3p", ()=>_testSelectPlayers(3));
+bindBtn("btn-test-4p", ()=>_testSelectPlayers(4));
+bindBtn("btn-test-players-cancel", ()=>{ document.getElementById("modal-test-players").classList.remove("show"); });
+bindBtn("btn-test-color-back", ()=>{
+  document.getElementById("modal-test-color").classList.remove("show");
+  document.getElementById("modal-test-players").classList.add("show");
+});
 bindBtn("btn-resume",       ()=>window.togglePause());
 bindBtn("btn-leave-pause",  ()=>window.leaveToLobby());
 bindBtn("btn-home-confirm-yes", ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); window.leaveToLobby(); });
