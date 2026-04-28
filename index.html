@@ -543,6 +543,15 @@ let MY_SLOT = 0;
 const SEAT_ROTATION = [90, 180, 270, 0];
 function getBoardRotation(){ return MY_SEAT !== null ? (SEAT_ROTATION[MY_SEAT] || 0) : 0; }
 function getDisplayColorForSeat(seat){ return SEAT_COLOR[seat] || "#888"; }
+// Board rendering ke liye: inactive seats gray dikhte hain
+const INACTIVE_BOARD_COLOR = "#546E7A";
+function getBoardColor(seat){
+  // Online mode: PLAYERS array mein active flag check karo
+  if(PLAYERS[seat] && PLAYERS[seat].active === false) return INACTIVE_BOARD_COLOR;
+  // Test/local mode: SEAT_LAYOUT_ACTIVE mein seat nahi hai toh gray
+  if(SEAT_LAYOUT_ACTIVE.length > 0 && SEAT_LAYOUT_ACTIVE.length < 4 && !SEAT_LAYOUT_ACTIVE.includes(seat)) return INACTIVE_BOARD_COLOR;
+  return SEAT_COLOR[seat] || "#888";
+}
 function applyBoardRotation(){
   const deg = getBoardRotation();
   const bw = document.getElementById("board-wrap");
@@ -892,7 +901,8 @@ async function loadAndStartGame(){
   const playersData = snap.val() || {};
   const gSnap = await gameRef.once('value');
   const gData = gSnap.val() || {};
-  SEAT_LAYOUT_ACTIVE = gData.seatLayout || SEAT_LAYOUTS[NUM_PLAYERS] || [0,1,2,3];
+  // Firebase pe purana seatLayout ho sakta hai — SEAT_LAYOUTS se override karo
+  SEAT_LAYOUT_ACTIVE = SEAT_LAYOUTS[NUM_PLAYERS] || gData.seatLayout || [0,1,2,3];
   PLAYERS = [];
   for(let seat=0; seat<4; seat++){
     const p = playersData[seat];
@@ -902,7 +912,7 @@ async function loadAndStartGame(){
       seat,
       color: SEAT_COLOR[seat],
       label: p ? p.name : `P${seat+1}`,
-      active: !!p && inLayout,
+      active: inLayout,
       human: true,
     });
   }
@@ -1032,8 +1042,10 @@ let _lastRollAnimBy = -1; // tracks whose roll dice anim just played — skip re
 function _applySyncGameState(data){
   setSyncStatus("ok");
   if(data.seatLayout){
-    const changed = JSON.stringify(data.seatLayout) !== JSON.stringify(SEAT_LAYOUT_ACTIVE);
-    SEAT_LAYOUT_ACTIVE = data.seatLayout;
+    // SEAT_LAYOUTS se canonical layout use karo — purana Firebase data ignore
+    const canonical = SEAT_LAYOUTS[NUM_PLAYERS] || data.seatLayout;
+    const changed = JSON.stringify(canonical) !== JSON.stringify(SEAT_LAYOUT_ACTIVE);
+    SEAT_LAYOUT_ACTIVE = canonical;
     if(changed){
       MY_SLOT = SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT);
       if(MY_SLOT < 0) MY_SLOT = 0;
@@ -1862,10 +1874,10 @@ function buildBoard(){
         if(r===6&&c===6){
           const d=document.createElement("div");
           d.style.cssText=`grid-column:7/span 3;grid-row:7/span 3;overflow:hidden;`;
-          const cTop   = getDisplayColorForSeat(1);
-          const cRight = getDisplayColorForSeat(2);
-          const cBot   = getDisplayColorForSeat(3);
-          const cLeft  = getDisplayColorForSeat(0);
+          const cTop   = getBoardColor(1);
+          const cRight = getBoardColor(2);
+          const cBot   = getBoardColor(3);
+          const cLeft  = getBoardColor(0);
           d.innerHTML=`<svg viewBox="0 0 90 90" style="width:100%;height:100%;display:block;" preserveAspectRatio="none">
             <polygon points="45,45 0,0 90,0"  fill="${cTop}"/>
             <polygon points="45,45 90,0 90,90" fill="${cRight}"/>
@@ -1882,7 +1894,7 @@ function buildBoard(){
       d.dataset.r=r;d.dataset.c=c;
       if(COLOR_STARS.has(k)){
         const seat = STAR_SEAT[k];
-        const dc = getDisplayColorForSeat(seat);        d.style.background=lighten(dc);
+        const dc = getBoardColor(seat);        d.style.background=lighten(dc);
         d.dataset.starSeat = seat;
         d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;" fill="none">
           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
@@ -1895,17 +1907,17 @@ function buildBoard(){
             stroke="white" stroke-width="1.8" fill="transparent" stroke-linejoin="round"/>
         </svg>`;
       } else if(CORNER_SEAT[k] !== undefined){
-        const dc = getDisplayColorForSeat(CORNER_SEAT[k]);        d.style.background=dc;
+        const dc = getBoardColor(CORNER_SEAT[k]);        d.style.background=dc;
         d.dataset.cornerSeat = CORNER_SEAT[k];
       } else {
         const stretchSeat = getStretchSeat(r,c);
         if(stretchSeat !== null){
-          const dc = getDisplayColorForSeat(stretchSeat);          d.style.background=dc;
+          const dc = getBoardColor(stretchSeat);          d.style.background=dc;
           d.dataset.laneSeat = stretchSeat;
         } else if(ARROWS[k]){
           d.style.background=DEF;
           const arSeat = ARROWS[k].seat;
-          const dc = getDisplayColorForSeat(arSeat);          d.dataset.arrowSeat = arSeat;
+          const dc = getBoardColor(arSeat);          d.dataset.arrowSeat = arSeat;
           d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;"><path d="${arDir[ARROWS[k].dir]}" fill="${dc}"/></svg>`;
         } else if(PATH.has(k)){
           d.style.background=DEF;
@@ -4396,6 +4408,8 @@ window.launchTestMode = function(){
 function _testSelectPlayers(n){
   _testNumPlayers = n;
   document.getElementById("modal-test-players").classList.remove("show");
+  // 2P mein color picker skip — Blue (seat 3) vs Yellow (seat 1) fixed diagonal
+  if(n === 2){ _testStartGame(2, 3); return; }
   // Step 2: build color options for seats in this layout
   const layout = _SEAT_LAYOUTS_LOCAL[n] || [0,1,2,3];
   const container = document.getElementById("test-color-options");
