@@ -554,8 +554,15 @@ function applyBoardRotation(){
   document.querySelectorAll(".lc-inner").forEach(el=>{
     el.style.transform = `rotate(${-deg}deg)`;
   });
+  // Counter-rotate only star SVGs — arrow SVGs must rotate WITH the board
+  // so their direction stays board-relative (pointing toward the correct entry lane)
   document.querySelectorAll(".lc > svg").forEach(el=>{
-    el.style.transform = `rotate(${-deg}deg)`;
+    const parentLc = el.parentElement;
+    if(parentLc && parentLc.dataset.arrowSeat !== undefined){
+      el.style.transform = ""; // arrows rotate with board — no counter-rotation
+    } else {
+      el.style.transform = `rotate(${-deg}deg)`;
+    }
   });
   requestAnimationFrame(()=>{
     _cacheValid = false;
@@ -1430,8 +1437,7 @@ window.leaveToLobby = async function(){
   _cachedElderResult = null; _cachedElderOnlineSet = '';
   _forcedElderSeat = null;
   SEAT_LAYOUT_ACTIVE = [0,1,2,3];
-  // Restore SEAT_COLOR in case test mode swapped it
-  SEAT_COLOR[0]=PINK; SEAT_COLOR[1]=YELLOW; SEAT_COLOR[2]=GREEN; SEAT_COLOR[3]=BLUE;
+  // SEAT_COLOR is never swapped anymore — no restore needed
   _gameLoaded = false;
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   document.getElementById("game-wrap").style.display = "none";
@@ -4445,17 +4451,9 @@ function _testSelectPlayers(n){
 function _testStartGame(numPlayers, chosenVisualSeat){
   document.getElementById("modal-test-color").classList.remove("show");
 
-  // ── Color-swap fix ──────────────────────────────────────────────────────
-  // Board rotation only works correctly when MY_SEAT = 3 (bottom, 0 deg).
-  // We swap SEAT_COLOR so the chosen color lands on seat 3, and seat 3's
-  // original color goes to the chosen seat. Board re-draws with new mapping.
-  if(chosenVisualSeat !== 3){
-    const tmp = SEAT_COLOR[3];
-    SEAT_COLOR[3] = SEAT_COLOR[chosenVisualSeat];
-    SEAT_COLOR[chosenVisualSeat] = tmp;
-  }
-
-  MY_SEAT = 3; // always seat 3 — correct rotation (0 deg), tokens work perfectly
+  // SEAT_COLOR is fixed [PINK, YELLOW, GREEN, BLUE] — no swapping needed.
+  // Board rotation now works correctly for any seat via applyBoardRotation().
+  MY_SEAT = chosenVisualSeat;
   MY_NAME = "YOU";
   IS_HOST = true;
   NUM_PLAYERS = numPlayers;
@@ -4465,7 +4463,7 @@ function _testStartGame(numPlayers, chosenVisualSeat){
   const _colorNameByVal = {[PINK]:"Pink",[YELLOW]:"Yellow",[GREEN]:"Green",[BLUE]:"Blue"};
   const chosenColorName = _COLOR_INFO[chosenVisualSeat]?.name || "Blue";
   SEAT_LAYOUT_ACTIVE.forEach((seat, idx) => {
-    const isHuman = seat === 3;
+    const isHuman = seat === MY_SEAT;
     const colorName = _colorNameByVal[SEAT_COLOR[seat]] || ("P"+(idx+1));
     PLAYERS.push({
       id: seat,
