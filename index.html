@@ -1162,7 +1162,7 @@ function _applySyncGameState(data){
               renderTokens(); await rafDelay(20);
               const entryRC = getRenderCell(pid, 1);
               if(entryRC && _tokEls[spawnKey]){
-                const entryXY = rcToXY(entryRC[0], entryRC[1]);
+                const entryXY = rotatePixelForPOV(...Object.values(rcToXY(entryRC[0], entryRC[1])));
                 const cp2 = cellPx(), BASE_W2 = Math.round(cp2 * 1.15);
                 const oppColor = getDisplayColorForSeat(pid);
                 const oppLayer = document.getElementById('tokens-layer');
@@ -2834,9 +2834,27 @@ function rcToXY(r,c){
   console.log(`[TOK] 📐 rcToXY [r=${r},c=${c}] cellPx=${cp.toFixed(1)} PAD=${PAD} GAP=${GAP} → x=${x.toFixed(2)} y=${y.toFixed(2)} | formula: x=PAD+c*(cp+GAP)+cp/2 = ${PAD}+${c}*(${cp.toFixed(1)}+${GAP})+${(cp/2).toFixed(1)}`);
   return{x,y};
 }
+// Board center in pixel space (cell [7,7] center)
+function getBoardCenterPx(){
+  const cp=cellPx();
+  const center=PAD+7*(cp+GAP)+cp/2;
+  return{x:center,y:center};
+}
+// Rotate a pixel point around board center by boardRot degrees (CSS rotation direction)
+function rotatePixelForPOV(px,py){
+  const deg=getBoardRotation(); // 0, 90, 180, 270
+  if(deg===0) return{x:px,y:py};
+  const{x:cx,y:cy}=getBoardCenterPx();
+  const rad=-deg*Math.PI/180; // negative = CSS rotation direction
+  const dx=px-cx,dy=py-cy;
+  return{
+    x:dx*Math.cos(rad)-dy*Math.sin(rad)+cx,
+    y:dx*Math.sin(rad)+dy*Math.cos(rad)+cy
+  };
+}
 const _slotPxCache={};
 function baseCirclePx(homeR,homeC,slotIdx){
-  const ck=`${homeR},${homeC},${slotIdx}`;
+  const ck=`${homeR},${homeC},${slotIdx},${getBoardRotation()}`;
   if(_slotPxCache[ck]){
     console.log(`[TOK] slotPxCache HIT [${ck}] → (${_slotPxCache[ck].x.toFixed(1)},${_slotPxCache[ck].y.toFixed(1)})`);
     return _slotPxCache[ck];
@@ -2972,6 +2990,7 @@ function _doRenderTokens(){
     } else if(tok.step>=STEP_DONE){
       const centerRC=[7,7];
       const cxy=rcToXY(centerRC[0],centerRC[1]);
+      const rcxy=rotatePixelForPOV(cxy.x,cxy.y);
       const cp2=cellPx();
       const baseR=cp2*0.72;
       const cOff=CENTER_OFFSET_SEAT[tok.pid]||{dx:0,dy:0};
@@ -2988,8 +3007,8 @@ function _doRenderTokens(){
         {dx: microGap*0.5,dy: microGap*0.5},
       ];
       const go=gridOff[doneIdx]||{dx:0,dy:0};
-      px=cxy.x+cOff.dx*baseR+go.dx;
-      py=cxy.y+cOff.dy*baseR+go.dy;
+      px=rcxy.x+cOff.dx*baseR+go.dx;
+      py=rcxy.y+cOff.dy*baseR+go.dy;
       // Use actual count-based scale: single done token looks bigger, multiple smaller
       scale=doneCount<=1?0.85:0.75; stackCount=doneCount;
     } else {
@@ -3003,15 +3022,16 @@ function _doRenderTokens(){
       stackCount=n; scale=sizeScale(n);
       const off=stackOffset(n,idx,cp);
       const xy=rcToXY(rc[0],rc[1]);
+      const rxy=rotatePixelForPOV(xy.x,xy.y);
       // Counter-rotate the stacking offset by the board rotation so diamond
       // layout stays screen-aligned regardless of which seat is active.
       if(off.dx!==0||off.dy!==0){
         const _oRad=_tokenRotationDeg*Math.PI/180;
         const _cos=Math.cos(_oRad),_sin=Math.sin(_oRad);
-        px=xy.x+off.dx*_cos-off.dy*_sin;
-        py=xy.y+off.dx*_sin+off.dy*_cos;
+        px=rxy.x+off.dx*_cos-off.dy*_sin;
+        py=rxy.y+off.dx*_sin+off.dy*_cos;
       } else {
-        px=xy.x; py=xy.y;
+        px=rxy.x; py=rxy.y;
       }
     }
     alive.add(key);
@@ -3152,7 +3172,7 @@ function _doRenderTokens(){
       // Shield always centered on the cell, not on the stacked token's offset position
       const tokVisScale=visualScale;
       const tipOffset2=rW*(130/100)*(122/130);
-      const cellXY=rc3?rcToXY(rc3[0],rc3[1]):{x:px,y:py};
+      const cellXY=rc3?(()=>{const _cxy=rcToXY(rc3[0],rc3[1]);return rotatePixelForPOV(_cxy.x,_cxy.y);})():{x:px,y:py};
       const cpx=cellXY.x, cpy=cellXY.y;
       const tokCenterY=cpy-(tipOffset2*tokVisScale*0.65);
       const sW=rW*tokVisScale*1.05;
@@ -3698,12 +3718,12 @@ async function animateMove(tok,steps){
     if(curStep>=STEP_DONE) break;
     const prevCell=getRenderCell(tok.pid,curStep);
     if(!prevCell){curStep++;continue;}
-    const startXY=rcToXY(prevCell[0],prevCell[1]);
+    const startXY=rotatePixelForPOV(...Object.values(rcToXY(prevCell[0],prevCell[1])));
     curStep++;
     if(curStep>=STEP_DONE) break;
     const rc=getRenderCell(tok.pid,curStep);
     if(!rc) continue;
-    endXY=rcToXY(rc[0],rc[1]);
+    endXY=rotatePixelForPOV(...Object.values(rcToXY(rc[0],rc[1])));
     // ── ANIM STEP LOG ──
     const _stepColorName=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
     console.log(`[TOK] 🔢 STEP ${i+1}/${steps} pid=${tok.pid}(${_stepColorName}) tid=${tok.tid} step:${curStep-1}→${curStep} cell:[${prevCell}]→[${rc}]`);
@@ -3731,7 +3751,7 @@ async function animateMove(tok,steps){
       const gap=n<=2?cp*0.52:cp*0.50;let dx=0,dy=0;
       if(n===2){dx=idx===0?-gap*0.5:gap*0.5;}
       else if(n>=3){const col=idx%2,row=Math.floor(idx/2);dx=(col-0.5)*gap;dy=(row-0.5)*gap;}
-      const oxy=rcToXY(orc[0],orc[1]);
+      const oxy=rotatePixelForPOV(...Object.values(rcToXY(orc[0],orc[1])));
       const scaleStr=sc!==1?` scale(${sc})`:'';
       const _oRad=_tokenRotationDeg*Math.PI/180;
       const _oTipDX=oTipFromCenter*Math.sin(_oRad);
@@ -3806,7 +3826,7 @@ async function sendHomeFast(tok){
     } else {
       _refreshCache();
       const rc=getRenderCell(tok.pid,tok.step);
-      if(rc){const xy=rcToXY(rc[0],rc[1]);captureX=xy.x;captureY=xy.y;}
+      if(rc){const xy=rcToXY(rc[0],rc[1]);const rxy=rotatePixelForPOV(xy.x,xy.y);captureX=rxy.x;captureY=rxy.y;}
     }
     const _rW2=parseFloat(el.dataset.rw||"28");
     const cfT=`translate(${captureX-_rW2/2}px,${captureY-_rW2/2}px)`;
@@ -3922,7 +3942,7 @@ async function doMove(pid,tid,v){
     // Animate token jumping from home circle to entry cell first
     const entryCell=getCell(pid,1);
     if(entryCell){
-      const entryXY=rcToXY(entryCell[0],entryCell[1]);
+      const entryXY=rotatePixelForPOV(...Object.values(rcToXY(entryCell[0],entryCell[1])));
       const cp=cellPx(),BASE_W=Math.round(cp*1.15);
       const layer=document.getElementById('tokens-layer');
       const key=`${tok.pid}-${tok.tid}`;
