@@ -2843,19 +2843,23 @@ function baseCirclePx(homeR,homeC,slotIdx){
   const el=document.querySelector(`[data-slot="${homeR},${homeC},${slotIdx}"]`);
   if(el&&layer){
     const eR=el.getBoundingClientRect();
-    const lR=layer.getBoundingClientRect();
+    const bw=document.getElementById('board-wrap');
+    const bR=bw?bw.getBoundingClientRect():layer.getBoundingClientRect();
+    // Visual center of the home circle in page coords
     const sx=eR.left+eR.width/2;
     const sy=eR.top+eR.height/2;
-    const bw=document.getElementById('board-wrap');
-    const bR=bw?bw.getBoundingClientRect():lR;
+    // Board-wrap visual center
     const bcx=bR.left+bR.width/2;
     const bcy=bR.top+bR.height/2;
+    // Un-rotate: bring point into board-wrap's local (unrotated) coordinate space
     const deg=getBoardRotation();
     const rad=-deg*Math.PI/180;
     const dx=sx-bcx, dy=sy-bcy;
-    const ux=dx*Math.cos(rad)-dy*Math.sin(rad)+bcx;
-    const uy=dx*Math.sin(rad)+dy*Math.cos(rad)+bcy;
-    const r={x:ux-lR.left, y:uy-lR.top};
+    const ux=dx*Math.cos(rad)-dy*Math.sin(rad);
+    const uy=dx*Math.sin(rad)+dy*Math.cos(rad);
+    // tokens-layer is position:absolute, top:0, left:0, same size as board-wrap
+    // so its origin in unrotated space = board-wrap center - (width/2, height/2)
+    const r={x:bR.width/2+ux, y:bR.height/2+uy};
     _slotPxCache[ck]=r;
     return r;
   }
