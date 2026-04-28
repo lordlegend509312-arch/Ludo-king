@@ -2829,7 +2829,10 @@ function cellPx(){return _cpx||Math.min(window.innerWidth*0.058,window.innerHeig
 const GAP=1,PAD=5;
 function rcToXY(r,c){
   const cp=cellPx();
-  return{x:PAD+c*(cp+GAP)+cp/2, y:PAD+r*(cp+GAP)+cp/2};
+  const x=PAD+c*(cp+GAP)+cp/2;
+  const y=PAD+r*(cp+GAP)+cp/2;
+  console.log(`[TOK] 📐 rcToXY [r=${r},c=${c}] cellPx=${cp.toFixed(1)} PAD=${PAD} GAP=${GAP} → x=${x.toFixed(2)} y=${y.toFixed(2)} | formula: x=PAD+c*(cp+GAP)+cp/2 = ${PAD}+${c}*(${cp.toFixed(1)}+${GAP})+${(cp/2).toFixed(1)}`);
+  return{x,y};
 }
 const _slotPxCache={};
 function baseCirclePx(homeR,homeC,slotIdx){
@@ -3000,7 +3003,16 @@ function _doRenderTokens(){
       stackCount=n; scale=sizeScale(n);
       const off=stackOffset(n,idx,cp);
       const xy=rcToXY(rc[0],rc[1]);
-      px=xy.x+off.dx; py=xy.y+off.dy;
+      // Counter-rotate the stacking offset by the board rotation so diamond
+      // layout stays screen-aligned regardless of which seat is active.
+      if(off.dx!==0||off.dy!==0){
+        const _oRad=_tokenRotationDeg*Math.PI/180;
+        const _cos=Math.cos(_oRad),_sin=Math.sin(_oRad);
+        px=xy.x+off.dx*_cos-off.dy*_sin;
+        py=xy.y+off.dx*_sin+off.dy*_cos;
+      } else {
+        px=xy.x; py=xy.y;
+      }
     }
     alive.add(key);
     const rW=BASE_W;
@@ -3032,6 +3044,18 @@ function _doRenderTokens(){
     const _cty = py - rHH  - _tipDY;
     // Always update the stored scale so animation functions can read it
     wrap.dataset.visualScale = visualScale;
+    // ── STATIC PLACEMENT LOG ──
+    const _colorName2=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
+    console.log(`[TOK] 📌 PLACE pid=${tok.pid}(${_colorName2}) tid=${tok.tid} step=${tok.step} rot=${_tr}°`);
+    console.log(`[TOK]    cellCenter=(${px.toFixed(2)},${py.toFixed(2)}) scale=${visualScale}`);
+    console.log(`[TOK]    rW=${rW} rH=${rH.toFixed(1)} tipOffset=${tipOffset.toFixed(1)} rHH=${rHH.toFixed(1)}`);
+    console.log(`[TOK]    tipFromCenter=${_tipFromCenter.toFixed(1)} rad=${_rad.toFixed(4)} tipDX=${_tipDX.toFixed(2)} tipDY=${_tipDY.toFixed(2)}`);
+    console.log(`[TOK]    translate=(${_ctx.toFixed(2)},${_cty.toFixed(2)}) formula: x=px-rW/2+tipDX=${px.toFixed(1)}-${(rW/2).toFixed(1)}+${_tipDX.toFixed(2)} | y=py-rHH-tipDY=${py.toFixed(1)}-${rHH.toFixed(1)}-${_tipDY.toFixed(2)}`);
+    // Verify tip lands at cell center
+    const _verifyTipX = _ctx + rW/2 - _tipFromCenter*Math.sin(_rad);
+    const _verifyTipY = _cty + rHH + _tipFromCenter*Math.cos(_rad);
+    const _errX=(_verifyTipX-px).toFixed(2), _errY=(_verifyTipY-py).toFixed(2);
+    console.log(`[TOK]    TIP verify=(${_verifyTipX.toFixed(2)},${_verifyTipY.toFixed(2)}) cellCenter=(${px.toFixed(2)},${py.toFixed(2)}) err=(${_errX},${_errY}) ${(Math.abs(parseFloat(_errX))<0.5&&Math.abs(parseFloat(_errY))<0.5)?'✅ centred':'❌ OFF'}`);
     if(!wrap.dataset.animating){
       const _newTr=`translate(${_ctx}px,${_cty}px) rotate(${_tr}deg)${scaleTransform}`;
       if(wrap._lastStaticTr!==_newTr){wrap._lastStaticTr=_newTr;wrap.style.transform=_newTr;}
@@ -3589,9 +3613,16 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer,visualSc
     const tipDX = tipFromCenter * Math.sin(rad);
     const tipDY = tipFromCenter * Math.cos(rad);
     const dx=endX-startX, dy=endY-startY;
+    // ── JUMP SETUP LOG ──
+    console.log(`[TOK] 🚀 JUMP START | color=${color} rot=${_tr}°`);
+    console.log(`[TOK]    rW=${rW} rH=${rH.toFixed(1)} tipOffset=${tipOffset.toFixed(1)} tipFromCenter=${tipFromCenter.toFixed(1)}`);
+    console.log(`[TOK]    rad=${rad.toFixed(4)} tipDX=${tipDX.toFixed(2)} tipDY=${tipDY.toFixed(2)}`);
+    console.log(`[TOK]    start=(${startX.toFixed(1)},${startY.toFixed(1)}) end=(${endX.toFixed(1)},${endY.toFixed(1)}) Δ=(${dx.toFixed(1)},${dy.toFixed(1)})`);
+    console.log(`[TOK]    jumpHeight h=cp*0.55=${h.toFixed(1)}px | negFourH=${negFourH.toFixed(1)} | JUMP_MS=${JUMP_MS}`);
     if(layer && !PERF_MODE && (++_trailSkip%3===0))spawnTrailDot(startX,startY,color,layer);
     
     let _lastShadowKey='';
+    let _frameCount=0;
     function tick(now){
       if(!t0) t0=now;
       let t=(now-t0)*invJUMP;
@@ -3605,6 +3636,17 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer,visualSc
       const ex = x - rWHalf + tipDX;   // ← was minus, now plus
       const ey = y + jump - rHHalf - tipDY;
       el.style.transform=`translate(${ex}px,${ey}px)${rotSuffix}${liveSuffix}`;
+      // ── PER-FRAME MATH LOG (every 4th frame to avoid spam) ──
+      _frameCount++;
+      if(_frameCount===1||t>=1||_frameCount%4===0){
+        const tipWorldX = ex + rWHalf - tipFromCenter*Math.sin(rad);
+        const tipWorldY = ey + rHHalf + tipFromCenter*Math.cos(rad);
+        const errX=(tipWorldX-x).toFixed(2), errY=(tipWorldY-(y+jump)).toFixed(2);
+        console.log(`[TOK] 🎞️ frame#${_frameCount} t=${t.toFixed(3)} eased=${et.toFixed(3)} jump=${jump.toFixed(1)}px`);
+        console.log(`[TOK]    pos=(${x.toFixed(1)},${y.toFixed(1)}) translate=(${ex.toFixed(1)},${ey.toFixed(1)})`);
+        console.log(`[TOK]    TIP world=(${tipWorldX.toFixed(1)},${(tipWorldY).toFixed(1)}) target=(${x.toFixed(1)},${(y+jump).toFixed(1)}) err=(${errX},${errY}) ${(Math.abs(parseFloat(errX))<0.5&&Math.abs(parseFloat(errY))<0.5)?'✅':'❌'}`);
+        console.log(`[TOK]    shadowPos=(${(x-shadowHalf).toFixed(1)},${(y-shadowHalfH+1).toFixed(1)})`);
+      }
       if(shadowEl){
         const peakRatio=1-Math.abs(2*t-1);
         const scaleX=1-0.35*peakRatio;
@@ -3617,7 +3659,10 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer,visualSc
         }
       }
       if(t<1) requestAnimationFrame(tick);
-      else resolve();
+      else {
+        console.log(`[TOK] ✅ JUMP END after ${_frameCount} frames | final pos=(${endX.toFixed(1)},${endY.toFixed(1)})`);
+        resolve();
+      }
     }
     requestAnimationFrame(tick);
   });
@@ -3638,6 +3683,9 @@ async function animateMove(tok,steps){
   let endXY={x:0,y:0}; // track last step's end position for land squash
   const els=_tokEls[key];
   if(!els) return;
+  const _amColorName=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
+  console.log(`[TOK] ▶️ animateMove pid=${tok.pid}(${_amColorName}) tid=${tok.tid} from step=${tok.step} +${steps} steps | cp=${cp.toFixed(1)} BASE_W=${BASE_W} rot=${_tokenRotationDeg}°`);
+  console.log(`[TOK]    oH=${oH.toFixed(1)} oTip=${oTip.toFixed(1)} oHH=${oHH.toFixed(1)} oTipFromCenter=${oTipFromCenter.toFixed(1)}`);
   // Set zIndex and clear transition ONCE before loop
   els.wrap.dataset.animating="1";
   els.wrap.dataset.visualScale="1";
@@ -3656,6 +3704,11 @@ async function animateMove(tok,steps){
     const rc=getRenderCell(tok.pid,curStep);
     if(!rc) continue;
     endXY=rcToXY(rc[0],rc[1]);
+    // ── ANIM STEP LOG ──
+    const _stepColorName=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
+    console.log(`[TOK] 🔢 STEP ${i+1}/${steps} pid=${tok.pid}(${_stepColorName}) tid=${tok.tid} step:${curStep-1}→${curStep} cell:[${prevCell}]→[${rc}]`);
+    console.log(`[TOK]    startPx=(${startXY.x.toFixed(1)},${startXY.y.toFixed(1)}) endPx=(${endXY.x.toFixed(1)},${endXY.y.toFixed(1)}) Δ=(${(endXY.x-startXY.x).toFixed(1)},${(endXY.y-startXY.y).toFixed(1)})`);
+    console.log(`[TOK]    dist=${Math.hypot(endXY.x-startXY.x,endXY.y-startXY.y).toFixed(1)}px | cp=${cp.toFixed(1)} jumpH=cp*0.55=${(cp*0.55).toFixed(1)}px`);
     const prevKey=`${prevCell[0]}-${prevCell[1]}`;
     const newKey=`${rc[0]}-${rc[1]}`;
     // Reposition neighboring tokens (only affected cells)
@@ -3708,6 +3761,13 @@ async function animateMove(tok,steps){
   const _tx2=endXY.x-BASE_W/2+_tdx2,_ty2=endXY.y-_rHH2-_tdy2;
   const _sqTrl=`translate(${_tx2}px,${_ty2}px)`;
   const _sqRot=`rotate(${_tokenRotationDeg}deg)`;
+  // ── LAND SQUASH LOG ──
+  const _lsVerifyX = _tx2 + BASE_W/2 - _tfc2*Math.sin(_rad2);
+  const _lsVerifyY = _ty2 + _rHH2 + _tfc2*Math.cos(_rad2);
+  const _lsErrX=(_lsVerifyX-endXY.x).toFixed(2), _lsErrY=(_lsVerifyY-endXY.y).toFixed(2);
+  console.log(`[TOK] 💥 LAND SQUASH finalCell endPx=(${endXY.x.toFixed(1)},${endXY.y.toFixed(1)})`);
+  console.log(`[TOK]    _tfc2=${_tfc2.toFixed(1)} tipDX=${_tdx2.toFixed(2)} tipDY=${_tdy2.toFixed(2)}`);
+  console.log(`[TOK]    sqTranslate=(${_tx2.toFixed(2)},${_ty2.toFixed(2)}) verify tip=(${_lsVerifyX.toFixed(2)},${_lsVerifyY.toFixed(2)}) err=(${_lsErrX},${_lsErrY}) ${(Math.abs(parseFloat(_lsErrX))<0.5&&Math.abs(parseFloat(_lsErrY))<0.5)?'✅':'❌'}`);
   els.wrap.style.setProperty('--sq-trl',_sqTrl);
   els.wrap.style.setProperty('--sq-rot',_sqRot);
   els.wrap.classList.remove('tok-land');
@@ -3868,6 +3928,10 @@ async function doMove(pid,tid,v){
       const key=`${tok.pid}-${tok.tid}`;
       const els=_tokEls[key];
       const color=getDisplayColorForSeat(tok.pid);
+      const _spawnColorName=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
+      console.log(`[TOK] 🐣 SPAWN pid=${tok.pid}(${_spawnColorName}) tid=${tok.tid} homeCorner=[${spawnHr},${spawnHc}]`);
+      console.log(`[TOK]    spawnPx=(${spawnStart.x.toFixed(1)},${spawnStart.y.toFixed(1)}) entryCell=[${entryCell}] entryPx=(${entryXY.x.toFixed(1)},${entryXY.y.toFixed(1)})`);
+      console.log(`[TOK]    cp=${cp.toFixed(1)} BASE_W=${BASE_W} Δ=(${(entryXY.x-spawnStart.x).toFixed(1)},${(entryXY.y-spawnStart.y).toFixed(1)}) dist=${Math.hypot(entryXY.x-spawnStart.x,entryXY.y-spawnStart.y).toFixed(1)}px`);
       if(els) await jumpStep(els.wrap,els.shadow,spawnStart.x,spawnStart.y,entryXY.x,entryXY.y,BASE_W,color,cp,layer);
       renderTokens();await rafDelay(20);
       // Capture check after animation — token is now visually at entry cell
