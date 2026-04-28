@@ -3669,7 +3669,7 @@ async function animateMove(tok,steps){
   const _tfc2=_oTip2-_rHH2;
   const _rad2=_tokenRotationDeg*Math.PI/180;
   const _tdx2=_tfc2*Math.sin(_rad2),_tdy2=_tfc2*Math.cos(_rad2);
-  const _tx2=endXY.x-BASE_W/2-_tdx2,_ty2=endXY.y-_rHH2-_tdy2;
+  const _tx2=endXY.x-BASE_W/2+_tdx2,_ty2=endXY.y-_rHH2-_tdy2;
   const _sqBase=`translate(${_tx2}px,${_ty2}px) rotate(${_tokenRotationDeg}deg)`;
   els.wrap.style.setProperty('--sq-base',_sqBase);
   els.wrap.classList.remove('tok-land');
