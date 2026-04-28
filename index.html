@@ -2976,13 +2976,18 @@ function _doRenderTokens(){
     // Center-based transformOrigin so rotation doesn't shift tip
     const rHH = rH/2;
     wrap.style.transformOrigin = `${rW/2}px ${rHH}px`;
-    // Compute rotation-aware tip offset so tip stays at cell center
+    // Compute rotation-aware tip offset so tip stays at cell center (px, py)
+    // Tip in element coords = (rW/2, tipOffset), relative to transformOrigin (rW/2, rHH) → (0, _tipFromCenter)
+    // After rotate(rad): rotated = (-_tipFromCenter*sin, _tipFromCenter*cos)
+    // world_tip = (_ctx + rW/2 - _tipFromCenter*sin, _cty + rHH + _tipFromCenter*cos) = (px, py)
+    // → _ctx = px - rW/2 + _tipFromCenter*sin(rad)
+    // → _cty = py - rHH  - _tipFromCenter*cos(rad)
     const _tipFromCenter = tipOffset - rHH;
     const _rad = _tr * Math.PI / 180;
     const _tipDX = _tipFromCenter * Math.sin(_rad);
     const _tipDY = _tipFromCenter * Math.cos(_rad);
-    const _ctx = px - rW/2 - _tipDX;
-    const _cty = py - rHH - _tipDY;
+    const _ctx = px - rW/2 + _tipDX;   // ← was minus, now plus
+    const _cty = py - rHH  - _tipDY;
     // Always update the stored scale so animation functions can read it
     wrap.dataset.visualScale = visualScale;
     if(!wrap.dataset.animating){
@@ -3534,9 +3539,9 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer,visualSc
     const _tr=_tokenRotationDeg;
     const rotSuffix=_tr===0?'':` rotate(${_tr}deg)`;
     // Tip is at tipOffset from top in local space. Center is at rHHalf.
-    // Local tip offset from center: (0, tipOffset - rHHalf) i.e. below center
-    // After rotating by _tr degrees, that offset vector becomes:
-    // dx = (tipOffset-rHHalf)*sin(_tr), dy = (tipOffset-rHHalf)*cos(_tr)
+    // world_tip = (ex + rWHalf - tipFromCenter*sin, ey + rHHalf + tipFromCenter*cos) = (x, y+jump)
+    // → ex = x - rWHalf + tipFromCenter*sin(rad)
+    // → ey = y + jump - rHHalf - tipFromCenter*cos(rad)
     const tipFromCenter = tipOffset - rHHalf;
     const rad = _tr * Math.PI / 180;
     const tipDX = tipFromCenter * Math.sin(rad);
@@ -3555,7 +3560,7 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer,visualSc
       const liveScale=parseFloat(el.dataset.visualScale||'1');
       const liveSuffix=liveScale!==1?` scale(${liveScale})`:'';
       // Position so rotated tip lands at (x, y+jump)
-      const ex = x - rWHalf - tipDX;
+      const ex = x - rWHalf + tipDX;   // ← was minus, now plus
       const ey = y + jump - rHHalf - tipDY;
       el.style.transform=`translate(${ex}px,${ey}px)${rotSuffix}${liveSuffix}`;
       if(shadowEl){
@@ -3583,6 +3588,8 @@ async function animateMove(tok,steps){
   const cp=cellPx(),BASE_W=Math.round(cp*1.15);
   const layer=document.getElementById('tokens-layer');
   const oH=BASE_W*(130/100),oTip=oH*(122/130);
+  const oHH=oH/2; // center Y for transformOrigin
+  const oTipFromCenter=oTip-oHH;
   let curStep=tok.step;
   const finalStep=Math.min(tok.step+steps, STEP_DONE);
   let _homeStretchFired=false;
@@ -3596,7 +3603,7 @@ async function animateMove(tok,steps){
   els.wrap.style.transition="";
   if(els.shadow) els.shadow.style.transition="";
   // Set transformOrigin ONCE
-  els.wrap.style.transformOrigin=`${BASE_W/2}px ${oTip}px`;
+  els.wrap.style.transformOrigin=`${BASE_W/2}px ${oHH}px`;
   for(let i=0;i<steps;i++){
     if(curStep>=STEP_DONE) break;
     const prevCell=getRenderCell(tok.pid,curStep);
@@ -3631,9 +3638,12 @@ async function animateMove(tok,steps){
       else if(n>=3){const col=idx%2,row=Math.floor(idx/2);dx=(col-0.5)*gap;dy=(row-0.5)*gap;}
       const oxy=rcToXY(orc[0],orc[1]);
       const scaleStr=sc!==1?` scale(${sc})`:'';
+      const _oRad=_tokenRotationDeg*Math.PI/180;
+      const _oTipDX=oTipFromCenter*Math.sin(_oRad);
+      const _oTipDY=oTipFromCenter*Math.cos(_oRad);
       oEls.wrap.style.transition=`transform ${JUMP_MS}ms cubic-bezier(0.22,1,0.36,1)`;
-      oEls.wrap.style.transform=`translate(${oxy.x+dx-BASE_W/2}px,${oxy.y+dy-oTip}px) rotate(${_tokenRotationDeg}deg)${scaleStr}`;
-      oEls.wrap.style.transformOrigin=`${BASE_W/2}px ${oTip}px`;
+      oEls.wrap.style.transform=`translate(${oxy.x+dx-BASE_W/2+_oTipDX}px,${oxy.y+dy-oHH-_oTipDY}px) rotate(${_tokenRotationDeg}deg)${scaleStr}`;
+      oEls.wrap.style.transformOrigin=`${BASE_W/2}px ${oHH}px`;
       setTimeout(()=>{if(oEls.wrap)oEls.wrap.style.transition="";},JUMP_MS+10);
     });
     if(!_homeStretchFired && curStep===STEP_STRETCH_START){
@@ -3683,8 +3693,12 @@ async function sendHomeFast(tok){
     if(m){
       const _rW=parseFloat(el.dataset.rw||"28");
       const _rH=_rW*(130/100), _tipOffset=_rH*(122/130);
-      captureX=parseFloat(m[1])+_rW/2;
-      captureY=parseFloat(m[2])+_tipOffset;
+      const _rHH=_rH/2, _tfc=_tipOffset-_rHH;
+      const _cRad=_tokenRotationDeg*Math.PI/180;
+      // _ctx = px - rW/2 + tfc*sin, so px = _ctx + rW/2 - tfc*sin
+      captureX=parseFloat(m[1])+_rW/2 - _tfc*Math.sin(_cRad);
+      // _cty = py - rHH - tfc*cos, so py = _cty + rHH + tfc*cos
+      captureY=parseFloat(m[2])+_rHH  + _tfc*Math.cos(_cRad);
     } else {
       _refreshCache();
       const rc=getRenderCell(tok.pid,tok.step);
@@ -3710,13 +3724,16 @@ async function sendHomeFast(tok){
   _refreshCache();const cp=cellPx();
   const BASE_W=Math.round(cp*1.15);
   const rH=BASE_W*(130/100),tipOffset=rH*(122/130);
+  const rHH2=rH/2, tipFromCenter2=tipOffset-rHH2;
   const FAST_HOME_MS = 110;
   const cacheKey2 = `${tok.pid}-${tok.tid}`;
   const els2 = _tokEls[cacheKey2];
   if(els2 && els2.wrap){
     const bp2 = baseCirclePx(hr, hc, tok.tid);
-    const destX = bp2.x - BASE_W/2;
-    const destY = bp2.y - tipOffset;
+    const _cRad2=_tokenRotationDeg*Math.PI/180;
+    const destX = bp2.x - BASE_W/2 + tipFromCenter2*Math.sin(_cRad2);
+    const destY = bp2.y - rHH2     - tipFromCenter2*Math.cos(_cRad2);
+    els2.wrap.style.transformOrigin=`${BASE_W/2}px ${rHH2}px`;
     els2.wrap.style.transition = `transform ${FAST_HOME_MS}ms cubic-bezier(0.15,0,0.3,1), opacity ${FAST_HOME_MS}ms`;
     els2.wrap.style.transform = `translate(${destX}px,${destY}px) rotate(${_tokenRotationDeg}deg)`;
     if(els2.shadow){
