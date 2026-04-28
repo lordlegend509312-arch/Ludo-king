@@ -558,6 +558,8 @@ function applyBoardRotation(){
   if(bw) bw.style.transform = `rotate(${deg}deg)`;
   _tokenRotationDeg = -deg;
   _cacheValid = false;
+  // Rotation change hone pe slot cache clear karo — stale positions avoid karne ke liye
+  for(const k in _slotPxCache) delete _slotPxCache[k];
   document.querySelectorAll(".lc-inner").forEach(el=>{
     el.style.transform = `rotate(${-deg}deg)`;
   });
@@ -2869,7 +2871,19 @@ function baseCirclePx(homeR,homeC,slotIdx){
   const pad=wbW*0.10, gap=wbW*0.10;
   const cellW=(wbW-2*pad-gap)/2;
   const col=slotIdx%2, row=Math.floor(slotIdx/2);
-  return{x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2};
+  const rawX=wbX+pad+col*(cellW+gap)+cellW/2;
+  const rawY=wbY+pad+row*(cellW+gap)+cellW/2;
+  // Board rotation ke liye correct karo (DOM path jaisa)
+  const deg=getBoardRotation();
+  if(deg===0) return{x:rawX,y:rawY};
+  // Board center (15 cells + gaps + padding)
+  const boardSize=15*cp+14*GAP+2*PAD;
+  const bcx=boardSize/2, bcy=boardSize/2;
+  const rad=-deg*Math.PI/180;
+  const dx=rawX-bcx, dy=rawY-bcy;
+  const ux=dx*Math.cos(rad)-dy*Math.sin(rad)+bcx;
+  const uy=dx*Math.sin(rad)+dy*Math.cos(rad)+bcy;
+  return{x:ux,y:uy};
 }
 let _renderScheduled = false;
 let _renderGeneration = 0;
