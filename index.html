@@ -549,6 +549,8 @@ function applyBoardRotation(){
   if(bw) bw.style.transform = `rotate(${deg}deg)`;
   _tokenRotationDeg = -deg;
   _cacheValid = false;
+  // Clear slot cache — home circle positions change after board rotation
+  for(const k in _slotPxCache) delete _slotPxCache[k];
   document.querySelectorAll(".lc-inner").forEach(el=>{
     el.style.transform = `rotate(${-deg}deg)`;
   });
@@ -557,6 +559,8 @@ function applyBoardRotation(){
   });
   requestAnimationFrame(()=>{
     _cacheValid = false;
+    // Re-clear after one frame so getBoundingClientRect sees post-rotation layout
+    for(const k in _slotPxCache) delete _slotPxCache[k];
     renderTokens();
   });
 }
@@ -1906,11 +1910,7 @@ function buildBoard(){
           d.style.background=DEF;
           const arSeat = ARROWS[k].seat;
           const dc = getDisplayColorForSeat(arSeat);          d.dataset.arrowSeat = arSeat;
-          const _arDirs=["right","down","left","up"];
-          const _baseDirIdx=_arDirs.indexOf(ARROWS[k].dir);
-          const _rotSteps=Math.round(getBoardRotation()/90)%4;
-          const _finalDir=_arDirs[(_baseDirIdx+_rotSteps+4)%4];
-          d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;"><path d="${arDir[_finalDir]}" fill="${dc}"/></svg>`;
+          d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;"><path d="${arDir[ARROWS[k].dir]}" fill="${dc}"/></svg>`;
         } else if(PATH.has(k)){
           d.style.background=DEF;
         } else {
@@ -2828,20 +2828,46 @@ function rcToXY(r,c){
 const _slotPxCache={};
 function baseCirclePx(homeR,homeC,slotIdx){
   const ck=`${homeR},${homeC},${slotIdx}`;
-  if(_slotPxCache[ck]) return _slotPxCache[ck];
+  if(_slotPxCache[ck]){
+    console.log(`[TOK] slotPxCache HIT [${ck}] → (${_slotPxCache[ck].x.toFixed(1)},${_slotPxCache[ck].y.toFixed(1)})`);
+    return _slotPxCache[ck];
+  }
+  const layer=document.getElementById('tokens-layer');
+  const el=document.querySelector(`[data-slot="${homeR},${homeC},${slotIdx}"]`);
+  if(el&&layer){
+    const eR=el.getBoundingClientRect();
+    const lR=layer.getBoundingClientRect();
+    const sx=eR.left+eR.width/2;
+    const sy=eR.top+eR.height/2;
+    const bw=document.getElementById('board-wrap');
+    const bR=bw?bw.getBoundingClientRect():lR;
+    const bcx=bR.left+bR.width/2;
+    const bcy=bR.top+bR.height/2;
+    const deg=getBoardRotation();
+    const rad=-deg*Math.PI/180;
+    const dx=sx-bcx, dy=sy-bcy;
+    const ux=dx*Math.cos(rad)-dy*Math.sin(rad)+bcx;
+    const uy=dx*Math.sin(rad)+dy*Math.cos(rad)+bcy;
+    const r={x:ux-lR.left, y:uy-lR.top};
+    console.log(`[TOK] slotPxCache MISS DOM [${ck}] rot=${deg}° → (${r.x.toFixed(1)},${r.y.toFixed(1)})`);
+    _slotPxCache[ck]=r;
+    return r;
+  }
   const cp=cellPx();
   const zoneX=PAD+homeC*(cp+GAP);
   const zoneY=PAD+homeR*(cp+GAP);
   const zoneW=6*cp+5*GAP;
+  // lc-inner: width/height = 74% of zoneW, centered
   const wbW=zoneW*0.74;
   const wbX=zoneX+(zoneW-wbW)/2;
   const wbY=zoneY+(zoneW-wbW)/2;
+  // lc-inner grid: padding=10% of wbW, gap=10% of wbW, 2 equal columns/rows
   const pad=wbW*0.10, gap=wbW*0.10;
   const cellW=(wbW-2*pad-gap)/2;
   const col=slotIdx%2, row=Math.floor(slotIdx/2);
-  const r={x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2};
-  _slotPxCache[ck]=r;
-  return r;
+  const fbR={x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2};
+  console.log(`[TOK] slotPxCache MISS MATH [${ck}] → (${fbR.x.toFixed(1)},${fbR.y.toFixed(1)})`);
+  return fbR;
 }
 let _renderScheduled = false;
 let _renderGeneration = 0;
@@ -2896,6 +2922,8 @@ function _doRenderTokens(){
       const [hr,hc]=getHomeCornerBySeat(tok.pid);
       const bp=baseCirclePx(hr,hc,tok.tid);
       px=bp.x; py=bp.y; scale=1.02;
+      const _colorName=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
+      console.log(`[TOK] HOME seat=${tok.pid}(${_colorName}) tid=${tok.tid} homeCorner=[${hr},${hc}] slotPx=(${bp.x.toFixed(1)},${bp.y.toFixed(1)}) boardRot=${getBoardRotation()}°`);
     } else if(tok.step>=STEP_DONE){
       const centerRC=[7,7];
       const cxy=rcToXY(centerRC[0],centerRC[1]);
@@ -4541,7 +4569,7 @@ applyPerfMode();
 <button id="dbg-toggle" onclick="const p=document.getElementById('dbg-panel');p.style.display=p.style.display==='none'?'flex':'none';" style="position:fixed;bottom:10px;right:10px;z-index:99998;background:#222;color:#FFD700;border:1px solid #FFD700;border-radius:20px;padding:6px 14px;font-size:12px;font-family:monospace;">🐛 Log</button>
 <script>
 (function(){
-  const _maxLogs = 80;
+  const _maxLogs = 200;
   window._dbgLog = function(msg, color){
     const el = document.getElementById('dbg-log');
     if(!el) return;
@@ -4570,7 +4598,8 @@ applyPerfMode();
     if(msg.startsWith('[SFX]'))   color = '#ff69b4';
     if(msg.startsWith('[GAME]'))  color = '#00e5ff';
     if(msg.startsWith('[VOTE]'))  color = '#c084fc';
-    if(msg.startsWith('[SYNC]') || msg.startsWith('[ANIM]') || msg.startsWith('[SFX]') || msg.startsWith('[GAME]') || msg.startsWith('[VOTE]')){
+    if(msg.startsWith('[TOK]'))   color = '#ffa07a';
+    if(msg.startsWith('[SYNC]') || msg.startsWith('[ANIM]') || msg.startsWith('[SFX]') || msg.startsWith('[GAME]') || msg.startsWith('[VOTE]') || msg.startsWith('[TOK]')){
       window._dbgLog(msg, color);
     }
   };
