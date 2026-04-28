@@ -540,7 +540,7 @@ const DEF="#CFD8DC", BOARD_BG="#546E7A";
 const SEAT_COLOR = [PINK, YELLOW, GREEN, BLUE];
 const CW_INDEX = [1, 2, 3, 0];
 let MY_SLOT = 0;
-const SEAT_ROTATION = [90, 180, 270, 0];
+const SEAT_ROTATION = [270, 180, 90, 0];
 function getBoardRotation(){ return MY_SEAT !== null ? (SEAT_ROTATION[MY_SEAT] || 0) : 0; }
 function getDisplayColorForSeat(seat){ return SEAT_COLOR[seat] || "#888"; }
 function applyBoardRotation(){
