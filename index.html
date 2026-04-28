@@ -538,7 +538,7 @@ function togglePerfMode(){
 const PINK="#FF2D78", BLUE="#00AEEF", GREEN="#00C853", YELLOW="#FFD600";
 const DEF="#CFD8DC", BOARD_BG="#546E7A";
 const SEAT_COLOR = [PINK, YELLOW, GREEN, BLUE];
-const CW_INDEX = [1, 2, 3, 0];
+const CW_INDEX = [0, 3, 1, 2];
 let MY_SLOT = 0;
 const SEAT_ROTATION = [90, 180, 270, 0];
 function getBoardRotation(){ return MY_SEAT !== null ? (SEAT_ROTATION[MY_SEAT] || 0) : 0; }
@@ -2843,52 +2843,29 @@ const _slotPxCache={};
 function baseCirclePx(homeR,homeC,slotIdx){
   const ck=`${homeR},${homeC},${slotIdx}`;
   if(_slotPxCache[ck]) return _slotPxCache[ck];
-  const layer=document.getElementById('tokens-layer');
-  const el=document.querySelector(`[data-slot="${homeR},${homeC},${slotIdx}"]`);
-  if(el&&layer){
-    const eR=el.getBoundingClientRect();
-    const lR=layer.getBoundingClientRect();
-    const sx=eR.left+eR.width/2;
-    const sy=eR.top+eR.height/2;
-    const bw=document.getElementById('board-wrap');
-    const bR=bw?bw.getBoundingClientRect():lR;
-    const bcx=bR.left+bR.width/2;
-    const bcy=bR.top+bR.height/2;
-    const deg=getBoardRotation();
-    const rad=-deg*Math.PI/180;
-    const dx=sx-bcx, dy=sy-bcy;
-    const ux=dx*Math.cos(rad)-dy*Math.sin(rad)+bcx;
-    const uy=dx*Math.sin(rad)+dy*Math.cos(rad)+bcy;
-    const r={x:ux-lR.left, y:uy-lR.top};
-    _slotPxCache[ck]=r;
-    return r;
-  }
   const cp=cellPx();
   const zoneX=PAD+homeC*(cp+GAP);
   const zoneY=PAD+homeR*(cp+GAP);
   const zoneW=6*cp+5*GAP;
-  // lc-inner: width/height = 74% of zoneW, centered
   const wbW=zoneW*0.74;
   const wbX=zoneX+(zoneW-wbW)/2;
   const wbY=zoneY+(zoneW-wbW)/2;
-  // lc-inner grid: padding=10% of wbW, gap=10% of wbW, 2 equal columns/rows
   const pad=wbW*0.10, gap=wbW*0.10;
   const cellW=(wbW-2*pad-gap)/2;
   const col=slotIdx%2, row=Math.floor(slotIdx/2);
   const rawX=wbX+pad+col*(cellW+gap)+cellW/2;
   const rawY=wbY+pad+row*(cellW+gap)+cellW/2;
-  // Board rotation ke liye correct karo
-  // Board CSS rotate(deg) clockwise karta hai — tokens unrotated space mein hain
-  // Unrotated space mein correct position = point ko -deg (anti-clockwise) rotate karo
   const deg=getBoardRotation();
-  if(deg===0) return{x:rawX,y:rawY};
+  if(deg===0){ const r={x:rawX,y:rawY}; _slotPxCache[ck]=r; return r; }
   const boardSize=15*cp+14*GAP+2*PAD;
   const bcx=boardSize/2, bcy=boardSize/2;
   const rad=deg*Math.PI/180;
   const dx=rawX-bcx, dy=rawY-bcy;
   const ux=dx*Math.cos(rad)-dy*Math.sin(rad)+bcx;
   const uy=dx*Math.sin(rad)+dy*Math.cos(rad)+bcy;
-  return{x:ux,y:uy};
+  const r={x:ux,y:uy};
+  _slotPxCache[ck]=r;
+  return r;
 }
 let _renderScheduled = false;
 let _renderGeneration = 0;
