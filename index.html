@@ -1920,7 +1920,11 @@ function buildBoard(){
           d.style.background=DEF;
           const arSeat = ARROWS[k].seat;
           const dc = getBoardColor(arSeat);          d.dataset.arrowSeat = arSeat;
-          d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;"><path d="${arDir[ARROWS[k].dir]}" fill="${dc}"/></svg>`;
+          const _arDirs=["right","down","left","up"];
+          const _baseDirIdx=_arDirs.indexOf(ARROWS[k].dir);
+          const _rotSteps=Math.round(getBoardRotation()/90)%4;
+          const _finalDir=_arDirs[(_baseDirIdx+_rotSteps+4)%4];
+          d.innerHTML=`<svg viewBox="0 0 24 24" style="width:82%;height:82%;"><path d="${arDir[_finalDir]}" fill="${dc}"/></svg>`;
         } else if(PATH.has(k)){
           d.style.background=DEF;
         } else {
@@ -2843,23 +2847,19 @@ function baseCirclePx(homeR,homeC,slotIdx){
   const el=document.querySelector(`[data-slot="${homeR},${homeC},${slotIdx}"]`);
   if(el&&layer){
     const eR=el.getBoundingClientRect();
-    const bw=document.getElementById('board-wrap');
-    const bR=bw?bw.getBoundingClientRect():layer.getBoundingClientRect();
-    // Visual center of the home circle in page coords
+    const lR=layer.getBoundingClientRect();
     const sx=eR.left+eR.width/2;
     const sy=eR.top+eR.height/2;
-    // Board-wrap visual center
+    const bw=document.getElementById('board-wrap');
+    const bR=bw?bw.getBoundingClientRect():lR;
     const bcx=bR.left+bR.width/2;
     const bcy=bR.top+bR.height/2;
-    // Un-rotate: bring point into board-wrap's local (unrotated) coordinate space
     const deg=getBoardRotation();
     const rad=-deg*Math.PI/180;
     const dx=sx-bcx, dy=sy-bcy;
-    const ux=dx*Math.cos(rad)-dy*Math.sin(rad);
-    const uy=dx*Math.sin(rad)+dy*Math.cos(rad);
-    // tokens-layer is position:absolute, top:0, left:0, same size as board-wrap
-    // so its origin in unrotated space = board-wrap center - (width/2, height/2)
-    const r={x:bR.width/2+ux, y:bR.height/2+uy};
+    const ux=dx*Math.cos(rad)-dy*Math.sin(rad)+bcx;
+    const uy=dx*Math.sin(rad)+dy*Math.cos(rad)+bcy;
+    const r={x:ux-lR.left, y:uy-lR.top};
     _slotPxCache[ck]=r;
     return r;
   }
@@ -2877,13 +2877,14 @@ function baseCirclePx(homeR,homeC,slotIdx){
   const col=slotIdx%2, row=Math.floor(slotIdx/2);
   const rawX=wbX+pad+col*(cellW+gap)+cellW/2;
   const rawY=wbY+pad+row*(cellW+gap)+cellW/2;
-  // Board rotation ke liye correct karo (DOM path jaisa)
+  // Board rotation ke liye correct karo
+  // Board CSS rotate(deg) clockwise karta hai — tokens unrotated space mein hain
+  // Unrotated space mein correct position = point ko -deg (anti-clockwise) rotate karo
   const deg=getBoardRotation();
   if(deg===0) return{x:rawX,y:rawY};
-  // Board center (15 cells + gaps + padding)
   const boardSize=15*cp+14*GAP+2*PAD;
   const bcx=boardSize/2, bcy=boardSize/2;
-  const rad=-deg*Math.PI/180;
+  const rad=deg*Math.PI/180;
   const dx=rawX-bcx, dy=rawY-bcy;
   const ux=dx*Math.cos(rad)-dy*Math.sin(rad)+bcx;
   const uy=dx*Math.sin(rad)+dy*Math.cos(rad)+bcy;
