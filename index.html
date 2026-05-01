@@ -3174,29 +3174,23 @@ function _doRenderTokens(){
       // tokCenterY = cell center Y minus a fixed upward offset so shield sits at token body level.
       const sW=BASE_W*1.05;
       const sH=sW*(34/28);
-      // px,py = cell center (token tip point) in board pixel space.
-      // Shield should sit centered on the token body, NOT rotate with the board —
-      // it's a UI overlay that always points upward.
-      // Token body center in screen space: tip is at (px,py), body extends upward by tipOffset*visualScale.
-      // We place shield so its vertical center aligns with token body midpoint.
-      const _tipH = rW*(130/100)*(122/130); // tipOffset in token coords
-      const _bodyCenterUp = _tipH * visualScale * 0.5; // how far above cell-center the body center is
-      // In screen space: body center X = px (always centred horizontally on cell)
-      // body center Y depends on board rotation because "up" rotates
-      // _tokenRotationDeg is the counter-rotation applied to tokens, so screen-up in board space:
-      const _rotRad = _tokenRotationDeg * Math.PI / 180;
-      const _bodyCX = px + _bodyCenterUp * Math.sin(_rotRad);
-      const _bodyCY = py - _bodyCenterUp * Math.cos(_rotRad);
-      const shieldX = _bodyCX - sW/2;
-      const shieldY = _bodyCY - sH*0.5;
+      // px,py = token tip (cell center) in board-space pixels.
+      // tokens-layer is inside board-wrap which CSS-rotates, so shield inherits that rotation automatically.
+      // We just need to position shield in board-space: straight up from tip = decrease Y.
+      const _tipH = rW*(130/100)*(122/130); // full tipOffset
+      const _bodyUpOffset = _tipH * visualScale * 0.55; // body center above cell center, scaled with token
+      const shieldCX = px;                      // horizontally centred on cell
+      const shieldCY = py - _bodyUpOffset;      // straight up in board-space
+      const shieldX = shieldCX - sW/2;
+      const shieldY = shieldCY - sH*0.5;
       const _colorNameS=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
       if(blockType&&isFirst){
         const isSuper=blockType==='super';
         const shieldOpacity=isSuper?'1':'0.88';
         const gid=`dsg-${tok.pid}-${tok.tid}`;
-        // No rotation on shield — always upright overlay
+        // No explicit rotation — shield lives in board-space and rotates with the board naturally
         const newCss=`position:absolute;left:0;top:0;width:${sW}px;height:${sH}px;pointer-events:none;transform:translate(${shieldX}px,${shieldY}px);filter:drop-shadow(${isSuper?'0 0 5px rgba(255,200,0,0.95)':'0 0 3px rgba(120,180,255,0.8)'});opacity:${shieldOpacity};z-index:4;`;
-        console.log(`[SHIELD] 🛡️ SHOW pid=${tok.pid}(${_colorNameS}) tid=${tok.tid} type=${blockType} step=${tok.step} boardRot=${_tokenRotationDeg}° | tip=(${px.toFixed(1)},${py.toFixed(1)}) bodyCenterUp=${_bodyCenterUp.toFixed(1)} bodyCenter=(${_bodyCX.toFixed(1)},${_bodyCY.toFixed(1)}) | shieldPos=(${shieldX.toFixed(1)},${shieldY.toFixed(1)}) sW=${sW.toFixed(1)} sH=${sH.toFixed(1)}`);
+        console.log(`[SHIELD] 🛡️ SHOW pid=${tok.pid}(${_colorNameS}) tid=${tok.tid} type=${blockType} step=${tok.step} | tip=(${px.toFixed(1)},${py.toFixed(1)}) bodyUpOffset=${_bodyUpOffset.toFixed(1)} shieldCenter=(${shieldCX.toFixed(1)},${shieldCY.toFixed(1)}) | pos=(${shieldX.toFixed(1)},${shieldY.toFixed(1)}) sW=${sW.toFixed(1)} sH=${sH.toFixed(1)} scale=${visualScale}`);
         if(els.shield._lastCss!==newCss){els.shield.style.cssText=newCss;els.shield._lastCss=newCss;}
         const shieldSvgKey=`${blockType}|${Math.round(sW)}`;
         if(els.shield._lastType!==blockType||els.shield._lastSvgKey!==shieldSvgKey){
