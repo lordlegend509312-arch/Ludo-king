@@ -3633,12 +3633,16 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer,visualSc
     const tipDX = tipFromCenter * Math.sin(rad);
     const tipDY = tipFromCenter * Math.cos(rad);
     const dx=endX-startX, dy=endY-startY;
+    // Jump direction: token's local "up" in world space = (-sin(rad), -cos(rad))
+    const jumpSinComponent = -Math.sin(rad);
+    const jumpCosComponent = -Math.cos(rad);
     // ── JUMP SETUP LOG ──
     console.log(`[TOK] 🚀 JUMP START | color=${color} rot=${_tr}°`);
     console.log(`[TOK]    rW=${rW} rH=${rH.toFixed(1)} tipOffset=${tipOffset.toFixed(1)} tipFromCenter=${tipFromCenter.toFixed(1)}`);
     console.log(`[TOK]    rad=${rad.toFixed(4)} tipDX=${tipDX.toFixed(2)} tipDY=${tipDY.toFixed(2)}`);
     console.log(`[TOK]    start=(${startX.toFixed(1)},${startY.toFixed(1)}) end=(${endX.toFixed(1)},${endY.toFixed(1)}) Δ=(${dx.toFixed(1)},${dy.toFixed(1)})`);
-    console.log(`[TOK]    jumpHeight h=cp*0.55=${h.toFixed(1)}px | negFourH=${negFourH.toFixed(1)} | JUMP_MS=${JUMP_MS}`);
+    console.log(`[TOK]    jumpHeight h=cp*0.55=${h.toFixed(1)}px`);
+    console.log(`[TOK] 🐛 jumpAxis: rot=${_tr}° → jumpSin=${jumpSinComponent.toFixed(3)} jumpCos=${jumpCosComponent.toFixed(3)} | expected for 0°:(0,-1) 90°:(-1,0) 180°:(0,1) 270°:(1,0)`);
     if(layer && !PERF_MODE && (++_trailSkip%3===0))spawnTrailDot(startX,startY,color,layer);
     
     let _lastShadowKey='';
@@ -3650,21 +3654,25 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer,visualSc
       const et=1-Math.pow(1-t,2.8);
       const x=startX+dx*et, y=startY+dy*et;
       const jump=negFourH*t*(1-t);
+      // Apply jump along token's local up axis (rotation-aware)
+      const jumpX = jump * jumpSinComponent;
+      const jumpY = jump * jumpCosComponent;
       const liveScale=parseFloat(el.dataset.visualScale||'1');
       const liveSuffix=liveScale!==1?` scale(${liveScale})`:'';
-      // Position so rotated tip lands at (x, y+jump)
-      const ex = x - rWHalf + tipDX;   // ← was minus, now plus
-      const ey = y + jump - rHHalf - tipDY;
+      // Position so rotated tip lands at (x+jumpX, y+jumpY)
+      const ex = x + jumpX - rWHalf + tipDX;
+      const ey = y + jumpY - rHHalf - tipDY;
       el.style.transform=`translate(${ex}px,${ey}px)${rotSuffix}${liveSuffix}`;
       // ── PER-FRAME MATH LOG (every 4th frame to avoid spam) ──
       _frameCount++;
       if(_frameCount===1||t>=1||_frameCount%4===0){
         const tipWorldX = ex + rWHalf - tipFromCenter*Math.sin(rad);
         const tipWorldY = ey + rHHalf + tipFromCenter*Math.cos(rad);
-        const errX=(tipWorldX-x).toFixed(2), errY=(tipWorldY-(y+jump)).toFixed(2);
-        console.log(`[TOK] 🎞️ frame#${_frameCount} t=${t.toFixed(3)} eased=${et.toFixed(3)} jump=${jump.toFixed(1)}px`);
+        const targetX=x+jumpX, targetY=y+jumpY;
+        const errX=(tipWorldX-targetX).toFixed(2), errY=(tipWorldY-targetY).toFixed(2);
+        console.log(`[TOK] 🎞️ frame#${_frameCount} t=${t.toFixed(3)} eased=${et.toFixed(3)} jump=${jump.toFixed(1)}px → jumpX=${jumpX.toFixed(1)} jumpY=${jumpY.toFixed(1)}`);
         console.log(`[TOK]    pos=(${x.toFixed(1)},${y.toFixed(1)}) translate=(${ex.toFixed(1)},${ey.toFixed(1)})`);
-        console.log(`[TOK]    TIP world=(${tipWorldX.toFixed(1)},${(tipWorldY).toFixed(1)}) target=(${x.toFixed(1)},${(y+jump).toFixed(1)}) err=(${errX},${errY}) ${(Math.abs(parseFloat(errX))<0.5&&Math.abs(parseFloat(errY))<0.5)?'✅':'❌'}`);
+        console.log(`[TOK] 🐛 TIP world=(${tipWorldX.toFixed(1)},${tipWorldY.toFixed(1)}) target=(${targetX.toFixed(1)},${targetY.toFixed(1)}) err=(${errX},${errY}) ${(Math.abs(parseFloat(errX))<0.5&&Math.abs(parseFloat(errY))<0.5)?'✅':'❌'}`);
         console.log(`[TOK]    shadowPos=(${(x-shadowHalf).toFixed(1)},${(y-shadowHalfH+1).toFixed(1)})`);
       }
       if(shadowEl){
