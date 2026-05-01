@@ -2987,8 +2987,16 @@ function _doRenderTokens(){
       const off=stackOffset(n,idx,cp);
       const xy=rcToXY(rc[0],rc[1]);
       const rxy=xy;
-      px=rxy.x+off.dx;
-      py=rxy.y+off.dy;
+      // Counter-rotate the stacking offset by the board rotation so diamond
+      // layout stays screen-aligned regardless of which seat is active.
+      if(off.dx!==0||off.dy!==0){
+        const _oRad=_tokenRotationDeg*Math.PI/180;
+        const _cos=Math.cos(_oRad),_sin=Math.sin(_oRad);
+        px=rxy.x+off.dx*_cos-off.dy*_sin;
+        py=rxy.y+off.dx*_sin+off.dy*_cos;
+      } else {
+        px=rxy.x; py=rxy.y;
+      }
     }
     alive.add(key);
     const rW=BASE_W;
@@ -3003,21 +3011,27 @@ function _doRenderTokens(){
     if(Math.abs(curW-rW)>0.5||curColor!==color){wrap.innerHTML=tokSVG(color,rW);wrap.dataset.rw=rW;wrap.dataset.rc=color;}
     const _tr = _tokenRotationDeg;
     const scaleTransform = visualScale !== 1 ? ` scale(${visualScale})` : '';
-    // Tip-based placement — CPU file jaisa: translate tip to cell center, scale from tip
-    const tx = px - rW/2;
-    const ty = py - tipOffset;
+    // Center-based transformOrigin so rotation doesn't shift tip
+    const rHH = rH/2;
+    wrap.style.transformOrigin = `${rW/2}px ${rHH}px`;
+    // Compute rotation-aware tip offset so tip stays at cell center (px, py)
+    const _tipFromCenter = tipOffset - rHH;
+    const _rad = _tr * Math.PI / 180;
+    const _tipDX = _tipFromCenter * Math.sin(_rad);
+    const _tipDY = _tipFromCenter * Math.cos(_rad);
+    const _ctx = px - rW/2 + _tipDX;
+    const _cty = py - rHH  - _tipDY;
     wrap.dataset.visualScale = visualScale;
-
-    // ── STACK DEBUG LOG ──
-    const _cn=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
-    console.log(`[TOK] pid=${tok.pid}(${_cn}) tid=${tok.tid} step=${tok.step} | stackCount=${stackCount} scale=${visualScale} | cellCenter=(${px.toFixed(1)},${py.toFixed(1)}) | tx=${tx.toFixed(1)} ty=${ty.toFixed(1)} | tipOffset=${tipOffset.toFixed(1)} rot=${_tr}° | transformOrigin=${rW/2}px ${tipOffset}px`);
-
+    // ── STATIC PLACEMENT LOG ──
+    const _colorName2=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
+    console.log(`[TOK] 📌 PLACE pid=${tok.pid}(${_colorName2}) tid=${tok.tid} step=${tok.step} rot=${_tr}°`);
+    console.log(`[TOK]    cellCenter=(${px.toFixed(2)},${py.toFixed(2)}) scale=${visualScale}`);
+    console.log(`[TOK]    tipFromCenter=${_tipFromCenter.toFixed(1)} tipDX=${_tipDX.toFixed(2)} tipDY=${_tipDY.toFixed(2)}`);
+    console.log(`[TOK]    translate=(${_ctx.toFixed(2)},${_cty.toFixed(2)})`);
     if(!wrap.dataset.animating){
-      const _newTr=`translate(${tx}px,${ty}px) rotate(${_tr}deg)${scaleTransform}`;
-      wrap.style.transformOrigin=`${rW/2}px ${tipOffset}px`;
+      const _newTr=`translate(${_ctx}px,${_cty}px) rotate(${_tr}deg)${scaleTransform}`;
       if(wrap._lastStaticTr!==_newTr){wrap._lastStaticTr=_newTr;wrap.style.transform=_newTr;}
     } else {
-      wrap.style.transformOrigin=`${rW/2}px ${tipOffset}px`;
       const curTr = wrap.style.transform;
       if(curTr && visualScale !== 1){
         const noScale = curTr.replace(/\s*scale\([^)]*\)/g,'');
@@ -3027,7 +3041,6 @@ function _doRenderTokens(){
         const noScale = curTr.replace(/\s*scale\([^)]*\)/g,'');
         if(wrap.style.transform !== noScale) wrap.style.transform = noScale;
       }
-      console.log(`[TOK]   (animating) injected scale=${visualScale}`);
     }
     const shadowW=rW*0.60,shadowH=rW*0.16,sx=px-shadowW/2,sy=py-shadowH/2+1;
     const _sTr=`translate(${sx}px,${sy}px)`;
