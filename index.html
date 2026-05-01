@@ -3169,21 +3169,24 @@ function _doRenderTokens(){
       const grp3=rc3?groups[`${rc3[0]}-${rc3[1]}`]||[tok]:[tok];
       const isFirst=grp3.findIndex(t=>t.pid===tok.pid&&t.tid===tok.tid)===0;
       const stackN=blockType==='super'?(()=>{const rc4=getRenderCell(tok.pid,tok.step);return rc4?(groups[`${rc4[0]}-${rc4[1]}`]||[]).length:3;})():2;
-      // Shield always centered on the cell, not on the stacked token's offset position
-      const tokVisScale=visualScale;
-      const tipOffset2=rW*(130/100)*(122/130);
-      const cellXY=rc3?rcToXY(rc3[0],rc3[1]):{x:px,y:py};
-      const cpx=cellXY.x, cpy=cellXY.y;
-      const tokCenterY=cpy-(tipOffset2*tokVisScale*0.65);
-      const sW=rW*tokVisScale*1.05;
+      // Shield centered on cell center (px, py) — same coordinate space as token tip.
+      // sW uses BASE_W (not scaled by visualScale) so shield stays consistent size regardless of stack.
+      // tokCenterY = cell center Y minus a fixed upward offset so shield sits at token body level.
+      const sW=BASE_W*1.05;
       const sH=sW*(34/28);
+      // px,py = cell center in raw board pixel space. Shield body hovers above cell center.
+      const cpx=px, cpy=py;
+      const shieldHoverUp=rW*(130/100)*(122/130)*0.72; // fixed offset — independent of stack scale
+      const tokCenterY=cpy-shieldHoverUp;
       const shieldX=cpx-sW/2;
       const shieldY=tokCenterY-sH*0.5;
+      const _colorNameS=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
       if(blockType&&isFirst){
         const isSuper=blockType==='super';
         const shieldOpacity=isSuper?'1':'0.88';
         const gid=`dsg-${tok.pid}-${tok.tid}`;
-        const newCss=`position:absolute;left:0;top:0;width:${sW}px;height:${sH}px;pointer-events:none;transform:translate(${shieldX}px,${shieldY}px) rotate(${_tokenRotationDeg}deg);transform-origin:${cpx-shieldX}px ${tokCenterY-shieldY}px;filter:drop-shadow(${isSuper?'0 0 5px rgba(255,200,0,0.95)':'0 0 3px rgba(120,180,255,0.8)'});opacity:${shieldOpacity};z-index:4;`;
+        const newCss=`position:absolute;left:0;top:0;width:${sW}px;height:${sH}px;pointer-events:none;transform:translate(${shieldX}px,${shieldY}px) rotate(${_tokenRotationDeg}deg);transform-origin:${sW/2}px ${sH/2}px;filter:drop-shadow(${isSuper?'0 0 5px rgba(255,200,0,0.95)':'0 0 3px rgba(120,180,255,0.8)'});opacity:${shieldOpacity};z-index:4;`;
+        console.log(`[SHIELD] 🛡️ SHOW pid=${tok.pid}(${_colorNameS}) tid=${tok.tid} type=${blockType} step=${tok.step} rot=${_tokenRotationDeg}° | cellCenter=(${cpx.toFixed(1)},${cpy.toFixed(1)}) hoverUp=${shieldHoverUp.toFixed(1)} | shieldPos=(${shieldX.toFixed(1)},${shieldY.toFixed(1)}) sW=${sW.toFixed(1)} sH=${sH.toFixed(1)} | transformOrigin=${(sW/2).toFixed(1)}px ${(sH/2).toFixed(1)}px`);
         if(els.shield._lastCss!==newCss){els.shield.style.cssText=newCss;els.shield._lastCss=newCss;}
         const shieldSvgKey=`${blockType}|${Math.round(sW)}`;
         if(els.shield._lastType!==blockType||els.shield._lastSvgKey!==shieldSvgKey){
@@ -3227,6 +3230,8 @@ function _doRenderTokens(){
         els.shield.classList.add('tok-shield',blockType);
       } else {
         if(els.shield._lastType){
+          const _colorNameSH=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
+          console.log(`[SHIELD] ❌ HIDE pid=${tok.pid}(${_colorNameSH}) tid=${tok.tid} step=${tok.step} reason=${!blockType?'no-block':!isFirst?'not-first':'?'}`);
           els.shield._lastType=null;
           els.shield._lastSvgKey=null;
           els.shield._lastCss=null;
@@ -4738,13 +4743,14 @@ applyPerfMode();
     _origLog(...args);
     const msg = _toStr(args);
     let color = '#0f0';
-    if(msg.startsWith('[SYNC]'))  color = '#FFD700';
-    if(msg.startsWith('[ANIM]'))  color = '#00bfff';
-    if(msg.startsWith('[SFX]'))   color = '#ff69b4';
-    if(msg.startsWith('[GAME]'))  color = '#00e5ff';
-    if(msg.startsWith('[VOTE]'))  color = '#c084fc';
-    if(msg.startsWith('[TOK]'))   color = '#ffa07a';
-    if(msg.startsWith('[SYNC]') || msg.startsWith('[ANIM]') || msg.startsWith('[SFX]') || msg.startsWith('[GAME]') || msg.startsWith('[VOTE]') || msg.startsWith('[TOK]')){
+    if(msg.startsWith('[SYNC]'))    color = '#FFD700';
+    if(msg.startsWith('[ANIM]'))    color = '#00bfff';
+    if(msg.startsWith('[SFX]'))     color = '#ff69b4';
+    if(msg.startsWith('[GAME]'))    color = '#00e5ff';
+    if(msg.startsWith('[VOTE]'))    color = '#c084fc';
+    if(msg.startsWith('[TOK]'))     color = '#ffa07a';
+    if(msg.startsWith('[SHIELD]'))  color = '#7fff7f';
+    if(msg.startsWith('[SYNC]') || msg.startsWith('[ANIM]') || msg.startsWith('[SFX]') || msg.startsWith('[GAME]') || msg.startsWith('[VOTE]') || msg.startsWith('[TOK]') || msg.startsWith('[SHIELD]')){
       window._dbgLog(msg, color);
     }
   };
