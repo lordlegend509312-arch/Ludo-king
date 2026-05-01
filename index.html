@@ -943,6 +943,15 @@ async function loadAndStartGame(){
   Object.keys(_timerExpireCount).forEach(k=>delete _timerExpireCount[k]);
   _botVotes = {};
   PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
+  // Test mode: bot players ka UI set karo
+  PLAYERS.forEach(p=>{
+    if(p.isBot && p.active){
+      const offBadge = document.getElementById("offline-overlay-"+p.seat);
+      if(offBadge){ offBadge.classList.add("show","bot-mode"); }
+      const botDiceEl = document.getElementById("botdice-"+p.seat);
+      if(botDiceEl) botDiceEl.style.display = "block";
+    }
+  });
   applyBoardRotation();
   setSyncStatus("ok");
   refreshUI();
@@ -2933,7 +2942,7 @@ function _doRenderTokens(){
     if(n<=1) return{dx:0,dy:0};
     const gap=cp*0.42;
     if(n===2){
-      return idx===0?{dx:-gap*0.5,dy:0}:{dx:gap*0.5,dy:0};
+      return idx===0 ? {dx:-cp*0.38, dy:0} : {dx:cp*0.38, dy:0};
     }
     // 3 or 4: 2x2 grid
     const col=idx%2, row=Math.floor(idx/2);
@@ -2944,11 +2953,13 @@ function _doRenderTokens(){
     const isMovable=movSet.has(`${tok.pid}-${tok.tid}`);
     const key=`${tok.pid}-${tok.tid}`;
     let px,py,scale=1,stackCount=1;
+    let _cellCenterX=0,_cellCenterY=0;
     let color=getDisplayColorForSeat(tok.pid);
     if(tok.step===0){
       const [hr,hc]=getHomeCornerBySeat(tok.pid);
       const bp=baseCirclePx(hr,hc,tok.tid);
       px=bp.x; py=bp.y; scale=1.02;
+      _cellCenterX=px; _cellCenterY=py;
       const _colorName=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
       console.log(`[TOK] HOME seat=${tok.pid}(${_colorName}) tid=${tok.tid} homeCorner=[${hr},${hc}] slotPx=(${bp.x.toFixed(1)},${bp.y.toFixed(1)}) boardRot=${getBoardRotation()}°`);
     } else if(tok.step>=STEP_DONE){
@@ -2987,6 +2998,7 @@ function _doRenderTokens(){
       const off=stackOffset(n,idx,cp);
       const xy=rcToXY(rc[0],rc[1]);
       const rxy=xy;
+      _cellCenterX=rxy.x; _cellCenterY=rxy.y;
       // Counter-rotate the stacking offset by the board rotation so diamond
       // layout stays screen-aligned regardless of which seat is active.
       if(off.dx!==0||off.dy!==0){
@@ -3122,8 +3134,8 @@ function _doRenderTokens(){
         // ── 2. Position ──────────────────────────────────────────────────────
         // Anchor to ACTUAL cell center (rxy = rcToXY result), NOT stacking-offset px/py.
         // This keeps shield centred on the cell regardless of how many tokens are stacked.
-        const _cx=(typeof rxy!=='undefined')?rxy.x:px;
-        const _cy=(typeof rxy!=='undefined')?rxy.y:py;
+        const _cx=_cellCenterX;
+        const _cy=_cellCenterY;
         // Size: unscaled (BASE_W based) so shield is always the same size
         const sW=BASE_W*1.1;
         const sH=sW*(34/28);
@@ -4554,7 +4566,8 @@ function _testStartGame(numPlayers, chosenVisualSeat){
       color: SEAT_COLOR[seat],
       label: isHuman ? "YOU" : colorName,
       active: true,
-      human: isHuman
+      human: isHuman,
+      isBot: !isHuman
     });
   });
 
@@ -4578,6 +4591,15 @@ function _testStartGame(numPlayers, chosenVisualSeat){
   buildPlayers();
   _sdeReset();
   PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
+  // Test mode: bot players ka UI set karo
+  PLAYERS.forEach(p=>{
+    if(p.isBot && p.active){
+      const offBadge = document.getElementById("offline-overlay-"+p.seat);
+      if(offBadge){ offBadge.classList.add("show","bot-mode"); }
+      const botDiceEl = document.getElementById("botdice-"+p.seat);
+      if(botDiceEl) botDiceEl.style.display = "block";
+    }
+  });
   applyBoardRotation();
   setSyncStatus("ok");
   SFX.play('gamestart');
@@ -4588,6 +4610,10 @@ function _testStartGame(numPlayers, chosenVisualSeat){
   _scrub.pid = MY_SEAT;
   _scrub.tid = null;
   showToast("Test Mode — "+numPlayers+"P — You are "+chosenColorName);
+  // Agar pehla turn bot ka hai toh trigger karo
+  if(PLAYERS[G.turn]?.isBot){
+    setTimeout(()=>{ if(!G.over && PLAYERS[G.turn]?.isBot && !G.rolled) _doBotTurn(G.turn); }, 800);
+  }
 }
 
 // Bind new modal buttons
