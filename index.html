@@ -871,7 +871,7 @@ document.addEventListener('DOMContentLoaded', function(){
 (function(){
   var noopRef = {
     on:function(){return this;}, off:function(){},
-    once:function(){return Promise.resolve({val:function(){return null;}});},
+    once:function(){return Promise.resolve({val:function(){return null;}, exists:function(){return false;}});},
     set:function(){return Promise.resolve();},
     update:function(){return Promise.resolve();},
     push:function(){return {key:'offline_'+Date.now()};},
@@ -6146,8 +6146,10 @@ function hsGoOnline() {
   if (btn) btn.style.opacity = '0.6';
 
   window._loadRealFirebase().then(function() {
-    // Re-init Firebase with real SDK now that scripts are loaded
-    if (window.firebase._stub) {
+    // Init Firebase only if not already initialized
+    const alreadyInited = window.firebase && !window.firebase._stub &&
+      window.firebase.apps && window.firebase.apps.length > 0;
+    if (!alreadyInited) {
       const firebaseConfig = {
         apiKey: "AIzaSyCCbwUS-MK4Ic8Tyd_FIBOQTwdfP0kZ_YM",
         authDomain: "ludo-king-ka-baap.firebaseapp.com",
@@ -6157,14 +6159,16 @@ function hsGoOnline() {
         messagingSenderId: "273830749078",
         appId: "1:273830749078:web:b197c8e42fc24b2b8a73b7"
       };
-      // firebase global is now the real SDK from CDN
-      firebase.initializeApp(firebaseConfig);
+      try { firebase.initializeApp(firebaseConfig); } catch(e) { console.warn('Firebase init:', e.message); }
       window.db = firebase.database();
       window.auth = firebase.auth();
-      // Reassign module-level db/auth refs used throughout the code
-      // (they point to stub objects; patch them)
       if (typeof _patchFirebaseRefs === 'function') _patchFirebaseRefs();
-      auth.signInAnonymously().catch(function(e){ console.warn('Auth:', e.code); });
+      window.auth.signInAnonymously().catch(function(e){ console.warn('Auth:', e.code); });
+    } else if (window.firebase && !window.firebase._stub) {
+      // Already inited (e.g. user clicked Online again) — just patch refs
+      window.db = window.db || firebase.database();
+      window.auth = window.auth || firebase.auth();
+      if (typeof _patchFirebaseRefs === 'function') _patchFirebaseRefs();
     }
     if (btn) btn.style.opacity = '';
     hsHideHomeScreen(function() {
