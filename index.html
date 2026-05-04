@@ -2108,7 +2108,6 @@ async function loadAndStartGame(){
   buildBoard();
   buildPlayers();
   _sdeReset();
-  smartDice.targetPids.clear();
   Object.keys(_timerExpireCount).forEach(k=>delete _timerExpireCount[k]);
   _botVotes = {};
   PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
@@ -2567,6 +2566,7 @@ window.leaveToLobby = async function(){
   _forcedElderSeat = null;
   SEAT_LAYOUT_ACTIVE = [0,1,2,3];
   _gameLoaded = false;
+  smartDice.targetPids.clear();
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   document.getElementById("game-wrap").style.display = "none";
   document.getElementById("top-bar").style.display = "none";
