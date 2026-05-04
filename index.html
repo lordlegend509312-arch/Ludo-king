@@ -891,14 +891,16 @@ document.addEventListener('DOMContentLoaded', function(){
     s.database.ServerValue = {TIMESTAMP:{".sv":"timestamp"}};
     return s;
   }
-  window.firebase = makeStub();
+  // Use internal stub — do NOT set window.firebase to avoid CDN warning
+  window._fbStub = makeStub();
 
   // Load real Firebase SDK on demand (only for online multiplayer)
+  window._firebaseReady = false;
   window._loadRealFirebase = function(){
-    if(!window.firebase._stub) return Promise.resolve();
+    if(window._firebaseReady) return Promise.resolve();
     return new Promise(function(resolve, reject){
       var done = 0;
-      function onLoad(){ if(++done===3) resolve(); }
+      function onLoad(){ if(++done===3){ window._firebaseReady = true; resolve(); } }
       function loadScript(src){
         var s = document.createElement('script');
         s.src = src; s.onload = onLoad; s.onerror = reject;
@@ -925,12 +927,19 @@ const firebaseConfig = {
 };
 // Use stub db/auth until real SDK loads
 const app = null;
-let db = firebase.database();
-let auth = firebase.auth();
+let db = window._fbStub.database();
+let auth = window._fbStub.auth();
 // Allow online mode to patch these after real SDK loads
 window._patchFirebaseRefs = function() {
   db = window.db || firebase.database();
   auth = window.auth || firebase.auth();
+  // Reset auth gate so real Firebase auth can resolve it
+  _authReady = false;
+  _authResolvers = [];
+  auth.onAuthStateChanged(function(user){
+    _setAuthReady();
+    if(user){ setSyncStatus("ok"); }
+  });
 };
 let _authReady = false;
 let _authResolvers = [];
@@ -944,8 +953,7 @@ function _setAuthReady(){
   _authResolvers.forEach(r => r());
   _authResolvers = [];
 }
-// Auth is immediately "ready" in stub mode (no real auth needed for offline)
-_setAuthReady();
+// Auth readiness is set only after real Firebase auth responds
 auth.onAuthStateChanged((user) => {
   _setAuthReady();
   if(user){ setSyncStatus("ok"); }
@@ -6147,8 +6155,8 @@ function hsGoOnline() {
 
   window._loadRealFirebase().then(function() {
     // Init Firebase only if not already initialized
-    const alreadyInited = window.firebase && !window.firebase._stub &&
-      window.firebase.apps && window.firebase.apps.length > 0;
+    // firebase is now the real CDN SDK
+    const alreadyInited = firebase.apps && firebase.apps.length > 0;
     if (!alreadyInited) {
       const firebaseConfig = {
         apiKey: "AIzaSyCCbwUS-MK4Ic8Tyd_FIBOQTwdfP0kZ_YM",
@@ -6159,17 +6167,12 @@ function hsGoOnline() {
         messagingSenderId: "273830749078",
         appId: "1:273830749078:web:b197c8e42fc24b2b8a73b7"
       };
-      try { firebase.initializeApp(firebaseConfig); } catch(e) { console.warn('Firebase init:', e.message); }
-      window.db = firebase.database();
-      window.auth = firebase.auth();
-      if (typeof _patchFirebaseRefs === 'function') _patchFirebaseRefs();
-      window.auth.signInAnonymously().catch(function(e){ console.warn('Auth:', e.code); });
-    } else if (window.firebase && !window.firebase._stub) {
-      // Already inited (e.g. user clicked Online again) — just patch refs
-      window.db = window.db || firebase.database();
-      window.auth = window.auth || firebase.auth();
-      if (typeof _patchFirebaseRefs === 'function') _patchFirebaseRefs();
+      firebase.initializeApp(firebaseConfig);
     }
+    window.db = firebase.database();
+    window.auth = firebase.auth();
+    if (typeof _patchFirebaseRefs === 'function') _patchFirebaseRefs();
+    window.auth.signInAnonymously().catch(function(e){ console.warn('Auth:', e.code); });
     if (btn) btn.style.opacity = '';
     hsHideHomeScreen(function() {
       const lobby = document.getElementById('lobby');
