@@ -6600,14 +6600,16 @@ async function _vcInit(){
   _vcShowBar();
   await _vcStartMic();
   _vcListenSignaling();
-  // If I'm not the host, send offers to all already-connected seats
-  if(!IS_HOST){
-    const pSnap = await db.ref(`rooms/${ROOM_CODE}/players`).once('value');
-    const players = pSnap.val() || {};
-    for(const seatStr of Object.keys(players)){
-      const seat = Number(seatStr);
-      if(seat !== MY_SEAT) _vcCreateOffer(seat);
-    }
+  // Small delay so signaling listeners are fully up before we send offers
+  await new Promise(r => setTimeout(r, 400));
+  if(!ROOM_CODE) return; // room left during delay
+  // Lower seat number sends the offer (avoids both sides offering simultaneously)
+  const pSnap = await db.ref(`rooms/${ROOM_CODE}/players`).once('value');
+  const players = pSnap.val() || {};
+  for(const seatStr of Object.keys(players)){
+    const seat = Number(seatStr);
+    if(seat === MY_SEAT) continue;
+    if(MY_SEAT < seat) _vcCreateOffer(seat); // lower seat is the offerer
   }
 }
 
@@ -6638,7 +6640,7 @@ function _vcGetOrCreatePeer(remoteSeat){
   };
   // Send ICE candidates to Firebase
   pc.onicecandidate = e => {
-    if(!e.candidate) return;
+    if(!e.candidate || !ROOM_CODE) return;
     db.ref(`rooms/${ROOM_CODE}/voice/ice/${remoteSeat}_${MY_SEAT}`).push(e.candidate.toJSON());
   };
   pc.onconnectionstatechange = () => {
@@ -6667,12 +6669,14 @@ function _vcListenSignaling(){
     const [fromStr, toStr] = key.split('_');
     const from = Number(fromStr), to = Number(toStr);
     if(to !== MY_SEAT) return;
+    if(!ROOM_CODE) return;
     const offer = snap.val();
     const pc = _vcGetOrCreatePeer(from);
     if(pc.signalingState !== 'stable') return;
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
+    if(!ROOM_CODE) return;
     await db.ref(`rooms/${ROOM_CODE}/voice/answer/${MY_SEAT}_${from}`).set({ type: answer.type, sdp: answer.sdp });
     console.log('[VC] Answered offer from seat', from);
   });
