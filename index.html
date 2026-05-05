@@ -981,9 +981,11 @@ function _attachConnListener(){
   _connListenerRef = db.ref(".info/connected");
   _connListenerCb = function(snap){
     const connected = snap.val() === true;
+    const lobbyConn = document.getElementById("lobby-conn");
     const lobbyDot = document.getElementById("lobby-conn-dot");
     const lobbyTxt = document.getElementById("lobby-conn-text");
     if(connected){
+      if(lobbyConn) lobbyConn.style.display = "flex";
       if(lobbyDot){ lobbyDot.style.background = "#00C853"; }
       if(lobbyTxt){ lobbyTxt.textContent = "Server connected ✓"; lobbyTxt.style.color = "#00C853"; }
       if(!_wasConnected){
@@ -994,19 +996,15 @@ function _attachConnListener(){
       }
       _wasConnected = true;
     } else {
-      // Firebase always fires false first — wait 3s before showing error
-      // to avoid flicker on initial connect
       if(_wasConnected){
-        // Was connected before — show error immediately
+        // Was connected before — show disconnected error
+        if(lobbyConn) lobbyConn.style.display = "flex";
         if(lobbyDot){ lobbyDot.style.background = "#FF2D78"; }
         if(lobbyTxt){ lobbyTxt.textContent = "No server connection ✗"; lobbyTxt.style.color = "#FF2D78"; }
         setSyncStatus("err");
         _wasConnected = false;
-      } else {
-        // First fire is always false — show neutral "Connecting" state
-        if(lobbyDot){ lobbyDot.style.background = "#FFD600"; }
-        if(lobbyTxt){ lobbyTxt.textContent = "Connecting to server..."; lobbyTxt.style.color = "rgba(240,240,255,.4)"; }
       }
+      // First false fire — stay hidden, Firebase will connect shortly
     }
   };
   _connListenerRef.on("value", _connListenerCb);
@@ -2623,6 +2621,8 @@ window.leaveToLobby = async function(){
   } else {
     // Online mode only: show rejoin card if session exists
     _wasConnected = false;
+    const lobbyConn = document.getElementById('lobby-conn');
+    if (lobbyConn) lobbyConn.style.display = 'none';
     const s = loadSession();
     const rc = document.getElementById("rejoin-card");
     const rsub = document.getElementById("rejoin-sub");
@@ -6204,8 +6204,6 @@ function hsGoOnline() {
     if (typeof _patchFirebaseRefs === 'function') _patchFirebaseRefs();
     _wasConnected = false;
     if (typeof _attachConnListener === 'function') _attachConnListener();
-    const lobbyConn = document.getElementById('lobby-conn');
-    if (lobbyConn) lobbyConn.style.display = 'flex';
     window.auth.signInAnonymously().catch(function(e){ console.warn('Auth:', e.code); });
     if (btn) btn.style.opacity = '';
     hsHideHomeScreen(function() {
@@ -6644,15 +6642,24 @@ window.toggleVoiceOption = function(){
 // Called after game loads — check if voice is enabled for this room
 async function _vcInit(){
   if(!ROOM_CODE) return;
-  const snap = await db.ref(`rooms/${ROOM_CODE}/voiceEnabled`).once('value');
-  _voiceEnabled = snap.val() === true;
+  let voiceVal = false;
+  try {
+    const snap = await db.ref(`rooms/${ROOM_CODE}/voiceEnabled`).once('value');
+    voiceVal = snap.val() === true;
+  } catch(e) {
+    console.warn('[VC] Failed to read voiceEnabled:', e);
+  }
+  _voiceEnabled = voiceVal;
+  console.log('[VC] voiceEnabled from Firebase:', _voiceEnabled, '| _voiceOptionEnabled:', window._voiceOptionEnabled);
   if(!_voiceEnabled) return;
   _vcShowBar();
   await _vcStartMic();
   _vcListenSignaling();
   // Small delay so signaling listeners are fully up before we send offers
-  await new Promise(r => setTimeout(r, 400));
+  await new Promise(r => setTimeout(r, 500));
   if(!ROOM_CODE) return; // room left during delay
+  // Retry populating dots in case SEAT_LAYOUT_ACTIVE wasn't ready
+  _vcRepopulateDots();
   // Lower seat number sends the offer (avoids both sides offering simultaneously)
   const pSnap = await db.ref(`rooms/${ROOM_CODE}/players`).once('value');
   const players = pSnap.val() || {};
@@ -6661,6 +6668,37 @@ async function _vcInit(){
     if(seat === MY_SEAT) continue;
     if(MY_SEAT < seat) _vcCreateOffer(seat); // lower seat is the offerer
   }
+}
+
+function _vcRepopulateDots(){
+  const dots = document.getElementById('vc-dots');
+  if(!dots) return;
+  // Only repopulate if dots container is empty
+  if(dots.children.length > 0) return;
+  if(!window.SEAT_LAYOUT_ACTIVE || !window.MY_SEAT === undefined) return;
+  SEAT_LAYOUT_ACTIVE.forEach(seat => {
+    if(seat === MY_SEAT) return;
+    const playerName = (PLAYERS[seat] && PLAYERS[seat].label) ? PLAYERS[seat].label : `P${seat+1}`;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:2px 4px;border-radius:8px;transition:background 0.15s;';
+    wrap.onmouseenter = ()=>{ wrap.style.background='rgba(255,255,255,0.06)'; };
+    wrap.onmouseleave = ()=>{ wrap.style.background=''; };
+    wrap.onclick = () => window._vcToggleLocalMute(seat);
+    const d = document.createElement('div');
+    d.id = `vc-dot-${seat}`;
+    d.style.cssText = 'width:9px;height:9px;border-radius:50%;background:#555;transition:background 0.2s;border:1.5px solid rgba(255,255,255,0.15);flex-shrink:0;';
+    const nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-size:.52rem;font-family:"Nunito",sans-serif;font-weight:800;color:rgba(240,240,255,0.7);letter-spacing:.3px;max-width:40px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;';
+    nameEl.textContent = playerName;
+    const statusEl = document.createElement('div');
+    statusEl.id = `vc-status-${seat}`;
+    statusEl.style.cssText = 'font-size:.48rem;font-family:"Rajdhani",sans-serif;font-weight:700;letter-spacing:.5px;color:#555;text-align:center;';
+    statusEl.textContent = '●';
+    wrap.appendChild(d);
+    wrap.appendChild(nameEl);
+    wrap.appendChild(statusEl);
+    dots.appendChild(wrap);
+  });
 }
 
 async function _vcStartMic(){
@@ -6833,20 +6871,23 @@ function _vcShowBar(){
   if(document.getElementById('vc-bar')) return;
   const bar = document.createElement('div');
   bar.id = 'vc-bar';
-  bar.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:9000;display:flex;align-items:center;gap:8px;background:rgba(10,10,25,0.92);border:1.5px solid rgba(34,197,94,0.4);border-radius:30px;padding:7px 14px;backdrop-filter:blur(8px);box-shadow:0 4px 20px rgba(0,0,0,0.5);pointer-events:auto;';
+  bar.style.cssText = 'position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;align-items:center;gap:8px;background:rgba(10,10,25,0.95);border:1.5px solid rgba(34,197,94,0.5);border-radius:30px;padding:7px 14px;backdrop-filter:blur(8px);box-shadow:0 4px 24px rgba(0,0,0,0.7);pointer-events:auto;';
   bar.innerHTML = `
-    <span style="font-size:.62rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:1.5px;color:rgba(34,197,94,0.9);">VOICE</span>
+    <span style="font-size:.62rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:1.5px;color:rgba(34,197,94,0.9);">🎙 VOICE</span>
     <div id="vc-dots" style="display:flex;gap:5px;align-items:center;"></div>
     <button id="vc-mic-btn" onclick="window._vcToggleMic()" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(34,197,94,0.5);background:rgba(34,197,94,0.1);color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;">🎙️</button>
   `;
   document.body.appendChild(bar);
   window._vcToggleMic = _vcToggleMic;
   window._vcToggleLocalMute = _vcToggleLocalMute;
-  // Add dots for all seats except mine — tappable to mute/unmute
-  setTimeout(()=>{
+  // Add dots immediately, with retry fallback after 800ms
+  const _buildDots = () => {
     const dots = document.getElementById('vc-dots');
     if(!dots) return;
-    SEAT_LAYOUT_ACTIVE.forEach(seat => {
+    dots.innerHTML = '';
+    const layout = (typeof SEAT_LAYOUT_ACTIVE !== 'undefined' && SEAT_LAYOUT_ACTIVE) || [];
+    if(layout.length === 0){ setTimeout(_buildDots, 800); return; }
+    layout.forEach(seat => {
       if(seat === MY_SEAT) return;
       const playerName = (PLAYERS[seat] && PLAYERS[seat].label) ? PLAYERS[seat].label : `P${seat+1}`;
       const wrap = document.createElement('div');
@@ -6869,7 +6910,9 @@ function _vcShowBar(){
       wrap.appendChild(statusEl);
       dots.appendChild(wrap);
     });
-  }, 500);
+    console.log('[VC] Bar dots built for seats:', layout.filter(s => s !== MY_SEAT));
+  };
+  setTimeout(_buildDots, 200);
 }
 
 // Reset voice toggle when create modal cancels
