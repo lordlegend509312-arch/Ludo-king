@@ -6665,6 +6665,10 @@ window.toggleVoiceOption = function(){
 async function _vcInit(){
   console.log('[VC] _vcInit called | ROOM_CODE:', ROOM_CODE);
   if(!ROOM_CODE){ console.warn('[VC] _vcInit aborted: no ROOM_CODE'); return; }
+  // Wait for real Firebase auth before reading — avoids stub returning null
+  try { await waitForAuth(); } catch(e){ console.warn('[VC] waitForAuth failed:', e); }
+  // Safety: if db is still the stub, abort
+  if(db && db._stub){ console.warn('[VC] _vcInit aborted: db is still stub (offline mode?)'); return; }
   let voiceVal = false;
   try {
     console.log('[VC] Reading voiceEnabled from Firebase...');
@@ -6672,10 +6676,13 @@ async function _vcInit(){
     voiceVal = snap.val() === true;
     console.log('[VC] Firebase voiceEnabled raw value:', snap.val());
   } catch(e) {
-    console.warn('[VC] Failed to read voiceEnabled:', e);
+    console.warn('[VC] Failed to read voiceEnabled from Firebase:', e);
+    // Fallback: use local toggle value (for host who just created room)
+    voiceVal = window._voiceOptionEnabled === true;
+    console.log('[VC] Fallback to _voiceOptionEnabled:', voiceVal);
   }
   _voiceEnabled = voiceVal;
-  console.log('[VC] voiceEnabled from Firebase:', _voiceEnabled, '| _voiceOptionEnabled:', window._voiceOptionEnabled);
+  console.log('[VC] voiceEnabled resolved:', _voiceEnabled, '| _voiceOptionEnabled:', window._voiceOptionEnabled);
   if(!_voiceEnabled){
     console.log('[VC] Voice NOT enabled for this room — bar will NOT show');
     return;
