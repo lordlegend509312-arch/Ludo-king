@@ -6011,25 +6011,23 @@ window._setMY_SLOT         = function(v) { MY_SLOT = v; };
   console.log = function(...args){
     _origLog(...args);
     const msg = _toStr(args);
-    let color = '#0f0';
-    if(msg.startsWith('[SYNC]'))    color = '#FFD700';
-    if(msg.startsWith('[ANIM]'))    color = '#00bfff';
-    if(msg.startsWith('[SFX]'))     color = '#ff69b4';
-    if(msg.startsWith('[GAME]'))    color = '#00e5ff';
-    if(msg.startsWith('[VOTE]'))    color = '#c084fc';
-    if(msg.startsWith('[TOK]'))     color = '#ffa07a';
-    if(msg.startsWith('[SHIELD]'))  color = '#7fff7f';
-    if(msg.startsWith('[SYNC]') || msg.startsWith('[ANIM]') || msg.startsWith('[SFX]') || msg.startsWith('[GAME]') || msg.startsWith('[VOTE]') || msg.startsWith('[TOK]') || msg.startsWith('[SHIELD]')){
-      window._dbgLog(msg, color);
+    if(msg.startsWith('[VC]')){
+      window._dbgLog(msg, '#22c55e');
     }
   };
   console.warn = function(...args){
     _origWarn(...args);
-    window._dbgLog('⚠️ ' + _toStr(args), '#FFA500');
+    const msg = _toStr(args);
+    if(msg.startsWith('[VC]') || msg.indexOf('[VC]') !== -1){
+      window._dbgLog('⚠️ ' + msg, '#FFA500');
+    }
   };
   console.error = function(...args){
     _origError(...args);
-    window._dbgLog('❌ ' + _toStr(args), '#FF4444');
+    const msg = _toStr(args);
+    if(msg.startsWith('[VC]') || msg.indexOf('[VC]') !== -1){
+      window._dbgLog('❌ ' + msg, '#FF4444');
+    }
   };
   window.addEventListener('error', e => {
     window._dbgLog('❌ UNCAUGHT: ' + e.message + ' (' + (e.filename||'').split('/').pop() + ':' + e.lineno + ')', '#FF4444');
@@ -6641,32 +6639,46 @@ window.toggleVoiceOption = function(){
 
 // Called after game loads — check if voice is enabled for this room
 async function _vcInit(){
-  if(!ROOM_CODE) return;
+  console.log('[VC] _vcInit called | ROOM_CODE:', ROOM_CODE);
+  if(!ROOM_CODE){ console.warn('[VC] _vcInit aborted: no ROOM_CODE'); return; }
   let voiceVal = false;
   try {
+    console.log('[VC] Reading voiceEnabled from Firebase...');
     const snap = await db.ref(`rooms/${ROOM_CODE}/voiceEnabled`).once('value');
     voiceVal = snap.val() === true;
+    console.log('[VC] Firebase voiceEnabled raw value:', snap.val());
   } catch(e) {
     console.warn('[VC] Failed to read voiceEnabled:', e);
   }
   _voiceEnabled = voiceVal;
   console.log('[VC] voiceEnabled from Firebase:', _voiceEnabled, '| _voiceOptionEnabled:', window._voiceOptionEnabled);
-  if(!_voiceEnabled) return;
+  if(!_voiceEnabled){
+    console.log('[VC] Voice NOT enabled for this room — bar will NOT show');
+    return;
+  }
+  console.log('[VC] Voice IS enabled — showing bar...');
   _vcShowBar();
+  console.log('[VC] Bar shown, starting mic...');
   await _vcStartMic();
+  console.log('[VC] Mic done, starting signaling listeners...');
   _vcListenSignaling();
-  // Small delay so signaling listeners are fully up before we send offers
+  console.log('[VC] Signaling listeners started, waiting 500ms before sending offers...');
   await new Promise(r => setTimeout(r, 500));
-  if(!ROOM_CODE) return; // room left during delay
-  // Retry populating dots in case SEAT_LAYOUT_ACTIVE wasn't ready
+  if(!ROOM_CODE){ console.warn('[VC] Room left during delay, aborting offers'); return; }
+  console.log('[VC] Repopulating dots...');
   _vcRepopulateDots();
-  // Lower seat number sends the offer (avoids both sides offering simultaneously)
   const pSnap = await db.ref(`rooms/${ROOM_CODE}/players`).once('value');
   const players = pSnap.val() || {};
+  console.log('[VC] Players in room:', Object.keys(players), '| MY_SEAT:', MY_SEAT);
   for(const seatStr of Object.keys(players)){
     const seat = Number(seatStr);
     if(seat === MY_SEAT) continue;
-    if(MY_SEAT < seat) _vcCreateOffer(seat); // lower seat is the offerer
+    if(MY_SEAT < seat){
+      console.log('[VC] Creating offer to seat', seat, '(I am lower seat — I am offerer)');
+      _vcCreateOffer(seat);
+    } else {
+      console.log('[VC] Waiting for offer from seat', seat, '(they are lower seat)');
+    }
   }
 }
 
@@ -6702,48 +6714,75 @@ function _vcRepopulateDots(){
 }
 
 async function _vcStartMic(){
+  console.log('[VC] _vcStartMic called — requesting mic permission...');
   try {
     _localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     _voiceActive = true;
+    const tracks = _localStream.getAudioTracks();
+    console.log('[VC] Mic started | tracks:', tracks.length, '| label:', tracks[0] ? tracks[0].label : 'none');
     _vcUpdateBtn();
-    console.log('[VC] Mic started');
+    console.log('[VC] Mic button updated');
   } catch(e){
-    console.warn('[VC] Mic error:', e);
+    console.warn('[VC] Mic error:', e.name, e.message);
     showToast('🎙️ Mic access denied');
   }
 }
 
 function _vcGetOrCreatePeer(remoteSeat){
-  if(_vcPeers[remoteSeat]) return _vcPeers[remoteSeat];
+  if(_vcPeers[remoteSeat]){
+    console.log('[VC] Reusing existing peer for seat', remoteSeat, '| state:', _vcPeers[remoteSeat].connectionState);
+    return _vcPeers[remoteSeat];
+  }
+  console.log('[VC] Creating NEW RTCPeerConnection for seat', remoteSeat);
   const pc = new RTCPeerConnection(VC_ICE);
   _vcPeers[remoteSeat] = pc;
-  // Add local tracks
-  if(_localStream) _localStream.getTracks().forEach(t => pc.addTrack(t, _localStream));
-  // Play remote audio
+  if(_localStream){
+    const tracks = _localStream.getTracks();
+    tracks.forEach(t => pc.addTrack(t, _localStream));
+    console.log('[VC] Added', tracks.length, 'local track(s) to peer seat', remoteSeat);
+  } else {
+    console.warn('[VC] No localStream when creating peer for seat', remoteSeat, '— no local tracks added');
+  }
   pc.ontrack = e => {
     let el = document.getElementById(`vc-audio-${remoteSeat}`);
-    if(!el){ el = document.createElement('audio'); el.id = `vc-audio-${remoteSeat}`; el.autoplay = true; el.style.display='none'; document.body.appendChild(el); }
+    if(!el){
+      el = document.createElement('audio');
+      el.id = `vc-audio-${remoteSeat}`;
+      el.autoplay = true;
+      el.style.display = 'none';
+      document.body.appendChild(el);
+      console.log('[VC] Created <audio> element for seat', remoteSeat);
+    }
     el.srcObject = e.streams[0];
-    console.log('[VC] Remote audio from seat', remoteSeat);
+    console.log('[VC] Remote audio track received from seat', remoteSeat, '| streams:', e.streams.length);
   };
-  // Send ICE candidates to Firebase
   pc.onicecandidate = e => {
     if(!e.candidate || !ROOM_CODE) return;
+    console.log('[VC] Sending ICE candidate to seat', remoteSeat, '| candidate type:', e.candidate.type);
     db.ref(`rooms/${ROOM_CODE}/voice/ice/${remoteSeat}_${MY_SEAT}`).push(e.candidate.toJSON());
   };
+  pc.onicecandidateerror = e => {
+    console.warn('[VC] ICE candidate error for seat', remoteSeat, '| errorCode:', e.errorCode, e.errorText);
+  };
+  pc.oniceconnectionstatechange = () => {
+    console.log('[VC] ICE connection state for seat', remoteSeat, ':', pc.iceConnectionState);
+  };
   pc.onconnectionstatechange = () => {
-    console.log('[VC] Peer', remoteSeat, 'state:', pc.connectionState);
+    console.log('[VC] Peer', remoteSeat, 'connection state:', pc.connectionState);
     _vcUpdateSpeakerDot(remoteSeat, pc.connectionState === 'connected');
   };
   return pc;
 }
 
 async function _vcCreateOffer(remoteSeat){
+  console.log('[VC] _vcCreateOffer → seat', remoteSeat);
   const pc = _vcGetOrCreatePeer(remoteSeat);
+  console.log('[VC] Creating SDP offer for seat', remoteSeat, '| signalingState:', pc.signalingState);
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
+  console.log('[VC] LocalDescription set | sdp type:', offer.type);
   await db.ref(`rooms/${ROOM_CODE}/voice/offer/${MY_SEAT}_${remoteSeat}`).set({ type: offer.type, sdp: offer.sdp });
-  console.log('[VC] Sent offer to seat', remoteSeat);
+  console.log('[VC] Offer written to Firebase — key:', MY_SEAT + '_' + remoteSeat);
 }
 
 function _vcListenSignaling(){
@@ -6756,17 +6795,21 @@ function _vcListenSignaling(){
     const key = snap.key; // "fromSeat_toSeat"
     const [fromStr, toStr] = key.split('_');
     const from = Number(fromStr), to = Number(toStr);
-    if(to !== MY_SEAT) return;
-    if(!ROOM_CODE) return;
+    console.log('[VC] Offer received | key:', key, '| from:', from, '→ to:', to, '| MY_SEAT:', MY_SEAT);
+    if(to !== MY_SEAT){ console.log('[VC] Offer not for me, ignoring'); return; }
+    if(!ROOM_CODE){ console.warn('[VC] No ROOM_CODE when handling offer'); return; }
     const offer = snap.val();
     const pc = _vcGetOrCreatePeer(from);
-    if(pc.signalingState !== 'stable') return;
+    console.log('[VC] Peer signalingState for seat', from, ':', pc.signalingState);
+    if(pc.signalingState !== 'stable'){ console.warn('[VC] Skipping offer — signalingState not stable:', pc.signalingState); return; }
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    console.log('[VC] RemoteDescription set for seat', from);
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
-    if(!ROOM_CODE) return;
+    console.log('[VC] LocalDescription (answer) set for seat', from);
+    if(!ROOM_CODE){ console.warn('[VC] ROOM_CODE gone before writing answer'); return; }
     await db.ref(`rooms/${ROOM_CODE}/voice/answer/${MY_SEAT}_${from}`).set({ type: answer.type, sdp: answer.sdp });
-    console.log('[VC] Answered offer from seat', from);
+    console.log('[VC] Answer written to Firebase — key:', MY_SEAT + '_' + from);
   });
   _listeners.push(() => offerRef.off('child_added'));
 
@@ -6776,12 +6819,15 @@ function _vcListenSignaling(){
     const key = snap.key;
     const [fromStr, toStr] = key.split('_');
     const from = Number(fromStr), to = Number(toStr);
-    if(to !== MY_SEAT) return;
+    console.log('[VC] Answer received | key:', key, '| from:', from, '→ to:', to, '| MY_SEAT:', MY_SEAT);
+    if(to !== MY_SEAT){ console.log('[VC] Answer not for me, ignoring'); return; }
     const answer = snap.val();
     const pc = _vcPeers[from];
-    if(!pc || pc.signalingState !== 'have-local-offer') return;
+    if(!pc){ console.warn('[VC] No peer found for seat', from, 'when processing answer'); return; }
+    console.log('[VC] Peer signalingState for seat', from, ':', pc.signalingState);
+    if(pc.signalingState !== 'have-local-offer'){ console.warn('[VC] Skipping answer — signalingState:', pc.signalingState); return; }
     await pc.setRemoteDescription(new RTCSessionDescription(answer));
-    console.log('[VC] Got answer from seat', from);
+    console.log('[VC] Got answer from seat', from, '— RemoteDescription set ✅');
   });
   _listeners.push(() => ansRef.off('child_added'));
 
@@ -6812,15 +6858,25 @@ function _vcListenSignaling(){
 }
 
 function _vcCleanup(){
-  Object.values(_vcPeers).forEach(pc => { try { pc.close(); } catch(e){} });
+  console.log('[VC] _vcCleanup called | peers:', Object.keys(_vcPeers).length, '| voiceActive:', _voiceActive);
+  Object.entries(_vcPeers).forEach(([seat, pc]) => {
+    try { pc.close(); console.log('[VC] Closed peer for seat', seat); } catch(e){ console.warn('[VC] Error closing peer seat', seat, e); }
+  });
   _vcPeers = {};
   _vcLocalMuted = {};
-  if(_localStream){ _localStream.getTracks().forEach(t => t.stop()); _localStream = null; }
+  if(_localStream){
+    _localStream.getTracks().forEach(t => { t.stop(); console.log('[VC] Stopped track:', t.label); });
+    _localStream = null;
+    console.log('[VC] localStream stopped and cleared');
+  }
   _voiceActive = false; _voiceEnabled = false;
-  document.querySelectorAll('[id^="vc-audio-"]').forEach(el => el.remove());
+  const audioEls = document.querySelectorAll('[id^="vc-audio-"]');
+  audioEls.forEach(el => el.remove());
+  console.log('[VC] Removed', audioEls.length, '<audio> element(s)');
   const bar = document.getElementById('vc-bar');
-  if(bar) bar.remove();
-  console.log('[VC] Cleaned up');
+  if(bar){ bar.remove(); console.log('[VC] Voice bar removed from DOM'); }
+  else { console.log('[VC] Voice bar was already absent from DOM'); }
+  console.log('[VC] Cleanup complete ✅');
 }
 
 function _vcToggleMic(){
@@ -6868,7 +6924,9 @@ function _vcToggleLocalMute(seat){
 }
 
 function _vcShowBar(){
-  if(document.getElementById('vc-bar')) return;
+  console.log('[VC] _vcShowBar called');
+  if(document.getElementById('vc-bar')){ console.log('[VC] Bar already exists in DOM, skipping'); return; }
+  console.log('[VC] Creating voice bar element...');
   const bar = document.createElement('div');
   bar.id = 'vc-bar';
   bar.style.cssText = 'position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;align-items:center;gap:8px;background:rgba(10,10,25,0.95);border:1.5px solid rgba(34,197,94,0.5);border-radius:30px;padding:7px 14px;backdrop-filter:blur(8px);box-shadow:0 4px 24px rgba(0,0,0,0.7);pointer-events:auto;';
@@ -6878,15 +6936,18 @@ function _vcShowBar(){
     <button id="vc-mic-btn" onclick="window._vcToggleMic()" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(34,197,94,0.5);background:rgba(34,197,94,0.1);color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;">🎙️</button>
   `;
   document.body.appendChild(bar);
+  console.log('[VC] Voice bar appended to body | position: fixed bottom:12px center');
   window._vcToggleMic = _vcToggleMic;
   window._vcToggleLocalMute = _vcToggleLocalMute;
+  console.log('[VC] _vcToggleMic and _vcToggleLocalMute exposed on window');
   // Add dots immediately, with retry fallback after 800ms
   const _buildDots = () => {
     const dots = document.getElementById('vc-dots');
     if(!dots) return;
     dots.innerHTML = '';
     const layout = (typeof SEAT_LAYOUT_ACTIVE !== 'undefined' && SEAT_LAYOUT_ACTIVE) || [];
-    if(layout.length === 0){ setTimeout(_buildDots, 800); return; }
+    if(layout.length === 0){ console.log('[VC] SEAT_LAYOUT_ACTIVE not ready yet, retrying in 800ms...'); setTimeout(_buildDots, 800); return; }
+    console.log('[VC] Building dots | layout:', layout, '| MY_SEAT:', MY_SEAT);
     layout.forEach(seat => {
       if(seat === MY_SEAT) return;
       const playerName = (PLAYERS[seat] && PLAYERS[seat].label) ? PLAYERS[seat].label : `P${seat+1}`;
@@ -6910,7 +6971,8 @@ function _vcShowBar(){
       wrap.appendChild(statusEl);
       dots.appendChild(wrap);
     });
-    console.log('[VC] Bar dots built for seats:', layout.filter(s => s !== MY_SEAT));
+    const builtSeats = layout.filter(s => s !== MY_SEAT);
+    console.log('[VC] Bar dots built for seats:', builtSeats, '| total dots:', builtSeats.length);
   };
   setTimeout(_buildDots, 200);
 }
