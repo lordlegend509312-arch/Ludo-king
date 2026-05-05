@@ -5692,7 +5692,7 @@ async function _doLoadAndStartGame(){
     _pendingSync = [];
     pending.forEach(p => { if(G.over === false) syncGameState(p); });
   }
-  setTimeout(_vcInit, 800);
+  _vcInit();
 }
 function bindBtn(id, fn){
   const el = document.getElementById(id);
