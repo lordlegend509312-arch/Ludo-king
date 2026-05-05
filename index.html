@@ -666,6 +666,10 @@ document.addEventListener('DOMContentLoaded', function(){
     <div class="copy-hint">📋 Tap to copy</div>
     <div class="copy-toast" id="copy-toast">✓ Copied!</div>
     <div id="player-list" style="display:flex;flex-direction:column;gap:6px;width:100%;"></div>
+    <div id="voice-status-row" style="display:none;align-items:center;gap:8px;width:100%;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.1);border-radius:10px;padding:9px 13px;box-sizing:border-box;">
+      <span style="font-size:1.1rem;">🎙️</span>
+      <div style="font-size:.78rem;font-family:'Nunito',sans-serif;font-weight:700;color:rgba(240,240,255,0.75);" id="voice-status-label">Voice Chat: OFF</div>
+    </div>
     <div class="modal-sub waiting-dots" id="waiting-status">Waiting</div>
     <button class="modal-btn" id="btn-start-game" disabled style="background:var(--surface);border:1.5px solid var(--border2);color:var(--muted);">Start Game</button>
     <button class="modal-btn secondary" id="btn-leave-waiting">Leave Room</button>
@@ -1834,6 +1838,8 @@ function setSyncStatus(status){
 }
 function closeModals(){
   document.querySelectorAll(".modal-overlay").forEach(m=>m.classList.remove("show"));
+  const _vsr = document.getElementById('voice-status-row');
+  if(_vsr) _vsr.style.display = 'none';
 }
 window.showCreateRoom = function(){
   document.getElementById("modal-name").classList.add("show");
@@ -1903,6 +1909,15 @@ window.createRoom = async function(numPlayers){
   _presenceRef.onDisconnect().set(false);
   document.getElementById("display-room-code").textContent = code;
   document.getElementById("modal-waiting").classList.add("show");
+  // Show voice status for host
+  const _voiceRow = document.getElementById('voice-status-row');
+  const _voiceLabel = document.getElementById('voice-status-label');
+  if(_voiceRow && _voiceLabel){
+    const voiceOn = window._voiceOptionEnabled === true;
+    _voiceRow.style.display = 'flex';
+    _voiceLabel.textContent = voiceOn ? 'Voice Chat: ON 🟢' : 'Voice Chat: OFF';
+    _voiceLabel.style.color = voiceOn ? 'rgba(100,255,150,0.9)' : 'rgba(240,240,255,0.5)';
+  }
   updatePlayerList({ [MY_SEAT]: { name: MY_NAME, seat: MY_SEAT, online: true } });
   listenRoom();
 };
@@ -1936,6 +1951,15 @@ window.joinRoom = async function(){
   closeModals();
   document.getElementById("display-room-code").textContent = code;
   document.getElementById("modal-waiting").classList.add("show");
+  // Show voice status for joiner
+  const voiceRow = document.getElementById('voice-status-row');
+  const voiceLabel = document.getElementById('voice-status-label');
+  if(voiceRow && voiceLabel){
+    const voiceOn = rData.voiceEnabled === true;
+    voiceRow.style.display = 'flex';
+    voiceLabel.textContent = voiceOn ? 'Voice Chat: ON 🟢 (will activate on game start)' : 'Voice Chat: OFF';
+    voiceLabel.style.color = voiceOn ? 'rgba(100,255,150,0.9)' : 'rgba(240,240,255,0.5)';
+  }
   listenRoom();
 };
 let _gameStarted = false;
@@ -5738,7 +5762,7 @@ async function _doLoadAndStartGame(){
     _pendingSync = [];
     pending.forEach(p => { if(G.over === false) syncGameState(p); });
   }
-  _vcInit();
+  if(ROOM_CODE) { try { await _vcInit(); } catch(e){ console.warn('[VC] _vcInit error:', e); } }
 }
 function bindBtn(id, fn){
   const el = document.getElementById(id);
@@ -6929,7 +6953,7 @@ function _vcShowBar(){
   console.log('[VC] Creating voice bar element...');
   const bar = document.createElement('div');
   bar.id = 'vc-bar';
-  bar.style.cssText = 'position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;align-items:center;gap:8px;background:rgba(10,10,25,0.95);border:1.5px solid rgba(34,197,94,0.5);border-radius:30px;padding:7px 14px;backdrop-filter:blur(8px);box-shadow:0 4px 24px rgba(0,0,0,0.7);pointer-events:auto;';
+  bar.style.cssText = 'position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:9998;display:flex;align-items:center;gap:8px;background:rgba(10,10,25,0.95);border:1.5px solid rgba(34,197,94,0.5);border-radius:30px;padding:6px 14px;backdrop-filter:blur(8px);box-shadow:0 4px 24px rgba(0,0,0,0.7);pointer-events:auto;';
   bar.innerHTML = `
     <span style="font-size:.62rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:1.5px;color:rgba(34,197,94,0.9);">🎙 VOICE</span>
     <div id="vc-dots" style="display:flex;gap:5px;align-items:center;"></div>
