@@ -687,6 +687,25 @@ document.addEventListener('DOMContentLoaded', function(){
     <button class="modal-btn secondary" id="btn-cancel-join">Cancel</button>
   </div>
 </div>
+
+<!-- Voice Permission Modal (shown to joiners when room has voice chat enabled) -->
+<div class="modal-overlay" id="modal-voice-permission">
+  <div class="modal-box">
+    <div style="font-size:2.4rem;margin-bottom:4px;">🎙️</div>
+    <div class="modal-title" style="font-size:1.1rem;">Voice Chat Room</div>
+    <div class="modal-sub" style="line-height:1.6;font-size:.85rem;color:rgba(240,240,255,0.75);margin-bottom:4px;">
+      This room has <span style="color:rgba(100,255,150,0.95);font-weight:800;">Voice Chat enabled</span>.<br>
+      Microphone access is required to join and talk with other players during the game.
+    </div>
+    <div style="background:rgba(100,255,150,0.06);border:1.5px solid rgba(100,255,150,0.18);border-radius:12px;padding:10px 14px;margin:8px 0 14px;font-size:.78rem;font-family:'Nunito',sans-serif;font-weight:700;color:rgba(200,255,220,0.8);line-height:1.5;">
+      🔒 Your browser will ask for mic permission. Allow it to continue joining.
+    </div>
+    <button class="modal-btn" id="btn-voice-allow" style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border-color:#22c55e;">
+      🎙️ Allow & Join
+    </button>
+    <button class="modal-btn secondary" id="btn-voice-deny">✕ Cancel</button>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-name">
   <div class="modal-box">
     <div class="modal-title">Your Name</div>
@@ -1921,12 +1940,8 @@ window.createRoom = async function(numPlayers){
   updatePlayerList({ [MY_SEAT]: { name: MY_NAME, seat: MY_SEAT, online: true } });
   listenRoom();
 };
-window.joinRoom = async function(){
-  await waitForAuth();
-  showToast("Connecting...");
-  const code = document.getElementById("join-code-input").value.trim().toUpperCase();
-  const name = document.getElementById("join-name-input").value.trim() || "Player";
-  if(code.length !== 6){ showToast("Enter a 6-digit code"); return; }
+// Internal function — actually joins after all checks pass
+window._doJoinRoom = async function(code, name, preGrantedStream){
   MY_NAME = name;
   const rSnap = await db.ref(`rooms/${code}`).once('value');
   if(!rSnap.exists()){ showToast("Room not found"); return; }
@@ -1943,6 +1958,10 @@ window.joinRoom = async function(){
   roomRef = db.ref(`rooms/${code}`);
   gameRef = db.ref(`rooms/${code}/game`);
   playersRef = db.ref(`rooms/${code}/players`);
+  // If we already got a stream from permission modal, store it for VC system
+  if(preGrantedStream){
+    window._vcPreGrantedStream = preGrantedStream;
+  }
   await db.ref(`rooms/${code}/players/${MY_SEAT}`).set({
     name: MY_NAME, seat: MY_SEAT, online: true, joinedAt: firebase.database.ServerValue.TIMESTAMP
   });
@@ -1961,6 +1980,82 @@ window.joinRoom = async function(){
     voiceLabel.style.color = voiceOn ? 'rgba(100,255,150,0.9)' : 'rgba(240,240,255,0.5)';
   }
   listenRoom();
+};
+
+window.joinRoom = async function(){
+  await waitForAuth();
+  const code = document.getElementById("join-code-input").value.trim().toUpperCase();
+  const name = document.getElementById("join-name-input").value.trim() || "Player";
+  if(code.length !== 6){ showToast("Enter a 6-digit code"); return; }
+
+  // Pre-fetch room to check if voice is enabled
+  showToast("Checking room...");
+  let rSnap, rData;
+  try {
+    rSnap = await db.ref(`rooms/${code}`).once('value');
+  } catch(e){ showToast("Connection error"); return; }
+  if(!rSnap.exists()){ showToast("Room not found"); return; }
+  rData = rSnap.val();
+  if(rData.status === "playing"){ showToast("Game already started"); return; }
+  const layout = rData.seatLayout || SEAT_LAYOUTS[rData.numPlayers] || [0,1,2,3];
+  const taken = Object.keys(rData.players||{}).map(Number);
+  const free = layout.filter(s=>!taken.includes(s));
+  if(free.length === 0){ showToast("Room is full"); return; }
+
+  // If voice is enabled, ask joiner for mic permission first
+  if(rData.voiceEnabled === true){
+    // Hide join modal, show voice permission modal
+    document.getElementById('modal-join').classList.remove('show');
+    document.getElementById('modal-voice-permission').classList.add('show');
+
+    // Store pending join info
+    window._pendingJoinCode = code;
+    window._pendingJoinName = name;
+    return; // wait for user action in modal buttons
+  }
+
+  // No voice — proceed directly
+  await window._doJoinRoom(code, name, null);
+};
+
+// Called when joiner clicks "Allow & Join" in voice permission modal
+window.voicePermissionAllow = async function(){
+  const code = window._pendingJoinCode;
+  const name = window._pendingJoinName;
+  if(!code){ showToast("Something went wrong"); return; }
+
+  const allowBtn = document.getElementById('btn-voice-allow');
+  if(allowBtn){ allowBtn.disabled = true; allowBtn.textContent = '⏳ Requesting mic...'; }
+
+  let stream = null;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch(err){
+    if(allowBtn){ allowBtn.disabled = false; allowBtn.textContent = '🎙️ Allow & Join'; }
+    const errName = err && err.name;
+    if(errName === 'NotAllowedError' || errName === 'PermissionDeniedError'){
+      showToast("Mic permission denied — cannot join voice room");
+    } else {
+      showToast("Mic unavailable — cannot join voice room");
+    }
+    // Stay on permission modal — user can retry or cancel
+    return;
+  }
+
+  // Permission granted — close modal and join
+  window._pendingJoinCode = null;
+  window._pendingJoinName = null;
+  await window._doJoinRoom(code, name, stream);
+};
+
+// Called when joiner clicks "Cancel" in voice permission modal
+window.voicePermissionDeny = function(){
+  document.getElementById('modal-voice-permission').classList.remove('show');
+  // Reopen join modal so user can try a different room
+  document.getElementById('modal-join').classList.add('show');
+  window._pendingJoinCode = null;
+  window._pendingJoinName = null;
+  showToast("Mic access required to join this room");
 };
 let _gameStarted = false;
 let _gameStartLock = false; // FIX 5: mutex so cb2 and cb3 can't both fire _doLoadAndStartGame
@@ -5762,7 +5857,7 @@ async function _doLoadAndStartGame(){
     _pendingSync = [];
     pending.forEach(p => { if(G.over === false) syncGameState(p); });
   }
-  if(ROOM_CODE) { try { await _vcInit(); } catch(e){ console.warn('[VC] _vcInit error:', e); } }
+  if(ROOM_CODE) { try { await _vcInit(); } catch(e){ console.warn('[VC] _vcInit CRASHED:', e&&(e.code||e.message)||e, e&&e.stack||''); } }
 }
 function bindBtn(id, fn){
   const el = document.getElementById(id);
@@ -5780,6 +5875,8 @@ bindBtn("btn-start-game",   ()=>window.hostStartGame());
 bindBtn("btn-leave-waiting",()=>window.leaveRoom());
 bindBtn("btn-join",         ()=>window.joinRoom());
 bindBtn("btn-cancel-join",  ()=>closeModals());
+bindBtn("btn-voice-allow",  ()=>window.voicePermissionAllow());
+bindBtn("btn-voice-deny",   ()=>window.voicePermissionDeny());
 
 bindBtn("btn-customization", ()=>document.getElementById("modal-customization").classList.add("show"));
 bindBtn("btn-customization-close", ()=>document.getElementById("modal-customization").classList.remove("show"));
@@ -6685,42 +6782,35 @@ window.toggleVoiceOption = function(){
 async function _vcInit(){
   console.log('[VC] _vcInit called | ROOM_CODE:', ROOM_CODE);
   if(!ROOM_CODE){ console.warn('[VC] _vcInit aborted: no ROOM_CODE'); return; }
-  // Wait for real Firebase auth before reading — avoids stub returning null
-  try { await waitForAuth(); } catch(e){ console.warn('[VC] waitForAuth failed:', e); }
-  // Safety: if db is still the stub, abort
-  if(db && db._stub){ console.warn('[VC] _vcInit aborted: db is still stub (offline mode?)'); return; }
+  // waitForAuth with 5s timeout so it never hangs forever
+  await Promise.race([waitForAuth(), new Promise(res=>setTimeout(res,5000))]).catch(()=>{});
+  console.log('[VC] auth wait done | db._stub:', !!(db&&db._stub));
+  if(db && db._stub){ console.warn('[VC] _vcInit aborted: db is still stub'); return; }
   let voiceVal = false;
   try {
-    console.log('[VC] Reading voiceEnabled from Firebase...');
-    const snap = await db.ref(`rooms/${ROOM_CODE}/voiceEnabled`).once('value');
+    console.log('[VC] Reading voiceEnabled | path: rooms/'+ROOM_CODE+'/voiceEnabled');
+    const snap = await db.ref('rooms/'+ROOM_CODE+'/voiceEnabled').once('value');
     const firebaseVal = snap.val();
-    console.log('[VC] Firebase voiceEnabled raw value:', firebaseVal);
+    console.log('[VC] Firebase voiceEnabled:', firebaseVal, '| type:', typeof firebaseVal);
     if(firebaseVal === true){
       voiceVal = true;
-    } else if(firebaseVal === false || firebaseVal === null){
-      // Firebase says false/null — but if we are the HOST and toggled ON locally,
-      // trust the local value and patch Firebase (handles race where _vcInit runs
-      // before createRoom write fully propagates on first read)
+    } else {
       if(IS_HOST && window._voiceOptionEnabled === true){
-        console.log('[VC] Host override: _voiceOptionEnabled=true but Firebase=', firebaseVal, '— patching Firebase & enabling voice');
-        try { await db.ref(`rooms/${ROOM_CODE}/voiceEnabled`).set(true); } catch(e2){ console.warn('[VC] Patch write failed:', e2); }
+        console.log('[VC] Host override: Firebase='+firebaseVal+' but local=true — patching');
+        try { await db.ref('rooms/'+ROOM_CODE+'/voiceEnabled').set(true); } catch(e2){ console.warn('[VC] Patch failed:', e2&&(e2.code||e2.message)||e2); }
         voiceVal = true;
       } else {
-        voiceVal = false;
+        console.log('[VC] Voice is OFF — IS_HOST:'+IS_HOST+' _voiceOptionEnabled:'+window._voiceOptionEnabled);
       }
     }
   } catch(e) {
-    console.warn('[VC] Failed to read voiceEnabled from Firebase:', e);
-    // Fallback: use local toggle value (for host who just created room)
+    console.warn('[VC] Firebase read failed:', e&&(e.code||e.message)||JSON.stringify(e));
     voiceVal = window._voiceOptionEnabled === true;
-    console.log('[VC] Fallback to _voiceOptionEnabled:', voiceVal);
+    console.log('[VC] Fallback voiceVal:', voiceVal);
   }
   _voiceEnabled = voiceVal;
-  console.log('[VC] voiceEnabled resolved:', _voiceEnabled, '| _voiceOptionEnabled:', window._voiceOptionEnabled, '| IS_HOST:', IS_HOST);
-  if(!_voiceEnabled){
-    console.log('[VC] Voice NOT enabled for this room — bar will NOT show');
-    return;
-  }
+  console.log('[VC] Final voiceEnabled:', _voiceEnabled, '| IS_HOST:', IS_HOST);
+  if(!_voiceEnabled){ console.log('[VC] Voice OFF — bar will NOT show'); return; }
   console.log('[VC] Voice IS enabled — showing bar...');
   _vcShowBar();
   console.log('[VC] Bar shown, starting mic...');
@@ -6781,7 +6871,14 @@ function _vcRepopulateDots(){
 async function _vcStartMic(){
   console.log('[VC] _vcStartMic called — requesting mic permission...');
   try {
-    _localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    // If joiner already granted mic permission in the join flow, reuse that stream
+    if(window._vcPreGrantedStream){
+      console.log('[VC] Reusing pre-granted mic stream from join flow');
+      _localStream = window._vcPreGrantedStream;
+      window._vcPreGrantedStream = null;
+    } else {
+      _localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    }
     _voiceActive = true;
     const tracks = _localStream.getAudioTracks();
     console.log('[VC] Mic started | tracks:', tracks.length, '| label:', tracks[0] ? tracks[0].label : 'none');
