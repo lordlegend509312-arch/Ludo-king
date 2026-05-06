@@ -6652,12 +6652,32 @@ window.toggleVoiceOption = function(){
   window._voiceOptionEnabled = !window._voiceOptionEnabled;
   const btn = document.getElementById('voice-toggle-btn');
   const knob = document.getElementById('voice-toggle-knob');
+  const subtitle = document.querySelector('#voice-toggle-row div > div:last-child');
   if(window._voiceOptionEnabled){
     btn.style.background = '#22c55e';
     knob.style.transform = 'translateX(20px)';
+    if(subtitle) subtitle.textContent = 'Checking mic access...';
+    // Request mic permission immediately so user sees the browser prompt
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      .then(stream => {
+        // Permission granted — stop the test stream (real one starts in _vcInit)
+        stream.getTracks().forEach(t => t.stop());
+        if(subtitle) subtitle.textContent = '🎙️ Mic ready — voice ON for this game';
+        subtitle.style.color = 'rgba(34,197,94,0.8)';
+      })
+      .catch(err => {
+        console.warn('[VC] Mic permission denied during toggle:', err.name);
+        // Revert toggle since mic is not available
+        window._voiceOptionEnabled = false;
+        btn.style.background = '#333';
+        knob.style.transform = 'translateX(0px)';
+        if(subtitle){ subtitle.textContent = 'Mic access denied — voice unavailable'; subtitle.style.color = 'rgba(255,80,80,0.8)'; }
+        setTimeout(()=>{ if(subtitle){ subtitle.textContent = 'Players can talk in-game'; subtitle.style.color = ''; } }, 3000);
+      });
   } else {
     btn.style.background = '#333';
     knob.style.transform = 'translateX(0px)';
+    if(subtitle){ subtitle.textContent = 'Players can talk in-game'; subtitle.style.color = ''; }
   }
 };
 
@@ -6673,8 +6693,22 @@ async function _vcInit(){
   try {
     console.log('[VC] Reading voiceEnabled from Firebase...');
     const snap = await db.ref(`rooms/${ROOM_CODE}/voiceEnabled`).once('value');
-    voiceVal = snap.val() === true;
-    console.log('[VC] Firebase voiceEnabled raw value:', snap.val());
+    const firebaseVal = snap.val();
+    console.log('[VC] Firebase voiceEnabled raw value:', firebaseVal);
+    if(firebaseVal === true){
+      voiceVal = true;
+    } else if(firebaseVal === false || firebaseVal === null){
+      // Firebase says false/null — but if we are the HOST and toggled ON locally,
+      // trust the local value and patch Firebase (handles race where _vcInit runs
+      // before createRoom write fully propagates on first read)
+      if(IS_HOST && window._voiceOptionEnabled === true){
+        console.log('[VC] Host override: _voiceOptionEnabled=true but Firebase=', firebaseVal, '— patching Firebase & enabling voice');
+        try { await db.ref(`rooms/${ROOM_CODE}/voiceEnabled`).set(true); } catch(e2){ console.warn('[VC] Patch write failed:', e2); }
+        voiceVal = true;
+      } else {
+        voiceVal = false;
+      }
+    }
   } catch(e) {
     console.warn('[VC] Failed to read voiceEnabled from Firebase:', e);
     // Fallback: use local toggle value (for host who just created room)
@@ -6682,7 +6716,7 @@ async function _vcInit(){
     console.log('[VC] Fallback to _voiceOptionEnabled:', voiceVal);
   }
   _voiceEnabled = voiceVal;
-  console.log('[VC] voiceEnabled resolved:', _voiceEnabled, '| _voiceOptionEnabled:', window._voiceOptionEnabled);
+  console.log('[VC] voiceEnabled resolved:', _voiceEnabled, '| _voiceOptionEnabled:', window._voiceOptionEnabled, '| IS_HOST:', IS_HOST);
   if(!_voiceEnabled){
     console.log('[VC] Voice NOT enabled for this room — bar will NOT show');
     return;
@@ -7016,8 +7050,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
       window._voiceOptionEnabled = false;
       const btn = document.getElementById('voice-toggle-btn');
       const knob = document.getElementById('voice-toggle-knob');
+      const subtitle = document.querySelector('#voice-toggle-row div > div:last-child');
       if(btn) btn.style.background = '#333';
       if(knob) knob.style.transform = 'translateX(0px)';
+      if(subtitle){ subtitle.textContent = 'Players can talk in-game'; subtitle.style.color = ''; }
     });
   }
 });
