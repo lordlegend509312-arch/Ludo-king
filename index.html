@@ -6752,7 +6752,7 @@ let _voiceActive = false;        // mic currently live
 let _localStream = null;
 let _vcPeers = {};               // seat -> RTCPeerConnection
 let _vcMicMuted = false;
-let _vcLocalMuted = {};          // seat -> true/false (local mute of others)
+let _vcSpeakerMuted = false;     // global — mutes ALL incoming audio
 
 const VC_ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
 
@@ -6858,12 +6858,10 @@ function _vcRepopulateDots(){
   if(!window._getSEAT_LAYOUT_ACTIVE || !window._getSEAT_LAYOUT_ACTIVE()) return;
   window._getSEAT_LAYOUT_ACTIVE().forEach(seat => {
     if(seat === window.MY_SEAT) return;
-    const playerName = (PLAYERS[seat] && PLAYERS[seat].label) ? PLAYERS[seat].label : `P${seat+1}`;
+    const _p = (window.PLAYERS || [])[seat];
+    const playerName = (_p && _p.label) ? _p.label : `P${seat+1}`;
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:2px 4px;border-radius:8px;transition:background 0.15s;';
-    wrap.onmouseenter = ()=>{ wrap.style.background='rgba(255,255,255,0.06)'; };
-    wrap.onmouseleave = ()=>{ wrap.style.background=''; };
-    wrap.onclick = () => window._vcToggleLocalMute(seat);
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 4px;border-radius:8px;';
     const d = document.createElement('div');
     d.id = `vc-dot-${seat}`;
     d.style.cssText = 'width:9px;height:9px;border-radius:50%;background:#555;transition:background 0.2s;border:1.5px solid rgba(255,255,255,0.15);flex-shrink:0;';
@@ -6895,7 +6893,7 @@ async function _vcStartMic(){
     _voiceActive = true;
     const tracks = _localStream.getAudioTracks();
     console.log('[VC] Mic started | tracks:', tracks.length, '| label:', tracks[0] ? tracks[0].label : 'none');
-    _vcUpdateBtn();
+    _vcUpdateBtns();
     console.log('[VC] Mic button updated');
   } catch(e){
     console.warn('[VC] Mic error:', e.name, e.message);
@@ -6925,6 +6923,7 @@ function _vcGetOrCreatePeer(remoteSeat){
       el.id = `vc-audio-${remoteSeat}`;
       el.autoplay = true;
       el.style.display = 'none';
+      el.muted = _vcSpeakerMuted;
       document.body.appendChild(el);
       console.log('[VC] Created <audio> element for seat', remoteSeat);
     }
@@ -7038,7 +7037,7 @@ function _vcCleanup(){
     try { pc.close(); console.log('[VC] Closed peer for seat', seat); } catch(e){ console.warn('[VC] Error closing peer seat', seat, e); }
   });
   _vcPeers = {};
-  _vcLocalMuted = {};
+  _vcSpeakerMuted = false;
   if(_localStream){
     _localStream.getTracks().forEach(t => { t.stop(); console.log('[VC] Stopped track:', t.label); });
     _localStream = null;
@@ -7058,44 +7057,50 @@ function _vcToggleMic(){
   if(!_localStream) return;
   _vcMicMuted = !_vcMicMuted;
   _localStream.getAudioTracks().forEach(t => t.enabled = !_vcMicMuted);
-  _vcUpdateBtn();
+  _vcUpdateBtns();
+  window.showToast(_vcMicMuted ? '🔇 Mic off' : '🎙️ Mic on');
 }
 
-function _vcUpdateBtn(){
-  const btn = document.getElementById('vc-mic-btn');
-  if(!btn) return;
-  btn.textContent = _vcMicMuted ? '🔇' : '🎙️';
-  btn.title = _vcMicMuted ? 'Unmute mic' : 'Mute mic';
-  btn.style.opacity = _vcMicMuted ? '0.45' : '1';
+function _vcToggleSpeaker(){
+  _vcSpeakerMuted = !_vcSpeakerMuted;
+  // Mute/unmute all incoming audio elements
+  document.querySelectorAll('[id^="vc-audio-"]').forEach(el => {
+    el.muted = _vcSpeakerMuted;
+  });
+  _vcUpdateBtns();
+  window.showToast(_vcSpeakerMuted ? '🔇 Speaker off' : '🔊 Speaker on');
+}
+
+function _vcUpdateBtns(){
+  const micBtn = document.getElementById('vc-mic-btn');
+  if(micBtn){
+    micBtn.textContent = _vcMicMuted ? '🔇' : '🎙️';
+    micBtn.title = _vcMicMuted ? 'Unmute mic' : 'Mute mic';
+    micBtn.style.opacity = _vcMicMuted ? '0.45' : '1';
+    micBtn.style.borderColor = _vcMicMuted ? 'rgba(239,68,68,0.6)' : 'rgba(34,197,94,0.5)';
+    micBtn.style.background = _vcMicMuted ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.1)';
+  }
+  const spkBtn = document.getElementById('vc-speaker-btn');
+  if(spkBtn){
+    spkBtn.textContent = _vcSpeakerMuted ? '🔇' : '🔊';
+    spkBtn.title = _vcSpeakerMuted ? 'Unmute speaker' : 'Mute speaker';
+    spkBtn.style.opacity = _vcSpeakerMuted ? '0.45' : '1';
+    spkBtn.style.borderColor = _vcSpeakerMuted ? 'rgba(239,68,68,0.6)' : 'rgba(34,197,94,0.5)';
+    spkBtn.style.background = _vcSpeakerMuted ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.1)';
+  }
 }
 
 function _vcUpdateSpeakerDot(seat, connected){
   const dot = document.getElementById(`vc-dot-${seat}`);
   const status = document.getElementById(`vc-status-${seat}`);
   if(!dot) return;
-  const muted = _vcLocalMuted[seat];
-  if(muted){
-    dot.style.background = '#ef4444';
-    if(status){ status.textContent = 'MUTED'; status.style.color = '#ef4444'; }
-  } else if(connected){
+  if(connected){
     dot.style.background = '#22c55e';
     if(status){ status.textContent = 'ACTIVE'; status.style.color = '#22c55e'; }
   } else {
     dot.style.background = '#555';
     if(status){ status.textContent = '●'; status.style.color = '#555'; }
   }
-}
-
-function _vcToggleLocalMute(seat){
-  _vcLocalMuted[seat] = !_vcLocalMuted[seat];
-  const el = document.getElementById(`vc-audio-${seat}`);
-  if(el) el.muted = !!_vcLocalMuted[seat];
-  const pc = _vcPeers[seat];
-  const connected = pc && pc.connectionState === 'connected';
-  _vcUpdateSpeakerDot(seat, connected);
-  const dot = document.getElementById(`vc-dot-${seat}`);
-  if(dot) dot.title = _vcLocalMuted[seat] ? 'Tap to unmute' : 'Tap to mute';
-  window.showToast(_vcLocalMuted[seat] ? '🔴 Player muted' : '🟢 Player unmuted');
 }
 
 function _vcShowBar(){
@@ -7109,12 +7114,13 @@ function _vcShowBar(){
     <span style="font-size:.62rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:1.5px;color:rgba(34,197,94,0.9);">🎙 VOICE</span>
     <div id="vc-dots" style="display:flex;gap:5px;align-items:center;"></div>
     <button id="vc-mic-btn" onclick="window._vcToggleMic()" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(34,197,94,0.5);background:rgba(34,197,94,0.1);color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;">🎙️</button>
+    <button id="vc-speaker-btn" onclick="window._vcToggleSpeaker()" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(34,197,94,0.5);background:rgba(34,197,94,0.1);color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;">🔊</button>
   `;
   document.body.appendChild(bar);
   console.log('[VC] Voice bar appended to body | position: fixed bottom:12px center');
   window._vcToggleMic = _vcToggleMic;
-  window._vcToggleLocalMute = _vcToggleLocalMute;
-  console.log('[VC] _vcToggleMic and _vcToggleLocalMute exposed on window');
+  window._vcToggleSpeaker = _vcToggleSpeaker;
+  console.log('[VC] _vcToggleMic and _vcToggleSpeaker exposed on window');
   // Add dots immediately, with retry fallback after 800ms
   const _buildDots = () => {
     const dots = document.getElementById('vc-dots');
@@ -7132,12 +7138,10 @@ function _vcShowBar(){
     console.log('[VC] Building dots | layout:', layout, '| MY_SEAT:', window.MY_SEAT);
     layout.forEach(seat => {
       if(seat === window.MY_SEAT) return;
-      const playerName = (PLAYERS[seat] && PLAYERS[seat].label) ? PLAYERS[seat].label : `P${seat+1}`;
+      const _p2 = (window.PLAYERS || [])[seat];
+      const playerName = (_p2 && _p2.label) ? _p2.label : `P${seat+1}`;
       const wrap = document.createElement('div');
-      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:2px 4px;border-radius:8px;transition:background 0.15s;';
-      wrap.onmouseenter = ()=>{ wrap.style.background='rgba(255,255,255,0.06)'; };
-      wrap.onmouseleave = ()=>{ wrap.style.background=''; };
-      wrap.onclick = () => window._vcToggleLocalMute(seat);
+      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 4px;border-radius:8px;';
       const d = document.createElement('div');
       d.id = `vc-dot-${seat}`;
       d.style.cssText = 'width:9px;height:9px;border-radius:50%;background:#555;transition:background 0.2s;border:1.5px solid rgba(255,255,255,0.15);flex-shrink:0;';
