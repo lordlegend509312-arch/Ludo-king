@@ -6754,7 +6754,23 @@ let _vcPeers = {};               // seat -> RTCPeerConnection
 let _vcMicMuted = false;
 let _vcSpeakerMuted = false;     // global — mutes ALL incoming audio
 
-const VC_ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
+const VC_ICE_FALLBACK = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
+let VC_ICE = VC_ICE_FALLBACK;
+async function _vcFetchIceServers(){
+  try {
+    const res = await fetch('https://4whimsical.metered.ca/api/v1/turn/credentials?apiKey=69fc399d4fc75fbbb6d8a4d0');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const servers = await res.json();
+    if(Array.isArray(servers) && servers.length > 0){
+      VC_ICE = { iceServers: servers };
+      console.log('[VC] TURN credentials fetched | servers:', servers.length);
+    } else {
+      console.warn('[VC] TURN fetch returned empty — using STUN fallback');
+    }
+  } catch(e){
+    console.warn('[VC] TURN fetch failed — using STUN fallback |', e.message);
+  }
+}
 
 window.toggleVoiceOption = function(){
   window._voiceOptionEnabled = !window._voiceOptionEnabled;
@@ -6825,6 +6841,7 @@ async function _vcInit(){
   console.log('[VC] Final voiceEnabled:', _voiceEnabled, '| IS_HOST:', IH);
   if(!_voiceEnabled){ console.log('[VC] Voice OFF — bar will NOT show'); return; }
   console.log('[VC] Voice IS enabled — showing bar...');
+  await _vcFetchIceServers();
   _vcShowBar();
   console.log('[VC] Bar shown, starting mic...');
   await _vcStartMic();
