@@ -1850,6 +1850,7 @@ let roomRef = null;
 let gameRef = null;
 let playersRef = null;
 let _listeners = [];
+window._listeners = _listeners; // expose for VC block — array ref is shared, .push() works cross-block
 let _presenceRef = null;
 let PLAYERS = [];
 let G = { turn:0, diceVal:null, rolled:false, waiting:false, over:false, sixes:0, tokens:[], placements:[] };
@@ -6854,8 +6855,8 @@ function _vcRepopulateDots(){
   if(!dots) return;
   // Only repopulate if dots container is empty
   if(dots.children.length > 0) return;
-  if(!window.SEAT_LAYOUT_ACTIVE || !window.MY_SEAT === undefined) return;
-  SEAT_LAYOUT_ACTIVE.forEach(seat => {
+  if(!window._getSEAT_LAYOUT_ACTIVE || !window._getSEAT_LAYOUT_ACTIVE()) return;
+  window._getSEAT_LAYOUT_ACTIVE().forEach(seat => {
     if(seat === window.MY_SEAT) return;
     const playerName = (PLAYERS[seat] && PLAYERS[seat].label) ? PLAYERS[seat].label : `P${seat+1}`;
     const wrap = document.createElement('div');
@@ -6985,7 +6986,7 @@ function _vcListenSignaling(){
     await window.db.ref(`rooms/${window.ROOM_CODE}/voice/answer/${window.MY_SEAT}_${from}`).set({ type: answer.type, sdp: answer.sdp });
     console.log('[VC] Answer written to Firebase — key:', window.MY_SEAT + '_' + from);
   });
-  _listeners.push(() => offerRef.off('child_added'));
+  window._listeners.push(() => offerRef.off('child_added'));
 
   // Listen for answers addressed to me
   const ansRef = window.db.ref(`rooms/${window.ROOM_CODE}/voice/answer`);
@@ -7003,7 +7004,7 @@ function _vcListenSignaling(){
     await pc.setRemoteDescription(new RTCSessionDescription(answer));
     console.log('[VC] Got answer from seat', from, '— RemoteDescription set ✅');
   });
-  _listeners.push(() => ansRef.off('child_added'));
+  window._listeners.push(() => ansRef.off('child_added'));
 
   // Listen for ICE candidates for me
   const iceRef = window.db.ref(`rooms/${window.ROOM_CODE}/voice/ice`);
@@ -7027,8 +7028,8 @@ function _vcListenSignaling(){
       pc.addIceCandidate(new RTCIceCandidate(child.val())).catch(()=>{});
     });
   });
-  _listeners.push(() => iceRef.off('child_added'));
-  _listeners.push(() => iceRef.off('child_changed'));
+  window._listeners.push(() => iceRef.off('child_added'));
+  window._listeners.push(() => iceRef.off('child_changed'));
 }
 
 function _vcCleanup(){
@@ -7119,8 +7120,15 @@ function _vcShowBar(){
     const dots = document.getElementById('vc-dots');
     if(!dots) return;
     dots.innerHTML = '';
-    const layout = (typeof SEAT_LAYOUT_ACTIVE !== 'undefined' && SEAT_LAYOUT_ACTIVE) || [];
-    if(layout.length === 0){ console.log('[VC] SEAT_LAYOUT_ACTIVE not ready yet, retrying in 800ms...'); setTimeout(_buildDots, 800); return; }
+    const layout = (window._getSEAT_LAYOUT_ACTIVE && window._getSEAT_LAYOUT_ACTIVE()) || [];
+    if(layout.length === 0){
+      if(!_buildDots._retries) _buildDots._retries = 0;
+      _buildDots._retries++;
+      if(_buildDots._retries > 15){ console.warn('[VC] SEAT_LAYOUT_ACTIVE never became ready — giving up'); return; }
+      console.log('[VC] SEAT_LAYOUT_ACTIVE not ready yet, retrying in 800ms...');
+      setTimeout(_buildDots, 800);
+      return;
+    }
     console.log('[VC] Building dots | layout:', layout, '| MY_SEAT:', window.MY_SEAT);
     layout.forEach(seat => {
       if(seat === window.MY_SEAT) return;
