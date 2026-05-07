@@ -6754,23 +6754,18 @@ let _vcPeers = {};               // seat -> RTCPeerConnection
 let _vcMicMuted = false;
 let _vcSpeakerMuted = false;     // global — mutes ALL incoming audio
 
-const VC_ICE_FALLBACK = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
-let VC_ICE = VC_ICE_FALLBACK;
-async function _vcFetchIceServers(){
-  try {
-    const res = await fetch('https://4whimsical.metered.ca/api/v1/turn/credentials?apiKey=69fc399d4fc75fbbb6d8a4d0');
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const servers = await res.json();
-    if(Array.isArray(servers) && servers.length > 0){
-      VC_ICE = { iceServers: servers };
-      console.log('[VC] TURN credentials fetched | servers:', servers.length);
-    } else {
-      console.warn('[VC] TURN fetch returned empty — using STUN fallback');
-    }
-  } catch(e){
-    console.warn('[VC] TURN fetch failed — using STUN fallback |', e.message);
-  }
-}
+// TURN credentials hardcoded — no fetch needed, no CORS issues
+// App: 4whimsical | Domain: 4whimsical.metered.live
+const VC_ICE = {
+  iceServers: [
+    { urls: 'stun:stun.relay.metered.ca:80' },
+    { urls: 'turn:standard.relay.metered.ca:80',        username: '69fc399d4fc75fbbb6d8a4d0', credential: '69fc399d4fc75fbbb6d8a4d0' },
+    { urls: 'turn:standard.relay.metered.ca:80?transport=tcp', username: '69fc399d4fc75fbbb6d8a4d0', credential: '69fc399d4fc75fbbb6d8a4d0' },
+    { urls: 'turn:standard.relay.metered.ca:443',       username: '69fc399d4fc75fbbb6d8a4d0', credential: '69fc399d4fc75fbbb6d8a4d0' },
+    { urls: 'turns:standard.relay.metered.ca:443?transport=tcp', username: '69fc399d4fc75fbbb6d8a4d0', credential: '69fc399d4fc75fbbb6d8a4d0' },
+  ]
+};
+function _vcFetchIceServers(){ console.log('[VC] TURN servers hardcoded — no fetch needed'); }
 
 window.toggleVoiceOption = function(){
   window._voiceOptionEnabled = !window._voiceOptionEnabled;
