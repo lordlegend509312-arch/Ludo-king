@@ -1895,6 +1895,7 @@ const SEAT_LAYOUTS = {
   4: [3, 0, 1, 2]
 };
 window.createRoom = async function(numPlayers){
+  clearSession();
   closeModals();
   showToast("Connecting to server...");
   try { await waitForAuth(); } catch(e){ showToast("⚠️ Auth error — check internet"); return; }
@@ -1994,6 +1995,7 @@ window._doJoinRoom = async function(code, name, preGrantedStream){
 };
 
 window.joinRoom = async function(){
+  clearSession();
   await waitForAuth();
   const code = document.getElementById("join-code-input").value.trim().toUpperCase();
   const name = document.getElementById("join-name-input").value.trim() || "Player";
@@ -2627,13 +2629,13 @@ function pushGameState(extra={}){
 function saveSession(){
   if(window._cpuMode) return; // never save session for CPU games
   if(!ROOM_CODE || MY_SEAT === null || !MY_NAME) return;
-  try { sessionStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME})); } catch(e){}
+  try { localStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME})); } catch(e){}
 }
 function clearSession(){
-  try { sessionStorage.removeItem('ludo_session'); } catch(e){}
+  try { localStorage.removeItem('ludo_session'); } catch(e){}
 }
 function loadSession(){
-  try { const s=sessionStorage.getItem('ludo_session'); return s?JSON.parse(s):null; } catch(e){ return null; }
+  try { const s=localStorage.getItem('ludo_session'); return s?JSON.parse(s):null; } catch(e){ return null; }
 }
 (function checkRejoin(){
   const s=loadSession();
@@ -2766,7 +2768,6 @@ window.leaveRoom = async function(){
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
   stopTurnTimer();
   if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
-  clearSession();
   _listeners.forEach(fn=>fn());
   _listeners = [];
   _gameStarted = false;
@@ -2774,6 +2775,7 @@ window.leaveRoom = async function(){
   _pendingSync = [];
   if(ROOM_CODE && MY_SEAT !== null){
     await db.ref(`rooms/${ROOM_CODE}/players/${MY_SEAT}/online`).set(false);
+    // Room delete is handled by _checkAllBotsDeleteTimer (all-bots detection)
   }
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
   _rolling = false; _animating = false; _onlineSeats = new Set();
@@ -2782,7 +2784,11 @@ window.leaveRoom = async function(){
   _forcedElderSeat = null;
   const chatPanel = document.getElementById("chat-panel");
   if(chatPanel) chatPanel.classList.remove("open");
-  const rc=document.getElementById("rejoin-card"); if(rc) rc.style.display="none";
+  const s = loadSession();
+  const rc = document.getElementById("rejoin-card");
+  const rsub = document.getElementById("rejoin-sub");
+  if(rc && s){ rc.style.display="flex"; if(rsub) rsub.textContent=`Room ${s.code} · as ${s.name}`; }
+  else if(rc){ rc.style.display="none"; }
   document.getElementById("lobby").style.display = "flex";
   closeModals();
 };
@@ -2911,6 +2917,42 @@ window.voteForBot = async function(seat){
     if(badge) badge.classList.remove('voted');
   }
 };
+// All-bots delete timer — starts when every active player is a bot
+window._allBotDeleteTimer = null;
+function _checkAllBotsDeleteTimer(){
+  if(!ROOM_CODE || G.over || !_gameLoaded) return;
+  const activePlayers = PLAYERS.filter(p => p && p.active);
+  const allBots = activePlayers.length > 0 && activePlayers.every(p => p.isBot);
+  if(allBots){
+    if(window._allBotDeleteTimer) return; // already running
+    console.log('[ROOM] All players are bots — starting 10min delete timer');
+    showToast('⚠️ All players are bots — room deletes in 10 min');
+    window._allBotDeleteTimer = setTimeout(async ()=>{
+      if(!ROOM_CODE) return;
+      try {
+        const snap = await db.ref(`rooms/${ROOM_CODE}/players`).once('value');
+        const players = snap.val() || {};
+        const anyOnline = Object.values(players).some(p => p && p.online === true);
+        if(!anyOnline){
+          console.log('[ROOM] Auto-deleting room', ROOM_CODE, '— all bots, no one online');
+          clearSession();
+          const _rc = document.getElementById('rejoin-card');
+          if(_rc) _rc.style.display='none';
+          await db.ref(`rooms/${ROOM_CODE}`).remove();
+        }
+      } catch(e){ console.warn('[ROOM] All-bot delete failed:', e); }
+      window._allBotDeleteTimer = null;
+    }, 10 * 60 * 1000);
+  } else {
+    // Someone is not a bot — cancel timer
+    if(window._allBotDeleteTimer){
+      console.log('[ROOM] A player is active — cancelling delete timer');
+      clearTimeout(window._allBotDeleteTimer);
+      window._allBotDeleteTimer = null;
+    }
+  }
+}
+
 function _activateBot(seat){
   if(!PLAYERS[seat]) return;
   console.log('[VOTE] activating bot for seat ' + seat);
@@ -2942,6 +2984,8 @@ function _activateBot(seat){
     if(_botDice) _botDice.style.display = 'block';
   }
   showToast(`🤖 ${PLAYERS[seat].label} is now a bot`);
+  // Check if ALL active players are now bots — if so, start 10min room delete timer
+  _checkAllBotsDeleteTimer();
   if(amIElderPlayer() && !G.over){
     clearTimeout(_turnTimeoutTimer);
     _turnTimeoutTimer = null;
@@ -2955,6 +2999,8 @@ function _activateBot(seat){
 function _deactivateBot(seat){
   if(!PLAYERS[seat]?.isBot) return;
   PLAYERS[seat].isBot = false;
+  // Someone came back — cancel all-bot delete timer
+  _checkAllBotsDeleteTimer();
   const lbl = document.getElementById(`lbl-${seat}`);
   if(lbl){ const bl = lbl.querySelector('.bot-label'); if(bl) bl.remove(); }
   const offBadge = document.getElementById(`offbadge-${seat}`);
@@ -5423,6 +5469,12 @@ function nextTurn(same, wasSix){
 }
 function endGame(){
   G.over=true;
+  // Game finished — clear rejoin session so card disappears
+  clearSession();
+  const _rc = document.getElementById('rejoin-card');
+  if(_rc) _rc.style.display='none';
+  // Clear any pending all-bot room delete timer
+  if(window._allBotDeleteTimer){ clearTimeout(window._allBotDeleteTimer); window._allBotDeleteTimer=null; }
   const medals=["🥇","🥈","🥉","4️⃣"];
   const lines=G.placements.map((pid,i)=>{
     const name = pid === MY_SEAT ? (MY_NAME || "You") : (PLAYERS[pid]?.label||`P${pid}`);
@@ -6759,10 +6811,10 @@ let _vcSpeakerMuted = false;     // global — mutes ALL incoming audio
 const VC_ICE = {
   iceServers: [
     { urls: 'stun:stun.relay.metered.ca:80' },
-    { urls: 'turn:global.relay.metered.ca:80',                  username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
-    { urls: 'turn:global.relay.metered.ca:80?transport=tcp',    username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
-    { urls: 'turn:global.relay.metered.ca:443',                 username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
-    { urls: 'turns:global.relay.metered.ca:443?transport=tcp',  username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
+    { urls: 'turn:standard.relay.metered.ca:80',        username: '69fc399d4fc75fbbb6d8a4d0', credential: '69fc399d4fc75fbbb6d8a4d0' },
+    { urls: 'turn:standard.relay.metered.ca:80?transport=tcp', username: '69fc399d4fc75fbbb6d8a4d0', credential: '69fc399d4fc75fbbb6d8a4d0' },
+    { urls: 'turn:standard.relay.metered.ca:443',       username: '69fc399d4fc75fbbb6d8a4d0', credential: '69fc399d4fc75fbbb6d8a4d0' },
+    { urls: 'turns:standard.relay.metered.ca:443?transport=tcp', username: '69fc399d4fc75fbbb6d8a4d0', credential: '69fc399d4fc75fbbb6d8a4d0' },
   ]
 };
 function _vcFetchIceServers(){ console.log('[VC] TURN servers hardcoded — no fetch needed'); }
@@ -6837,6 +6889,13 @@ async function _vcInit(){
   if(!_voiceEnabled){ console.log('[VC] Voice OFF — bar will NOT show'); return; }
   console.log('[VC] Voice IS enabled — showing bar...');
   await _vcFetchIceServers();
+  // Clean old voice signaling data from Firebase before starting
+  try {
+    await _db.ref(`rooms/${RC}/voice`).remove();
+    console.log('[VC] Old Firebase voice data cleared ✅');
+  } catch(e) {
+    console.warn('[VC] Could not clear old voice data:', e&&(e.code||e.message)||e);
+  }
   _vcShowBar();
   console.log('[VC] Bar shown, starting mic...');
   await _vcStartMic();
@@ -6940,22 +6999,41 @@ function _vcGetOrCreatePeer(remoteSeat){
       console.log('[VC] Created <audio> element for seat', remoteSeat);
     }
     el.srcObject = e.streams[0];
-    console.log('[VC] Remote audio track received from seat', remoteSeat, '| streams:', e.streams.length);
-  };
-  pc.onicecandidate = e => {
-    if(!e.candidate || !window.ROOM_CODE) return;
-    console.log('[VC] Sending ICE candidate to seat', remoteSeat, '| candidate type:', e.candidate.type);
-    window.db.ref(`rooms/${window.ROOM_CODE}/voice/ice/${remoteSeat}_${window.MY_SEAT}`).push(e.candidate.toJSON());
+    console.log('[VC] Remote audio track received from seat', remoteSeat, '| streams:', e.streams.length, '| track kind:', e.track.kind, '| track state:', e.track.readyState);
   };
   pc.onicecandidateerror = e => {
-    console.warn('[VC] ICE candidate error for seat', remoteSeat, '| errorCode:', e.errorCode, e.errorText);
+    console.warn('[VC] ICE candidate error for seat', remoteSeat, '| errorCode:', e.errorCode, e.errorText, '| url:', e.url);
+  };
+  pc.onicecandidate = e => {
+    if(!e.candidate){
+      console.log('[VC] ICE gathering DONE for seat', remoteSeat, '| final iceGatheringState:', pc.iceGatheringState);
+      return;
+    }
+    console.log('[VC] Sending ICE candidate to seat', remoteSeat, '| type:', e.candidate.type, '| protocol:', e.candidate.protocol, '| address:', e.candidate.address);
+    window.db.ref(`rooms/${window.ROOM_CODE}/voice/ice/${remoteSeat}_${window.MY_SEAT}`).push(e.candidate.toJSON());
+  };
+  pc.onicegatheringstatechange = () => {
+    console.log('[VC] ICE gathering state for seat', remoteSeat, ':', pc.iceGatheringState);
   };
   pc.oniceconnectionstatechange = () => {
-    console.log('[VC] ICE connection state for seat', remoteSeat, ':', pc.iceConnectionState);
+    console.log('[VC] ICE connection state for seat', remoteSeat, ':', pc.iceConnectionState, '| signalingState:', pc.signalingState);
+    if(pc.iceConnectionState === 'failed'){
+      console.warn('[VC] ICE FAILED for seat', remoteSeat, '— attempting restart...');
+      pc.restartIce();
+    }
+    if(pc.iceConnectionState === 'disconnected'){
+      console.warn('[VC] ICE DISCONNECTED for seat', remoteSeat, '— may recover...');
+    }
   };
   pc.onconnectionstatechange = () => {
-    console.log('[VC] Peer', remoteSeat, 'connection state:', pc.connectionState);
+    console.log('[VC] Peer', remoteSeat, 'connection state:', pc.connectionState, '| iceState:', pc.iceConnectionState);
     _vcUpdateSpeakerDot(remoteSeat, pc.connectionState === 'connected');
+    if(pc.connectionState === 'failed'){
+      console.warn('[VC] PEER FAILED for seat', remoteSeat, '— closing and cleaning up');
+    }
+    if(pc.connectionState === 'connected'){
+      console.log('[VC] ✅ CONNECTED to seat', remoteSeat, '🎉 Voice chat active!');
+    }
   };
   return pc;
 }
