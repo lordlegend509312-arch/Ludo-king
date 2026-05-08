@@ -7017,8 +7017,13 @@ function cpuStartGame(n) {
   function _askVaultPassword(){
     const entered = prompt('🔐 Enter password:');
     if(entered === null) return; // cancelled
-    // Fetch password from Firebase (so it's never in source code)
-    const pwRef = firebase.database().ref('config/vaultPassword');
+    // window.db use karo — real Firebase ya stub jo bhi ho
+    const currentDb = window.db || (typeof db !== 'undefined' ? db : null);
+    if(!currentDb || !currentDb.ref){
+      showToast('⚠️ Not connected — open Online mode first');
+      return;
+    }
+    const pwRef = currentDb.ref('config/vaultPassword');
     pwRef.once('value').then(snap => {
       const correct = snap.val();
       if(correct && entered === correct){
