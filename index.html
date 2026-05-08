@@ -7059,12 +7059,13 @@ function cpuStartGame(n) {
     const err = document.getElementById('vault-pw-err');
     const entered = input ? input.value.trim() : '';
     if(!entered){ err.textContent = '⚠️ Password khali hai'; return; }
-    if(typeof db==='undefined' || !db || !db.ref){
+    const _db = window.db || (typeof db !== 'undefined' ? db : null);
+    if(!_db || !_db.ref){
       err.textContent = '❌ Firebase connected nahi';
       return;
     }
     err.textContent = '⏳ Check ho raha hai...';
-    db.ref('config/vaultPassword').once('value', snap=>{
+    _db.ref('config/vaultPassword').once('value', snap=>{
       if(snap.exists() && entered === snap.val()){
         window._closeVaultPwModal();
         _openVault();
