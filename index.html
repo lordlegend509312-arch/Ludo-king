@@ -7099,15 +7099,13 @@ function cpuStartGame(n) {
 
     if(!entered){ err.textContent = '⚠️ Password khali hai'; return; }
 
-    const _windowDb  = window.db;
-    const _closureDb = (typeof db !== 'undefined') ? db : null;
-    const _db        = _windowDb || _closureDb;
+    // Always read window.db fresh — closure db is stale (captured at page-load when db was stub)
+    const _db = (window.db && !window.db._stub) ? window.db
+              : (window.firebase && window.firebase.apps && window.firebase.apps.length ? window.firebase.database() : null);
 
-    _dbLog('window.db exists: ' + !!_windowDb);
-    _dbLog('window.db._stub: ' + (_windowDb && !!_windowDb._stub), _windowDb && _windowDb._stub ? '#FF2D78' : '#00C853');
-    _dbLog('closure db exists: ' + !!_closureDb);
-    _dbLog('closure db._stub: ' + (_closureDb && !!_closureDb._stub), _closureDb && _closureDb._stub ? '#FF2D78' : '#00C853');
-    _dbLog('using: ' + (_windowDb ? 'window.db' : (_closureDb ? 'closure db' : 'NONE ❌')));
+    _dbLog('window.db exists: ' + !!window.db);
+    _dbLog('window.db._stub: ' + (window.db && !!window.db._stub), window.db && window.db._stub ? '#FF2D78' : '#00C853');
+    _dbLog('using: ' + (_db ? (_db === window.db ? 'window.db' : 'firebase.database()') : 'NONE ❌'));
     _dbLog('final _stub: ' + (_db && !!_db._stub), _db && _db._stub ? '#FF2D78' : '#00C853');
 
     if(!_db || !_db.ref){
