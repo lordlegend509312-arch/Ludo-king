@@ -104,8 +104,8 @@ document.addEventListener('DOMContentLoaded', function(){
   if(btn) btn.addEventListener('click', ()=>{ SFX.setMuted(!SFX.isMuted()); });
 });
 </script>
-<script src="https://lordlegend509312-arch.github.io/Sound/sounds.js"></script>
-<style>:root{--gold:#F5C518;--gold2:#b8920f;--pink:#FF2D78;--blue:#00AEEF;--green:#00C853;--yellow:#FFD600;--bg:#0d0d1a;--surface:#13132a;--surface2:#1a1a35;--border:#252550;--border2:#333366;--text:#f0f0ff;--muted:rgba(240,240,255,.4)}*{box-sizing:border-box;margin:0;padding:0;user-select:none !important;-webkit-user-select:none !important;-webkit-touch-callout:none !important}body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:52px 12px 0;font-family:'Nunito',sans-serif;touch-action:manipulation;overflow:hidden;-webkit-font-smoothing:antialiased}#lobby{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}#lobby-inner{display:flex;flex-direction:column;align-items:center;gap:16px;width:300px;position:relative;max-height:100dvh;overflow:hidden;}#lobby-crown{font-size:3.2rem;filter:drop-shadow(0 0 20px rgba(245,197,24,.7));animation:crownFloat 3s ease-in-out infinite;pointer-events:none;-webkit-tap-highlight-color:transparent;}@keyframes crownFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}#lobby-sub{color:var(--muted);font-size:11px;letter-spacing:3px;text-transform:uppercase;text-align:center;font-family:'Nunito',sans-serif;font-weight:700}#lobby-divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}#lobby-title{color:var(--gold);font-size:16px;letter-spacing:2px;font-family:'Rajdhani',sans-serif;font-weight:700;text-align:center}.s-card{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;cursor:pointer;transition:all 0.18s;width:100%}.s-card:hover,.s-card:active{border-color:var(--gold);background:var(--surface2);box-shadow:0 0 0 1px rgba(245,197,24,.15),0 8px 32px rgba(0,0,0,.5)}.s-card:active{transform:scale(0.98)}.s-card-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}.s-card-text{display:flex;flex-direction:column;gap:3px;flex:1}.s-card-title{color:var(--text);font-size:1rem;font-weight:800;font-family:'Nunito',sans-serif;letter-spacing:.3px}.s-card-sub{color:var(--muted);font-size:11px;font-family:'Nunito',sans-serif;font-weight:600;line-height:1.4}.s-card-arrow{color:rgba(255,255,255,.2);font-size:16px;flex-shrink:0}.s-card-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%);pointer-events:none}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(4px);z-index:600;align-items:center;justify-content:center}.modal-overlay.show{display:flex}.modal-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;width:300px;box-shadow:0 16px 60px rgba(0,0,0,.7)}.modal-title{color:white;font-size:1.2rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif}.modal-sub{color:var(--muted);font-size:12px;text-align:center;font-family:'Nunito',sans-serif}.modal-input{width:100%;padding:13px 16px;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;color:white;font-size:1rem;font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:4px;text-align:center;outline:none}.modal-input:focus{border-color:var(--gold)}.modal-btn{width:100%;padding:14px 0;font-size:.9rem;font-weight:800;border:none;border-radius:12px;cursor:pointer;transition:transform 0.12s,opacity 0.12s;letter-spacing:.5px;background:var(--gold);color:#000}.modal-btn:active{transform:scale(0.96)}.modal-btn.secondary{background:var(--surface);border:1.5px solid var(--border2);color:var(--text)}.modal-btn:disabled{opacity:.4;cursor:not-allowed}.room-code-display{background:var(--surface);border:2px solid var(--gold);border-radius:14px;padding:14px 24px;font-size:2rem;font-weight:900;color:var(--gold);letter-spacing:8px;font-family:'Rajdhani',sans-serif;text-align:center;cursor:pointer;transition:background 0.15s}.room-code-display:hover{background:var(--surface2)}.copy-hint{font-size:11px;color:var(--muted);font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:1px;text-transform:uppercase;text-align:center;margin-top:-6px}.copy-toast{font-size:12px;color:var(--green);font-family:'Nunito',sans-serif;font-weight:800;letter-spacing:1px;text-align:center;opacity:0;transition:opacity 0.2s}.copy-toast.show{opacity:1}.waiting-dots::after{content:'';animation:dots 1.2s steps(3,end) infinite}@keyframes dots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}.player-slot{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px}.player-slot-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}.player-slot-name{color:var(--text);font-size:.9rem;font-family:'Nunito',sans-serif;font-weight:700;flex:1}.player-slot-status{color:var(--muted);font-size:.75rem;font-family:'Nunito',sans-serif}.lc-inner{transition:transform 0.6s cubic-bezier(0.4,0,0.2,1)}#game-wrap{flex-direction:column;align-items:stretch;gap:6px;display:none;margin-top:12px}.prow{display:flex;justify-content:space-between;align-items:flex-end;overflow:visible}.prow.bottom{align-items:flex-start}.pcol{display:flex;flex-direction:column;gap:8px}.pcol.left{align-items:flex-start}.pcol.right{align-items:flex-end}.plabel{font-size:10px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;transition:color 0.3s;padding:0 4px;font-family:'Rajdhani',sans-serif}.pbox{position:relative;display:flex;align-items:center;width:145px;height:76px;border-radius:12px;overflow:visible}.pbox-bg{position:absolute;inset:0;background:#1a1a1a;border-radius:12px;border:1.5px solid transparent;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:border-color 0.25s,box-shadow 0.25s}.pbox-shine{position:absolute;inset:1px;border-radius:11px;background:linear-gradient(150deg,rgba(255,255,255,.04) 0%,transparent 55%);pointer-events:none}.pbox-tok{position:relative;z-index:3;width:46px;height:46px;display:flex;justify-content:center;align-items:center;flex-shrink:0}.pbox-dice{position:relative;z-index:100;width:60px;height:60px;border-radius:10px;background:linear-gradient(135deg,#4a4a5a,#2e2e3e);border:1.5px solid #1a1a28;box-shadow:inset 0 2px 4px rgba(255,255,255,.12),0 2px 8px rgba(0,0,0,.4);flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:visible}.pbox-rank{position:absolute;top:0;bottom:0;left:0;right:0;border-radius:12px;z-index:110;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;pointer-events:none;overflow:hidden}.pbox-rank-crown{font-size:2rem;line-height:1;display:block}.pbox-rank-pos{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.3rem;line-height:1;letter-spacing:.5px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)}.pbox-rank[data-rank="1"]{background:rgb(180,130,0)}.pbox-rank[data-rank="2"]{background:rgb(80,100,120)}.pbox-rank[data-rank="3"]{background:rgb(110,60,20)}.pbox-rank[data-rank="4"]{background:rgb(40,20,50)}.turn-timer-svg{position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);pointer-events:none;z-index:5;border-radius:12px;overflow:visible}.turn-timer-bar{fill:none;stroke:none;stroke-width:3;stroke-linecap:round;stroke-dasharray:var(--tda,400);stroke-dashoffset:var(--tdo,0);transition:stroke 0.4s,filter 0.4s;filter:none}@keyframes timerDrain{from{stroke-dashoffset:0}to{stroke-dashoffset:var(--tda,400)}}.turn-timer-bar.draining{animation:timerDrain var(--timer-dur,60s) linear forwards}.pbox-offline-overlay{position:absolute;inset:0;border-radius:12px;z-index:150;display:none;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:5px;gap:2px;background:#000;cursor:pointer;pointer-events:auto;transition:background 0.15s}.pbox-offline-overlay:hover{background:#0a0a0a}.pbox-offline-overlay:active{background:#111}.pbox-offline-overlay.show{display:flex}.pbox-offline-overlay.show:not(.bot-mode):not(.voted){animation:afkPulse 1.8s ease-in-out infinite}@keyframes afkPulse{0%,100%{box-shadow:inset 0 0 0 2px rgba(245,197,24,0)}50%{box-shadow:inset 0 0 0 2px rgba(245,197,24,0.5)}}.pbox-offline-overlay.voted{background:#050f05}.pbox-offline-overlay.bot-mode{background:#0a0014;cursor:default !important;gap:1px;padding-top:18px}.pbox-offline-overlay.bot-mode .pbox-makebot-text{color:#a855f7;text-shadow:0 0 10px rgba(168,85,247,.6);animation:botPulse 2s ease-in-out infinite}@keyframes botPulse{0%,100%{opacity:0.75}50%{opacity:1}}.pbox-offline-overlay.bot-mode .pbox-offline-label{color:rgba(168,85,247,.95)}.pbox-offline-label{font-size:.52rem;font-weight:800;letter-spacing:1px;color:rgba(255,255,255,.7);font-family:'Rajdhani',sans-serif;text-transform:uppercase;line-height:1}.pbox-makebot-text{font-size:.75rem;font-weight:900;letter-spacing:0px;color:#FFD600;text-shadow:0 0 12px rgba(255,214,0,.8);font-family:'Rajdhani',sans-serif;text-transform:uppercase;line-height:1.2;text-shadow:0 0 8px rgba(245,197,24,.5);text-align:center;padding:0 3px;width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.pbox-offline-overlay.voted .pbox-makebot-text{color:#00C853;text-shadow:0 0 8px rgba(0,200,83,.4)}.pbox-bot-dice{font-size:1.7rem;font-weight:900;font-family:'Rajdhani',sans-serif;color:rgba(168,85,247,.9);letter-spacing:1px;line-height:1;min-height:14px;text-align:center;margin-top:4px;}.pbox-vote-count{font-size:.48rem;font-weight:700;letter-spacing:.2px;color:rgba(255,255,255,.7);font-family:'Nunito',sans-serif;text-align:center;line-height:1.5;padding:0 4px 4px;position:absolute;bottom:0;left:0;right:0}.bot-label{display:inline-block;font-size:.55rem;font-weight:800;color:#F5C518;background:rgba(245,197,24,.15);border:1px solid rgba(245,197,24,.35);border-radius:5px;padding:1px 5px;font-family:'Rajdhani',sans-serif;letter-spacing:.5px;vertical-align:middle;margin-left:3px}.you-badge{position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;font-size:8px;font-weight:900;letter-spacing:1px;padding:2px 6px;border-radius:6px;font-family:'Rajdhani',sans-serif;z-index:10;white-space:nowrap}#board-wrap{position:relative;display:inline-block;transition:transform 0.6s cubic-bezier(0.34,1.26,0.64,1);transform-origin:center center;flex-shrink:0;overflow:visible;will-change:transform}#board{--cell:min(5.8vw,4.8dvh,40px);display:grid;grid-template-columns:repeat(15,var(--cell));grid-template-rows:repeat(15,var(--cell));gap:1px;background:#3a4a55;padding:5px;border-radius:10px;box-shadow:0 0 0 1px rgba(255,255,255,.05),0 8px 48px rgba(0,0,0,.8)}.lc{display:flex;align-items:center;justify-content:center;contain:layout style paint;position:relative;}.star-svg{width:82%;height:82%;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,200,.8))}.dice-3d{width:44px;height:44px;min-width:44px;min-height:44px;position:relative;perspective:210px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10}.dice-3d.off{cursor:default;pointer-events:none}.dice-3d.inactive{opacity:0;pointer-events:none}.dice-cube{width:38px;height:38px;transform-style:preserve-3d;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}.dice-face{position:absolute;width:38px;height:38px;border-radius:7px;border:1.5px solid #cdb880;backface-visibility:hidden;overflow:hidden}.face-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.65) 0%,transparent 50%);border-radius:7px;pointer-events:none;z-index:2}.ddot{width:7px;height:7px;background:radial-gradient(circle at 33% 28%,#4a3878,#0e0c22);border-radius:50%;position:absolute;box-shadow:0 1px 2px rgba(0,0,0,.55);z-index:3}#tokens-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;will-change:transform;contain:layout style}.tok{position:absolute;pointer-events:none;will-change:transform;transition:none;left:0;top:0;contain:style}.tok.movable{pointer-events:auto;cursor:pointer}.tok.movable::after{content:"";position:absolute;inset:-4px;border-radius:50%}.tok.movable svg{animation:movablePulse 0.9s ease-in-out infinite alternate}@keyframes movablePulse{from{opacity:0.85;transform:scale3d(0.97,0.97,1)}to{opacity:1;transform:scale3d(1.03,1.03,1)}}.tok-shadow{position:absolute;left:0;top:0;border-radius:50%;background:rgba(0,0,0,0.28);pointer-events:none;will-change:transform;transition:transform 0.09s cubic-bezier(0.22,1,0.36,1),opacity 0.15s}.tok-ring{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;border:2px solid rgba(0,0,0,0.7);animation:tokRingPulse 0.8s ease-in-out infinite}@keyframes tokRingPulse{0%,100%{opacity:0.5;transform:var(--tr-base) scale(1)}50%{opacity:1;transform:var(--tr-base) scale(1.08)}}.tok-shield{position:absolute;left:0;top:0;pointer-events:none;z-index:20;opacity:0;transition:opacity 0.3s}.tok-shield.normal{opacity:1}.tok-shield.super{opacity:1}@keyframes starGlow{0%{box-shadow:0 0 0 0 rgba(255,220,0,0.8)}40%{box-shadow:0 0 14px 8px rgba(255,220,0,0.55)}100%{box-shadow:0 0 0 0 rgba(255,220,0,0)}}.star-land-glow{animation:starGlow 0.7s ease-out forwards;border-radius:4px}@keyframes ringPop{from{opacity:0.9;transform:translate(var(--rx),var(--ry)) scale(0.2)}to{opacity:0;transform:translate(var(--rx),var(--ry)) scale(2.2)}}.tok-trail{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;animation:trailFade var(--td,0.4s) ease-out forwards}@keyframes trailFade{from{opacity:var(--ta,0.7);transform:var(--tx) scale(var(--ts,1))}to{opacity:0;transform:var(--tx) scale(0.2)}}.sparkle{position:absolute;left:0;top:0;pointer-events:none;border-radius:50%;animation:sparkleFly var(--sd,0.6s) ease-out forwards}@keyframes sparkleFly{0%{opacity:1;transform:var(--st) scale(1)}100%{opacity:0;transform:var(--st) translate(var(--sx),var(--sy)) scale(0)}}@media (hover:hover) and (pointer:fine){.dice-3d:not(.off):not(.inactive):hover .dice-cube{animation:diceWobble 0.4s ease-in-out}}@keyframes diceWobble{0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg))}20%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,1,0,16deg) scale(1.06)}45%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,-1,0,12deg) scale(1.03)}70%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(-1,1,0,8deg) scale(1.01)}100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1)}}@keyframes diceLand{0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(2.2) translateY(-55px)}55%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.18) scaleY(0.84) translateY(5px)}75%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(0.94) scaleY(1.08) translateY(-3px)}90%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.04) scaleY(0.97) translateY(0)}100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1) translateY(0)}}.dice-cube.landing{animation:diceLand 0.48s cubic-bezier(0.22,1,0.36,1) forwards;z-index:9999}#status-row{display:none;align-items:center;gap:8px}#top-bar{position:fixed;top:10px;left:12px;right:12px;z-index:9999;display:none;align-items:center;justify-content:space-between;gap:8px}#top-bar-left{display:flex;align-items:center;gap:8px}#top-bar-right{display:flex;align-items:center;gap:8px}#top-bar-center{flex:1;display:flex;align-items:center;justify-content:center}#btn-home{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-home:hover{background:rgba(255,60,60,.15);border-color:rgba(255,60,60,.4);color:white}#btn-home:active{transform:scale(0.92)}#sync-bar{display:flex;align-items:center;gap:6px;font-size:10px;font-family:'Nunito',sans-serif;font-weight:700;color:var(--muted);padding:0 4px;flex:1;justify-content:center}#sync-dot{width:7px;height:7px;border-radius:50%;background:#555;flex-shrink:0;transition:background 0.3s}#sync-dot.ok{background:#00C853;box-shadow:0 0 6px #00C853}#sync-dot.warn{background:#FFD600;box-shadow:0 0 6px #FFD600}#sync-dot.err{background:#FF2D78;box-shadow:0 0 6px #FF2D78}#btn-mute{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-mute:hover{background:rgba(255,255,255,.28);transform:scale(1.08)}#btn-mute:active{transform:scale(0.94)}#btn-mute.muted{background:rgba(255,60,60,.25);border:1px solid rgba(255,60,60,.4);color:#FF2D78}#btn-perf{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-perf:hover{background:rgba(255,255,255,.08)}#btn-perf:active{transform:scale(0.92)}#btn-perf.on{background:rgba(245,197,24,.18);border-color:rgba(245,197,24,.5);color:#F5C518}#pause-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(3px);z-index:150;align-items:center;justify-content:center}#pause-overlay.show{display:flex}#pause-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:32px 36px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 16px 60px rgba(0,0,0,.7);width:280px}#pause-title{color:white;font-size:1.3rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif}.pause-btn{width:100%;padding:13px 0;font-size:.9rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:transform 0.12s,opacity 0.12s;letter-spacing:.5px}.pause-btn:active{transform:scale(0.96)}.pause-btn{background:var(--gold);color:#000}.pause-btn.secondary{background:var(--surface);border:1.5px solid var(--border2);color:var(--text)}#win{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(5px);z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:16px;overflow:hidden}#win.show{display:flex}#win-confetti-canvas{position:absolute;inset:0;pointer-events:none;z-index:0}#win-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px}#win-trophy{font-size:4rem;animation:trophyEntrance 0.7s cubic-bezier(.2,1.4,.4,1) forwards;opacity:0}@keyframes trophyEntrance{0%{opacity:0;transform:scale(0) rotate(-25deg) translateY(30px)}60%{opacity:1;transform:scale(1.25) rotate(8deg) translateY(-8px)}80%{transform:scale(0.92) rotate(-3deg)}100%{opacity:1;transform:scale(1) rotate(0deg) translateY(0)}}@keyframes trophyFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}#win-trophy.float{animation:trophyFloat 2.2s ease-in-out infinite}#win h1{color:var(--gold);font-size:1.9rem;font-weight:900;text-align:center;font-family:'Rajdhani',sans-serif;letter-spacing:2px;opacity:0;animation:slideUp 0.5s 0.4s cubic-bezier(.2,1.4,.4,1) forwards}@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}#win-crown-ring{font-size:1.1rem;letter-spacing:6px;opacity:0;animation:slideUp 0.5s 0.55s ease-out forwards}#win-places{color:var(--text);font-size:1rem;text-align:center;font-family:'Rajdhani',sans-serif;line-height:2.1;white-space:pre;opacity:0;animation:slideUp 0.5s 0.7s ease-out forwards;background:rgba(255,255,255,.04);border-radius:14px;padding:12px 28px;border:1px solid rgba(255,255,255,.1)}#win button{padding:14px 44px;font-size:.95rem;border:none;border-radius:14px;cursor:pointer;background:var(--gold);color:#000;font-weight:800;box-shadow:0 6px 28px rgba(245,197,24,.4);letter-spacing:.5px;opacity:0;animation:slideUp 0.5s 0.9s ease-out forwards;transition:transform 0.12s,box-shadow 0.12s}#win button:hover{transform:scale(1.05);box-shadow:0 8px 36px rgba(245,197,24,.6)}#win button:active{transform:scale(0.96)}
+<script src="sounds.js"></script>
+<style>:root{--gold:#F5C518;--gold2:#b8920f;--pink:#FF2D78;--blue:#00AEEF;--green:#00C853;--yellow:#FFD600;--bg:#0d0d1a;--surface:#13132a;--surface2:#1a1a35;--border:#252550;--border2:#333366;--text:#f0f0ff;--muted:rgba(240,240,255,.4)}*{box-sizing:border-box;margin:0;padding:0;user-select:none !important;-webkit-user-select:none !important;-webkit-touch-callout:none !important}body{height:100dvh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:52px 12px 0;font-family:'Nunito',sans-serif;touch-action:manipulation;overflow:hidden;-webkit-font-smoothing:antialiased}#lobby{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center}#lobby-inner{display:flex;flex-direction:column;align-items:center;gap:20px;width:300px;position:relative;}#lobby-crown{font-size:3.2rem;filter:drop-shadow(0 0 20px rgba(245,197,24,.7));animation:crownFloat 3s ease-in-out infinite;cursor:pointer;-webkit-tap-highlight-color:transparent;}@keyframes crownFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}#lobby-sub{color:var(--muted);font-size:11px;letter-spacing:3px;text-transform:uppercase;text-align:center;font-family:'Nunito',sans-serif;font-weight:700}#lobby-divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}#lobby-title{color:var(--gold);font-size:16px;letter-spacing:2px;font-family:'Rajdhani',sans-serif;font-weight:700;text-align:center}.s-card{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;cursor:pointer;transition:all 0.18s;width:100%}.s-card:hover,.s-card:active{border-color:var(--gold);background:var(--surface2);box-shadow:0 0 0 1px rgba(245,197,24,.15),0 8px 32px rgba(0,0,0,.5)}.s-card:active{transform:scale(0.98)}.s-card-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}.s-card-text{display:flex;flex-direction:column;gap:3px;flex:1}.s-card-title{color:var(--text);font-size:1rem;font-weight:800;font-family:'Nunito',sans-serif;letter-spacing:.3px}.s-card-sub{color:var(--muted);font-size:11px;font-family:'Nunito',sans-serif;font-weight:600;line-height:1.4}.s-card-arrow{color:rgba(255,255,255,.2);font-size:16px;flex-shrink:0}.s-card-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%);pointer-events:none}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(4px);z-index:600;align-items:center;justify-content:center}.modal-overlay.show{display:flex}.modal-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;width:300px;box-shadow:0 16px 60px rgba(0,0,0,.7)}.modal-title{color:white;font-size:1.2rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif}.modal-sub{color:var(--muted);font-size:12px;text-align:center;font-family:'Nunito',sans-serif}.modal-input{width:100%;padding:13px 16px;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;color:white;font-size:1rem;font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:4px;text-align:center;outline:none}.modal-input:focus{border-color:var(--gold)}.modal-btn{width:100%;padding:14px 0;font-size:.9rem;font-weight:800;border:none;border-radius:12px;cursor:pointer;transition:transform 0.12s,opacity 0.12s;letter-spacing:.5px;background:var(--gold);color:#000}.modal-btn:active{transform:scale(0.96)}.modal-btn.secondary{background:var(--surface);border:1.5px solid var(--border2);color:var(--text)}.modal-btn:disabled{opacity:.4;cursor:not-allowed}.room-code-display{background:var(--surface);border:2px solid var(--gold);border-radius:14px;padding:14px 24px;font-size:2rem;font-weight:900;color:var(--gold);letter-spacing:8px;font-family:'Rajdhani',sans-serif;text-align:center;cursor:pointer;transition:background 0.15s}.room-code-display:hover{background:var(--surface2)}.copy-hint{font-size:11px;color:var(--muted);font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:1px;text-transform:uppercase;text-align:center;margin-top:-6px}.copy-toast{font-size:12px;color:var(--green);font-family:'Nunito',sans-serif;font-weight:800;letter-spacing:1px;text-align:center;opacity:0;transition:opacity 0.2s}.copy-toast.show{opacity:1}.waiting-dots::after{content:'';animation:dots 1.2s steps(3,end) infinite}@keyframes dots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}.player-slot{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px}.player-slot-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}.player-slot-name{color:var(--text);font-size:.9rem;font-family:'Nunito',sans-serif;font-weight:700;flex:1}.player-slot-status{color:var(--muted);font-size:.75rem;font-family:'Nunito',sans-serif}.lc-inner{transition:transform 0.6s cubic-bezier(0.4,0,0.2,1)}#game-wrap{flex-direction:column;align-items:stretch;gap:6px;display:none;margin-top:12px}.prow{display:flex;justify-content:space-between;align-items:flex-end;overflow:visible}.prow.bottom{align-items:flex-start}.pcol{display:flex;flex-direction:column;gap:8px}.pcol.left{align-items:flex-start}.pcol.right{align-items:flex-end}.plabel{font-size:10px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;transition:color 0.3s;padding:0 4px;font-family:'Rajdhani',sans-serif}.pbox{position:relative;display:flex;align-items:center;width:145px;height:76px;border-radius:12px;overflow:visible}.pbox-bg{position:absolute;inset:0;background:#1a1a1a;border-radius:12px;border:1.5px solid transparent;box-shadow:0 4px 20px rgba(0,0,0,.6);transition:border-color 0.25s,box-shadow 0.25s}.pbox-shine{position:absolute;inset:1px;border-radius:11px;background:linear-gradient(150deg,rgba(255,255,255,.04) 0%,transparent 55%);pointer-events:none}.pbox-tok{position:relative;z-index:3;width:46px;height:46px;display:flex;justify-content:center;align-items:center;flex-shrink:0}.pbox-dice{position:relative;z-index:100;width:60px;height:60px;border-radius:10px;background:linear-gradient(135deg,#4a4a5a,#2e2e3e);border:1.5px solid #1a1a28;box-shadow:inset 0 2px 4px rgba(255,255,255,.12),0 2px 8px rgba(0,0,0,.4);flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:visible}.pbox-rank{position:absolute;top:0;bottom:0;left:0;right:0;border-radius:12px;z-index:110;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;pointer-events:none;overflow:hidden}.pbox-rank-crown{font-size:2rem;line-height:1;display:block}.pbox-rank-pos{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.3rem;line-height:1;letter-spacing:.5px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)}.pbox-rank[data-rank="1"]{background:rgb(180,130,0)}.pbox-rank[data-rank="2"]{background:rgb(80,100,120)}.pbox-rank[data-rank="3"]{background:rgb(110,60,20)}.pbox-rank[data-rank="4"]{background:rgb(40,20,50)}.turn-timer-svg{position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);pointer-events:none;z-index:5;border-radius:12px;overflow:visible}.turn-timer-bar{fill:none;stroke:none;stroke-width:3;stroke-linecap:round;stroke-dasharray:var(--tda,400);stroke-dashoffset:var(--tdo,0);transition:stroke 0.4s,filter 0.4s;filter:none}@keyframes timerDrain{from{stroke-dashoffset:0}to{stroke-dashoffset:var(--tda,400)}}.turn-timer-bar.draining{animation:timerDrain var(--timer-dur,60s) linear forwards}.pbox-offline-overlay{position:absolute;inset:0;border-radius:12px;z-index:150;display:none;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:5px;gap:2px;background:#000;cursor:pointer;pointer-events:auto;transition:background 0.15s}.pbox-offline-overlay:hover{background:#0a0a0a}.pbox-offline-overlay:active{background:#111}.pbox-offline-overlay.show{display:flex}.pbox-offline-overlay.show:not(.bot-mode):not(.voted){animation:afkPulse 1.8s ease-in-out infinite}@keyframes afkPulse{0%,100%{box-shadow:inset 0 0 0 2px rgba(245,197,24,0)}50%{box-shadow:inset 0 0 0 2px rgba(245,197,24,0.5)}}.pbox-offline-overlay.voted{background:#050f05}.pbox-offline-overlay.bot-mode{background:#0a0014;cursor:default !important;gap:1px;padding-top:18px}.pbox-offline-overlay.bot-mode .pbox-makebot-text{color:#a855f7;text-shadow:0 0 10px rgba(168,85,247,.6);animation:botPulse 2s ease-in-out infinite}@keyframes botPulse{0%,100%{opacity:0.75}50%{opacity:1}}.pbox-offline-overlay.bot-mode .pbox-offline-label{color:rgba(168,85,247,.95)}.pbox-offline-label{font-size:.52rem;font-weight:800;letter-spacing:1px;color:rgba(255,255,255,.7);font-family:'Rajdhani',sans-serif;text-transform:uppercase;line-height:1}.pbox-makebot-text{font-size:.75rem;font-weight:900;letter-spacing:0px;color:#FFD600;text-shadow:0 0 12px rgba(255,214,0,.8);font-family:'Rajdhani',sans-serif;text-transform:uppercase;line-height:1.2;text-shadow:0 0 8px rgba(245,197,24,.5);text-align:center;padding:0 3px;width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.pbox-offline-overlay.voted .pbox-makebot-text{color:#00C853;text-shadow:0 0 8px rgba(0,200,83,.4)}.pbox-bot-dice{font-size:1.7rem;font-weight:900;font-family:'Rajdhani',sans-serif;color:rgba(168,85,247,.9);letter-spacing:1px;line-height:1;min-height:14px;text-align:center;margin-top:4px;}.pbox-vote-count{font-size:.48rem;font-weight:700;letter-spacing:.2px;color:rgba(255,255,255,.7);font-family:'Nunito',sans-serif;text-align:center;line-height:1.5;padding:0 4px 4px;position:absolute;bottom:0;left:0;right:0}.bot-label{display:inline-block;font-size:.55rem;font-weight:800;color:#F5C518;background:rgba(245,197,24,.15);border:1px solid rgba(245,197,24,.35);border-radius:5px;padding:1px 5px;font-family:'Rajdhani',sans-serif;letter-spacing:.5px;vertical-align:middle;margin-left:3px}.you-badge{position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;font-size:8px;font-weight:900;letter-spacing:1px;padding:2px 6px;border-radius:6px;font-family:'Rajdhani',sans-serif;z-index:10;white-space:nowrap}#board-wrap{position:relative;display:inline-block;transition:transform 0.6s cubic-bezier(0.34,1.26,0.64,1);transform-origin:center center;flex-shrink:0;overflow:visible;will-change:transform}#board{--cell:min(5.8vw,4.8dvh,40px);display:grid;grid-template-columns:repeat(15,var(--cell));grid-template-rows:repeat(15,var(--cell));gap:1px;background:#3a4a55;padding:5px;border-radius:10px;box-shadow:0 0 0 1px rgba(255,255,255,.05),0 8px 48px rgba(0,0,0,.8)}.lc{display:flex;align-items:center;justify-content:center;contain:layout style paint;position:relative;}.star-svg{width:82%;height:82%;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(255,255,200,.8))}.dice-3d{width:44px;height:44px;min-width:44px;min-height:44px;position:relative;perspective:210px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10}.dice-3d.off{cursor:default;pointer-events:none}.dice-3d.inactive{opacity:0;pointer-events:none}.dice-cube{width:38px;height:38px;transform-style:preserve-3d;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}.dice-face{position:absolute;width:38px;height:38px;border-radius:7px;border:1.5px solid #cdb880;backface-visibility:hidden;overflow:hidden}.face-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.65) 0%,transparent 50%);border-radius:7px;pointer-events:none;z-index:2}.ddot{width:7px;height:7px;background:radial-gradient(circle at 33% 28%,#4a3878,#0e0c22);border-radius:50%;position:absolute;box-shadow:0 1px 2px rgba(0,0,0,.55);z-index:3}#tokens-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;will-change:transform;contain:layout style}.tok{position:absolute;pointer-events:none;will-change:transform;transition:none;left:0;top:0;contain:style}.tok.movable{pointer-events:auto;cursor:pointer}.tok.movable::after{content:"";position:absolute;inset:-4px;border-radius:50%}.tok.movable svg{animation:movablePulse 0.9s ease-in-out infinite alternate}@keyframes movablePulse{from{opacity:0.85;transform:scale3d(0.97,0.97,1)}to{opacity:1;transform:scale3d(1.03,1.03,1)}}.tok-shadow{position:absolute;left:0;top:0;border-radius:50%;background:rgba(0,0,0,0.28);pointer-events:none;will-change:transform;transition:transform 0.09s cubic-bezier(0.22,1,0.36,1),opacity 0.15s}.tok-ring{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;border:2px solid rgba(0,0,0,0.7);animation:tokRingPulse 0.8s ease-in-out infinite}@keyframes tokRingPulse{0%,100%{opacity:0.5;transform:var(--tr-base) scale(1)}50%{opacity:1;transform:var(--tr-base) scale(1.08)}}.tok-shield{position:absolute;left:0;top:0;pointer-events:none;z-index:20;opacity:0;transition:opacity 0.3s}.tok-shield.normal{opacity:1}.tok-shield.super{opacity:1}@keyframes starGlow{0%{box-shadow:0 0 0 0 rgba(255,220,0,0.8)}40%{box-shadow:0 0 14px 8px rgba(255,220,0,0.55)}100%{box-shadow:0 0 0 0 rgba(255,220,0,0)}}.star-land-glow{animation:starGlow 0.7s ease-out forwards;border-radius:4px}@keyframes ringPop{from{opacity:0.9;transform:translate(var(--rx),var(--ry)) scale(0.2)}to{opacity:0;transform:translate(var(--rx),var(--ry)) scale(2.2)}}.tok-trail{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;animation:trailFade var(--td,0.4s) ease-out forwards}@keyframes trailFade{from{opacity:var(--ta,0.7);transform:var(--tx) scale(var(--ts,1))}to{opacity:0;transform:var(--tx) scale(0.2)}}.sparkle{position:absolute;left:0;top:0;pointer-events:none;border-radius:50%;animation:sparkleFly var(--sd,0.6s) ease-out forwards}@keyframes sparkleFly{0%{opacity:1;transform:var(--st) scale(1)}100%{opacity:0;transform:var(--st) translate(var(--sx),var(--sy)) scale(0)}}@media (hover:hover) and (pointer:fine){.dice-3d:not(.off):not(.inactive):hover .dice-cube{animation:diceWobble 0.4s ease-in-out}}@keyframes diceWobble{0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg))}20%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,1,0,16deg) scale(1.06)}45%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(1,-1,0,12deg) scale(1.03)}70%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) rotate3d(-1,1,0,8deg) scale(1.01)}100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1)}}@keyframes diceLand{0%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(2.2) translateY(-55px)}55%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.18) scaleY(0.84) translateY(5px)}75%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(0.94) scaleY(1.08) translateY(-3px)}90%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scaleX(1.04) scaleY(0.97) translateY(0)}100%{transform:rotateX(var(--drx,0deg)) rotateY(var(--dry,0deg)) scale(1) translateY(0)}}.dice-cube.landing{animation:diceLand 0.48s cubic-bezier(0.22,1,0.36,1) forwards;z-index:9999}#status-row{display:none;align-items:center;gap:8px}#top-bar{position:fixed;top:10px;left:12px;right:12px;z-index:9999;display:none;align-items:center;justify-content:space-between;gap:8px}#top-bar-left{display:flex;align-items:center;gap:8px}#top-bar-right{display:flex;align-items:center;gap:8px}#top-bar-center{flex:1;display:flex;align-items:center;justify-content:center}#btn-home{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-home:hover{background:rgba(255,60,60,.15);border-color:rgba(255,60,60,.4);color:white}#btn-home:active{transform:scale(0.92)}#sync-bar{display:flex;align-items:center;gap:6px;font-size:10px;font-family:'Nunito',sans-serif;font-weight:700;color:var(--muted);padding:0 4px;flex:1;justify-content:center}#sync-dot{width:7px;height:7px;border-radius:50%;background:#555;flex-shrink:0;transition:background 0.3s}#sync-dot.ok{background:#00C853;box-shadow:0 0 6px #00C853}#sync-dot.warn{background:#FFD600;box-shadow:0 0 6px #FFD600}#sync-dot.err{background:#FF2D78;box-shadow:0 0 6px #FF2D78}#btn-mute{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-mute:hover{background:rgba(255,255,255,.28);transform:scale(1.08)}#btn-mute:active{transform:scale(0.94)}#btn-mute.muted{background:rgba(255,60,60,.25);border:1px solid rgba(255,60,60,.4);color:#FF2D78}#btn-perf{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-perf:hover{background:rgba(255,255,255,.08)}#btn-perf:active{transform:scale(0.92)}#btn-perf.on{background:rgba(245,197,24,.18);border-color:rgba(245,197,24,.5);color:#F5C518}#pause-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(3px);z-index:150;align-items:center;justify-content:center}#pause-overlay.show{display:flex}#pause-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:20px;padding:32px 36px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 16px 60px rgba(0,0,0,.7);width:280px}#pause-title{color:white;font-size:1.3rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif}.pause-btn{width:100%;padding:13px 0;font-size:.9rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:transform 0.12s,opacity 0.12s;letter-spacing:.5px}.pause-btn:active{transform:scale(0.96)}.pause-btn{background:var(--gold);color:#000}.pause-btn.secondary{background:var(--surface);border:1.5px solid var(--border2);color:var(--text)}#win{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(5px);z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:16px;overflow:hidden}#win.show{display:flex}#win-confetti-canvas{position:absolute;inset:0;pointer-events:none;z-index:0}#win-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px}#win-trophy{font-size:4rem;animation:trophyEntrance 0.7s cubic-bezier(.2,1.4,.4,1) forwards;opacity:0}@keyframes trophyEntrance{0%{opacity:0;transform:scale(0) rotate(-25deg) translateY(30px)}60%{opacity:1;transform:scale(1.25) rotate(8deg) translateY(-8px)}80%{transform:scale(0.92) rotate(-3deg)}100%{opacity:1;transform:scale(1) rotate(0deg) translateY(0)}}@keyframes trophyFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}#win-trophy.float{animation:trophyFloat 2.2s ease-in-out infinite}#win h1{color:var(--gold);font-size:1.9rem;font-weight:900;text-align:center;font-family:'Rajdhani',sans-serif;letter-spacing:2px;opacity:0;animation:slideUp 0.5s 0.4s cubic-bezier(.2,1.4,.4,1) forwards}@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}#win-crown-ring{font-size:1.1rem;letter-spacing:6px;opacity:0;animation:slideUp 0.5s 0.55s ease-out forwards}#win-places{color:var(--text);font-size:1rem;text-align:center;font-family:'Rajdhani',sans-serif;line-height:2.1;white-space:pre;opacity:0;animation:slideUp 0.5s 0.7s ease-out forwards;background:rgba(255,255,255,.04);border-radius:14px;padding:12px 28px;border:1px solid rgba(255,255,255,.1)}#win button{padding:14px 44px;font-size:.95rem;border:none;border-radius:14px;cursor:pointer;background:var(--gold);color:#000;font-weight:800;box-shadow:0 6px 28px rgba(245,197,24,.4);letter-spacing:.5px;opacity:0;animation:slideUp 0.5s 0.9s ease-out forwards;transition:transform 0.12s,box-shadow 0.12s}#win button:hover{transform:scale(1.05);box-shadow:0 8px 36px rgba(245,197,24,.6)}#win button:active{transform:scale(0.96)}
 #win-podium{width:320px;max-width:92vw;background:#04040f;border-radius:16px;border:1px solid rgba(0,174,239,.2);padding:16px 14px;box-shadow:0 0 40px rgba(0,174,239,.07),inset 0 0 60px rgba(0,0,0,.4);position:relative;overflow:hidden;opacity:0;animation:slideUp 0.5s 0.7s ease-out forwards;}
 #win-podium::before{content:'';position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:200px;height:120px;background:rgba(0,174,239,.07);filter:blur(40px);border-radius:50%;pointer-events:none;}
 #win-podium::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 28px,rgba(0,174,239,.018) 28px,rgba(0,174,239,.018) 29px);pointer-events:none;}
@@ -129,7 +129,48 @@ document.addEventListener('DOMContentLoaded', function(){
 .wp-neon-tag{font-size:8px;font-family:'Orbitron',sans-serif;letter-spacing:1px;padding:2px 6px;border-radius:4px;background:rgba(245,197,24,.15);color:#F5C518;border:1px solid rgba(245,197,24,.35);flex-shrink:0;}
 .wp-neon-loser-tag{font-size:8px;font-family:'Orbitron',sans-serif;letter-spacing:1px;padding:2px 6px;border-radius:4px;background:rgba(255,45,120,.15);color:#FF2D78;border:1px solid rgba(255,45,120,.35);flex-shrink:0;}
 .wp-neon-scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,174,239,.3),transparent);animation:neonScan 3s linear infinite;pointer-events:none;}
-@keyframes neonScan{0%{top:-2px;opacity:0}10%{opacity:1}90%{opacity:.4}100%{top:100%;opacity:0}}#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(30,30,60,.95);border:1px solid var(--border2);color:white;font-size:.85rem;font-family:'Nunito',sans-serif;font-weight:700;padding:10px 20px;border-radius:20px;opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;z-index:500;white-space:nowrap}#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.pcol{position:relative}.player-chat-bubble{position:absolute;left:50%;transform:translateX(-50%);background:rgba(20,20,45,0.95);border:1px solid var(--border2);border-radius:8px;padding:4px 10px;font-size:.72rem;font-family:'Nunito',sans-serif;font-weight:600;color:var(--text);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;z-index:350;opacity:0;transition:opacity 0.18s}.player-chat-bubble.show{opacity:1}.player-chat-bubble::after{content:'';position:absolute;left:50%;transform:translateX(-50%);border:6px solid transparent}.pcol.top-bubble .player-chat-bubble{bottom:calc(100% + 6px)}.pcol.top-bubble .player-chat-bubble::after{top:100%;border-top-color:var(--border2)}.pcol.bot-bubble .player-chat-bubble{top:calc(100% + 6px)}.pcol.bot-bubble .player-chat-bubble::after{bottom:100%;border-bottom-color:var(--border2)}#chat-panel{position:fixed;bottom:0;right:0;width:280px;height:340px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:16px 16px 0 0;display:flex;flex-direction:column;z-index:300;transform:translateY(100%);transition:transform 0.28s cubic-bezier(0.34,1.26,0.64,1);box-shadow:0 -8px 40px rgba(0,0,0,.6);overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}#chat-panel.open{transform:translateY(0)}#chat-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border2);flex-shrink:0;cursor:pointer}#chat-header-title{color:var(--gold);font-size:.85rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:1px}#chat-close{color:var(--muted);font-size:16px;line-height:1;background:none;border:none;cursor:pointer;padding:8px 10px;margin:-8px -10px -8px 0;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;position:relative;z-index:9999}#chat-close:hover{color:white;background:rgba(255,255,255,.08)}#chat-messages{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}#chat-messages::-webkit-scrollbar{width:4px}#chat-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}.chat-msg{display:flex;flex-direction:column;gap:2px;animation:msgIn 0.2s ease-out}@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.chat-msg-meta{display:flex;align-items:center;gap:5px}.chat-msg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}.chat-msg-name{font-size:.7rem;font-weight:700;font-family:'Nunito',sans-serif}.chat-msg-time{font-size:.65rem;color:var(--muted);margin-left:auto}.chat-msg-text{font-size:.8rem;color:var(--text);font-family:'Nunito',sans-serif;background:var(--surface);border-radius:0 8px 8px 8px;padding:6px 10px;line-height:1.4;word-break:break-word;max-width:90%;border:1px solid var(--border)}.chat-msg.mine .chat-msg-text{border-radius:8px 0 8px 8px;background:rgba(245,197,24,.1);border-color:rgba(245,197,24,.2);align-self:flex-end}.chat-msg.mine .chat-msg-meta{flex-direction:row-reverse}.chat-msg.mine .chat-msg-time{margin-left:0;margin-right:auto}.chat-sys-msg{text-align:center;font-size:.7rem;color:var(--muted);font-family:'Nunito',sans-serif;padding:2px 0}#chat-input-row{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--border2);flex-shrink:0;background:var(--surface)}#chat-input{flex:1;background:var(--bg);border:1.5px solid var(--border2);border-radius:20px;padding:7px 12px;color:white;font-size:.82rem;font-family:'Nunito',sans-serif;outline:none;min-width:0}#chat-input:focus{border-color:var(--gold)}#chat-send{width:32px;height:32px;border-radius:50%;border:none;background:var(--gold);color:#000;font-size:14px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:transform 0.12s;align-self:center}#chat-send:active{transform:scale(0.88)}#chat-badge{position:absolute;top:-4px;right:-4px;background:var(--pink);color:white;font-size:9px;font-weight:900;width:16px;height:16px;border-radius:50%;display:none;align-items:center;justify-content:center;font-family:'Nunito',sans-serif}#btn-chat-toggle{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-chat-toggle:hover{background:rgba(245,197,24,.15);border-color:rgba(245,197,24,.4);color:white}#btn-chat-toggle:active{transform:scale(0.92)}.chat-msg-swipe{position:relative;touch-action:pan-y;will-change:transform;transition:transform 0.22s cubic-bezier(0.22,1,0.36,1)}.chat-msg-swipe.swiping{transition:none}.chat-reply-icon{position:absolute;top:50%;right:4px;transform:translateY(-50%) scale(0.5);width:28px;height:28px;background:var(--border2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;opacity:0;transition:opacity 0.15s,transform 0.15s;pointer-events:none;color:white}.chat-msg.mine .chat-reply-icon{right:auto;left:4px}.chat-reply-icon.visible{opacity:1;transform:translateY(-50%) scale(1)}.chat-reply-icon.popped{transform:translateY(-50%) scale(1.35)}#chat-reply-bar{display:none;align-items:center;gap:8px;padding:6px 10px 4px;background:var(--surface);border-top:1px solid var(--border2);flex-shrink:0;animation:replyBarIn 0.18s cubic-bezier(0.34,1.26,0.64,1)}@keyframes replyBarIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}#chat-reply-bar.show{display:flex}#chat-reply-bar-line{width:3px;height:100%;min-height:28px;border-radius:3px;background:var(--gold);flex-shrink:0}#chat-reply-bar-content{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}#chat-reply-bar-name{font-size:.68rem;font-weight:800;color:var(--gold);font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#chat-reply-bar-text{font-size:.72rem;color:var(--muted);font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#chat-reply-cancel{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0}#chat-reply-cancel:hover{color:white}.chat-reply-quote{background:rgba(255,255,255,.05);border-left:3px solid var(--gold);border-radius:0 6px 6px 0;padding:4px 8px;margin-bottom:4px;max-width:100%}.chat-reply-quote-name{font-size:.65rem;font-weight:800;color:var(--gold);font-family:'Nunito',sans-serif;margin-bottom:1px}.chat-reply-quote-text{font-size:.7rem;color:var(--muted);font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}@keyframes tokSpawnBounce{0%{transform:var(--sp-base) scale(0.6) translateY(4px);opacity:0.5}100%{transform:var(--sp-base) scale(1) translateY(0);opacity:1}}.tok-spawn{animation:tokSpawnBounce 0.18s ease-out forwards}@keyframes tokLandSquash{0%{transform:var(--sq-trl) var(--sq-rot) scale(1)}100%{transform:var(--sq-trl) var(--sq-rot) scale(1)}}.tok-land{animation:none}</style>
+@keyframes neonScan{0%{top:-2px;opacity:0}10%{opacity:1}90%{opacity:.4}100%{top:100%;opacity:0}}#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(30,30,60,.95);border:1px solid var(--border2);color:white;font-size:.85rem;font-family:'Nunito',sans-serif;font-weight:700;padding:10px 20px;border-radius:20px;opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;z-index:500;white-space:nowrap}#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.pcol{position:relative}.player-chat-bubble{position:absolute;left:50%;transform:translateX(-50%);background:rgba(20,20,45,0.95);border:1px solid var(--border2);border-radius:8px;padding:4px 10px;font-size:.72rem;font-family:'Nunito',sans-serif;font-weight:600;color:var(--text);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;z-index:350;opacity:0;transition:opacity 0.18s}.player-chat-bubble.show{opacity:1}.player-chat-bubble::after{content:'';position:absolute;left:50%;transform:translateX(-50%);border:6px solid transparent}.pcol.top-bubble .player-chat-bubble{bottom:calc(100% + 6px)}.pcol.top-bubble .player-chat-bubble::after{top:100%;border-top-color:var(--border2)}.pcol.bot-bubble .player-chat-bubble{top:calc(100% + 6px)}.pcol.bot-bubble .player-chat-bubble::after{bottom:100%;border-bottom-color:var(--border2)}#chat-panel{position:fixed;bottom:0;right:0;width:280px;height:340px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:16px 16px 0 0;display:flex;flex-direction:column;z-index:300;transform:translateY(100%);transition:transform 0.28s cubic-bezier(0.34,1.26,0.64,1);box-shadow:0 -8px 40px rgba(0,0,0,.6);overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}#chat-panel.open{transform:translateY(0)}#chat-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border2);flex-shrink:0;cursor:pointer}#chat-header-title{color:var(--gold);font-size:.85rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:1px}#chat-close{color:var(--muted);font-size:16px;line-height:1;background:none;border:none;cursor:pointer;padding:8px 10px;margin:-8px -10px -8px 0;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;position:relative;z-index:9999}#chat-close:hover{color:white;background:rgba(255,255,255,.08)}#chat-messages{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}#chat-messages::-webkit-scrollbar{width:4px}#chat-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}.chat-msg{display:flex;flex-direction:column;gap:2px;animation:msgIn 0.2s ease-out}@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.chat-msg-meta{display:flex;align-items:center;gap:5px}.chat-msg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}.chat-msg-name{font-size:.7rem;font-weight:700;font-family:'Nunito',sans-serif}.chat-msg-time{font-size:.65rem;color:var(--muted);margin-left:auto}.chat-msg-text{font-size:.8rem;color:var(--text);font-family:'Nunito',sans-serif;background:var(--surface);border-radius:0 8px 8px 8px;padding:6px 10px;line-height:1.4;word-break:break-word;max-width:90%;border:1px solid var(--border)}.chat-msg.mine .chat-msg-text{border-radius:8px 0 8px 8px;background:rgba(245,197,24,.1);border-color:rgba(245,197,24,.2);align-self:flex-end}.chat-msg.mine .chat-msg-meta{flex-direction:row-reverse}.chat-msg.mine .chat-msg-time{margin-left:0;margin-right:auto}.chat-sys-msg{text-align:center;font-size:.7rem;color:var(--muted);font-family:'Nunito',sans-serif;padding:2px 0}#chat-input-row{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--border2);flex-shrink:0;background:var(--surface)}#chat-input{flex:1;background:var(--bg);border:1.5px solid var(--border2);border-radius:20px;padding:7px 12px;color:white;font-size:.82rem;font-family:'Nunito',sans-serif;outline:none;min-width:0}#chat-input:focus{border-color:var(--gold)}#chat-send{width:32px;height:32px;border-radius:50%;border:none;background:var(--gold);color:#000;font-size:14px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:transform 0.12s;align-self:center}#chat-send:active{transform:scale(0.88)}#chat-badge{position:absolute;top:-4px;right:-4px;background:var(--pink);color:white;font-size:9px;font-weight:900;width:16px;height:16px;border-radius:50%;display:none;align-items:center;justify-content:center;font-family:'Nunito',sans-serif}#btn-chat-toggle{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;flex-shrink:0;align-self:center}#btn-chat-toggle:hover{background:rgba(245,197,24,.15);border-color:rgba(245,197,24,.4);color:white}#btn-chat-toggle:active{transform:scale(0.92)}.chat-msg-swipe{position:relative;touch-action:pan-y;will-change:transform;transition:transform 0.22s cubic-bezier(0.22,1,0.36,1)}.chat-msg-swipe.swiping{transition:none}.chat-reply-icon{position:absolute;top:50%;right:4px;transform:translateY(-50%) scale(0.5);width:28px;height:28px;background:var(--border2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;opacity:0;transition:opacity 0.15s,transform 0.15s;pointer-events:none;color:white}.chat-msg.mine .chat-reply-icon{right:auto;left:4px}.chat-reply-icon.visible{opacity:1;transform:translateY(-50%) scale(1)}.chat-reply-icon.popped{transform:translateY(-50%) scale(1.35)}#chat-reply-bar{display:none;align-items:center;gap:8px;padding:6px 10px 4px;background:var(--surface);border-top:1px solid var(--border2);flex-shrink:0;animation:replyBarIn 0.18s cubic-bezier(0.34,1.26,0.64,1)}@keyframes replyBarIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}#chat-reply-bar.show{display:flex}#chat-reply-bar-line{width:3px;height:100%;min-height:28px;border-radius:3px;background:var(--gold);flex-shrink:0}#chat-reply-bar-content{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}#chat-reply-bar-name{font-size:.68rem;font-weight:800;color:var(--gold);font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#chat-reply-bar-text{font-size:.72rem;color:var(--muted);font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#chat-reply-cancel{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0}#chat-reply-cancel:hover{color:white}.chat-reply-quote{background:rgba(255,255,255,.05);border-left:3px solid var(--gold);border-radius:0 6px 6px 0;padding:4px 8px;margin-bottom:4px;max-width:100%}.chat-reply-quote-name{font-size:.65rem;font-weight:800;color:var(--gold);font-family:'Nunito',sans-serif;margin-bottom:1px}.chat-reply-quote-text{font-size:.7rem;color:var(--muted);font-family:'Nunito',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}@keyframes tokSpawnBounce{0%{transform:var(--sp-base) scale(0.6) translateY(4px);opacity:0.5}100%{transform:var(--sp-base) scale(1) translateY(0);opacity:1}}.tok-spawn{animation:tokSpawnBounce 0.18s ease-out forwards}@keyframes tokLandSquash{0%{transform:var(--sq-trl) var(--sq-rot) scale(1)}100%{transform:var(--sq-trl) var(--sq-rot) scale(1)}}.tok-land{animation:none}
+#chat-vault-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);z-index:8999}
+#chat-vault-overlay.show{display:block}
+#chat-vault{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(110%);width:340px;max-width:96vw;height:75dvh;max-height:580px;background:var(--surface2);border:1.5px solid rgba(245,197,24,.3);border-bottom:none;border-radius:20px 20px 0 0;display:flex;flex-direction:column;z-index:9000;transition:transform 0.35s cubic-bezier(0.34,1.26,0.64,1);box-shadow:0 -12px 60px rgba(245,197,24,.1),0 -2px 30px rgba(0,0,0,.8);overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}
+#chat-vault.open{transform:translateX(-50%) translateY(0)}
+#cv-header{display:flex;align-items:center;padding:14px 16px 12px;background:linear-gradient(135deg,rgba(245,197,24,.1),rgba(245,197,24,.04));border-bottom:1px solid rgba(245,197,24,.18);flex-shrink:0;gap:8px}
+#cv-title{color:var(--gold);font-size:.92rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:2px;flex:1}
+#cv-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;line-height:1;transition:all 0.15s;-webkit-tap-highlight-color:transparent}
+#cv-close:hover{color:white;background:rgba(255,255,255,.08)}
+#cv-body{flex:1;overflow:hidden;display:flex;flex-direction:column}
+#cv-rooms-list{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:rgba(245,197,24,.15) transparent}
+.cv-room-card{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;cursor:pointer;transition:all 0.16s;-webkit-tap-highlight-color:transparent}
+.cv-room-card:hover,.cv-room-card:active{border-color:rgba(245,197,24,.5);background:var(--surface2);transform:scale(0.985)}
+.cv-room-icon{font-size:1.6rem;flex-shrink:0;line-height:1}
+.cv-room-info{flex:1;min-width:0}
+.cv-room-date{font-size:.68rem;color:var(--muted);font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:.5px;margin-bottom:3px}
+.cv-room-players{font-size:.88rem;color:var(--text);font-family:'Nunito',sans-serif;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cv-room-code{font-size:.62rem;color:rgba(245,197,24,.4);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:2px;margin-top:2px}
+.cv-room-arrow{color:rgba(255,255,255,.2);font-size:18px;flex-shrink:0}
+.cv-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:.85rem;font-family:'Nunito',sans-serif;line-height:1.8}
+.cv-empty-icon{font-size:2.8rem;display:block;margin-bottom:10px;opacity:.5}
+#cv-chat-view{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#cv-chat-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(245,197,24,.12);flex-shrink:0;background:rgba(245,197,24,.04)}
+#cv-back{background:none;border:none;color:var(--gold);font-size:1.1rem;cursor:pointer;padding:4px 8px;border-radius:8px;font-weight:700;font-family:'Rajdhani',sans-serif;line-height:1;transition:all 0.15s;-webkit-tap-highlight-color:transparent}
+#cv-back:hover{background:rgba(245,197,24,.1)}
+#cv-chat-room-label{flex:1;font-size:.75rem;color:var(--muted);font-family:'Nunito',sans-serif;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cv-dl-btn{background:rgba(245,197,24,.12);border:1px solid rgba(245,197,24,.3);color:var(--gold);font-size:.75rem;font-weight:800;cursor:pointer;padding:6px 12px;border-radius:10px;font-family:'Rajdhani',sans-serif;letter-spacing:.5px;transition:all 0.15s;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+#cv-dl-btn:hover{background:rgba(245,197,24,.22);border-color:rgba(245,197,24,.6)}
+#cv-dl-btn:active{transform:scale(0.94)}
+#cv-messages{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:7px;scrollbar-width:thin;scrollbar-color:rgba(245,197,24,.15) transparent}
+#cv-messages::-webkit-scrollbar{width:3px}
+#cv-messages::-webkit-scrollbar-thumb{background:rgba(245,197,24,.2);border-radius:3px}
+.cv-msg{display:flex;flex-direction:column;gap:2px;animation:msgIn 0.18s ease-out}
+.cv-msg-meta{display:flex;align-items:center;gap:5px}
+.cv-msg-name{font-size:.68rem;font-weight:800;font-family:'Nunito',sans-serif;color:rgba(245,197,24,.7)}
+.cv-msg-time{font-size:.62rem;color:var(--muted);margin-left:auto}
+.cv-msg-text{font-size:.82rem;color:var(--text);font-family:'Nunito',sans-serif;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:4px 12px 12px 12px;padding:7px 11px;line-height:1.45;word-break:break-word;max-width:88%}
+.cv-msg.mine .cv-msg-text{border-radius:12px 4px 12px 12px;background:rgba(245,197,24,.09);border-color:rgba(245,197,24,.22);align-self:flex-end}
+.cv-msg.mine .cv-msg-meta{flex-direction:row-reverse}
+.cv-msg.mine .cv-msg-time{margin-left:0;margin-right:auto}
+.cv-sys{text-align:center;font-size:.67rem;color:rgba(245,197,24,.3);font-family:'Nunito',sans-serif;padding:2px 0;letter-spacing:.5px}
+.cv-loading{text-align:center;padding:30px;color:var(--muted);font-size:.82rem;font-family:'Nunito',sans-serif}</style>
 </head>
 <!-- Interface fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -149,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function(){
   position:fixed; inset:0; z-index:200;
   background:radial-gradient(ellipse at 30% 20%,#1a0d35 0%,#0a0612 60%);
   display:flex; flex-direction:column; align-items:center;
-  overflow:hidden;
+  overflow-x:hidden; overflow-y:auto;
   font-family:'Nunito',sans-serif;
   transition: opacity 0.3s ease;
 }
@@ -361,9 +402,9 @@ document.addEventListener('DOMContentLoaded', function(){
 </div>
 <!-- ══ END HOME SCREEN ══ -->
 <body>
-<div id="lobby" style="display:none;">
+<div id="lobby">
   <div id="lobby-inner">
-    <div id="lobby-crown">👑</div>
+    <div id="lobby-crown" onclick="window.togglePrivateChat()">👑</div>
     <div id="lobby-sub">ONLINE MULTIPLAYER</div>
     <div id="lobby-divider"></div>
     <div id="lobby-cards" style="display:flex;flex-direction:column;gap:10px;width:100%;">
@@ -386,7 +427,15 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="s-card-shine"></div>
       </div>
     </div>
-
+      <div class="s-card" id="btn-test-mode" style="border-color:rgba(255,197,24,.3);background:rgba(255,197,24,.06);">
+        <div class="s-card-icon" style="background:linear-gradient(135deg,#F5C518,#b8920f);">🧪</div>
+        <div class="s-card-text">
+          <div class="s-card-title">Test Mode</div>
+          <div class="s-card-sub">Solo offline test — no Firebase</div>
+        </div>
+        <div class="s-card-arrow">›</div>
+        <div class="s-card-shine"></div>
+      </div>
     <div id="rejoin-card" class="s-card" style="display:none;border-color:rgba(0,174,239,.4);background:rgba(0,174,239,.06);" onclick="window.tryRejoin()">
       <div class="s-card-icon" style="background:linear-gradient(135deg,#00AEEF,#0077aa);">🔄</div>
       <div class="s-card-text">
@@ -396,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <div class="s-card-arrow">›</div>
       <div class="s-card-shine"></div>
     </div>
-    <div id="lobby-conn" style="display:none;align-items:center;gap:6px;margin-top:4px;font-size:11px;font-family:'Nunito',sans-serif;color:var(--muted);">
+    <div id="lobby-conn" style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:11px;font-family:'Nunito',sans-serif;color:var(--muted);">
       <div id="lobby-conn-dot" style="width:8px;height:8px;border-radius:50%;background:#888;flex-shrink:0;transition:background 0.3s;"></div>
       <span id="lobby-conn-text">Connecting to server...</span>
     </div>
@@ -642,19 +691,6 @@ document.addEventListener('DOMContentLoaded', function(){
       <button class="modal-btn" id="btn-3p" style="flex:1;">3P</button>
       <button class="modal-btn" id="btn-4p" style="flex:1;">4P</button>
     </div>
-    <!-- Voice Chat Toggle -->
-    <div id="voice-toggle-row" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.1);border-radius:12px;padding:11px 14px;box-sizing:border-box;margin-top:2px;">
-      <div style="display:flex;align-items:center;gap:9px;">
-        <span style="font-size:1.3rem;">🎙️</span>
-        <div>
-          <div style="font-size:.85rem;font-weight:800;font-family:'Nunito',sans-serif;color:#f0f0ff;letter-spacing:.3px;">Voice Chat</div>
-          <div style="font-size:.65rem;font-family:'Nunito',sans-serif;color:rgba(240,240,255,.4);margin-top:1px;">Players can talk in-game</div>
-        </div>
-      </div>
-      <div id="voice-toggle-btn" onclick="window.toggleVoiceOption()" style="width:46px;height:26px;border-radius:13px;background:#333;border:none;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;">
-        <div id="voice-toggle-knob" style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform 0.2s;transform:translateX(0px);"></div>
-      </div>
-    </div>
     <button class="modal-btn secondary" id="btn-cancel-create">Cancel</button>
   </div>
 </div>
@@ -666,10 +702,6 @@ document.addEventListener('DOMContentLoaded', function(){
     <div class="copy-hint">📋 Tap to copy</div>
     <div class="copy-toast" id="copy-toast">✓ Copied!</div>
     <div id="player-list" style="display:flex;flex-direction:column;gap:6px;width:100%;"></div>
-    <div id="voice-status-row" style="display:none;align-items:center;gap:8px;width:100%;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.1);border-radius:10px;padding:9px 13px;box-sizing:border-box;">
-      <span style="font-size:1.1rem;">🎙️</span>
-      <div style="font-size:.78rem;font-family:'Nunito',sans-serif;font-weight:700;color:rgba(240,240,255,0.75);" id="voice-status-label">Voice Chat: OFF</div>
-    </div>
     <div class="modal-sub waiting-dots" id="waiting-status">Waiting</div>
     <button class="modal-btn" id="btn-start-game" disabled style="background:var(--surface);border:1.5px solid var(--border2);color:var(--muted);">Start Game</button>
     <button class="modal-btn secondary" id="btn-leave-waiting">Leave Room</button>
@@ -685,25 +717,6 @@ document.addEventListener('DOMContentLoaded', function(){
       style="letter-spacing:1px;" oninput="">
     <button class="modal-btn" id="btn-join">Join</button>
     <button class="modal-btn secondary" id="btn-cancel-join">Cancel</button>
-  </div>
-</div>
-
-<!-- Voice Permission Modal (shown to joiners when room has voice chat enabled) -->
-<div class="modal-overlay" id="modal-voice-permission">
-  <div class="modal-box">
-    <div style="font-size:2.4rem;margin-bottom:4px;">🎙️</div>
-    <div class="modal-title" style="font-size:1.1rem;">Voice Chat Room</div>
-    <div class="modal-sub" style="line-height:1.6;font-size:.85rem;color:rgba(240,240,255,0.75);margin-bottom:4px;">
-      This room has <span style="color:rgba(100,255,150,0.95);font-weight:800;">Voice Chat enabled</span>.<br>
-      Microphone access is required to join and talk with other players during the game.
-    </div>
-    <div style="background:rgba(100,255,150,0.06);border:1.5px solid rgba(100,255,150,0.18);border-radius:12px;padding:10px 14px;margin:8px 0 14px;font-size:.78rem;font-family:'Nunito',sans-serif;font-weight:700;color:rgba(200,255,220,0.8);line-height:1.5;">
-      🔒 Your browser will ask for mic permission. Allow it to continue joining.
-    </div>
-    <button class="modal-btn" id="btn-voice-allow" style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border-color:#22c55e;">
-      🎙️ Allow & Join
-    </button>
-    <button class="modal-btn secondary" id="btn-voice-deny">✕ Cancel</button>
   </div>
 </div>
 <div class="modal-overlay" id="modal-name">
@@ -723,7 +736,30 @@ document.addEventListener('DOMContentLoaded', function(){
     <button class="modal-btn secondary" id="btn-home-confirm-no">Cancel</button>
   </div>
 </div>
-
+<!-- Test Mode: Player Count Selection -->
+<div class="modal-overlay" id="modal-test-players">
+  <div class="modal-box">
+    <div style="font-size:2rem;">🎮</div>
+    <div class="modal-title">Test Mode</div>
+    <div class="modal-sub">Kitne players? (Baaki bots honge)</div>
+    <div style="display:flex;gap:10px;width:100%;margin-top:4px;">
+      <button class="modal-btn" id="btn-test-2p" style="flex:1;">2P</button>
+      <button class="modal-btn" id="btn-test-3p" style="flex:1;">3P</button>
+      <button class="modal-btn" id="btn-test-4p" style="flex:1;">4P</button>
+    </div>
+    <button class="modal-btn secondary" id="btn-test-players-cancel">Cancel</button>
+  </div>
+</div>
+<!-- Test Mode: Color Selection -->
+<div class="modal-overlay" id="modal-test-color">
+  <div class="modal-box">
+    <div style="font-size:2rem;">🎨</div>
+    <div class="modal-title">Apna Color Chuno</div>
+    <div class="modal-sub">Tum kaunse token se kheloge?</div>
+    <div id="test-color-options" style="display:flex;flex-direction:column;gap:10px;width:100%;margin-top:4px;"></div>
+    <button class="modal-btn secondary" id="btn-test-color-back">Back</button>
+  </div>
+</div>
 <div id="top-bar">
   <div id="top-bar-left">
   </div>
@@ -855,7 +891,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <div id="chat-panel">
   <div id="chat-header">
     <span id="chat-header-title">💬 GAME CHAT</span>
-    <button id="chat-close" type="button">✕</button>
+    <button id="chat-close" type="button" ontouchstart="event.preventDefault();event.stopImmediatePropagation();window.toggleChat();">✕</button>
   </div>
   <div id="chat-messages"></div>
   <div id="chat-reply-bar">
@@ -901,44 +937,20 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // Load real Firebase SDK on demand (only for online multiplayer)
   window._firebaseReady = false;
-  window._firebaseLoadPromise = null; // dedup concurrent calls
   window._loadRealFirebase = function(){
     if(window._firebaseReady) return Promise.resolve();
-    // If already loading, return same promise — don't double-load
-    if(window._firebaseLoadPromise) return window._firebaseLoadPromise;
-    var SRCS = [
-      'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js',
-      'https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js',
-      'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js'
-    ];
-    window._firebaseLoadPromise = new Promise(function(resolve, reject){
+    return new Promise(function(resolve, reject){
       var done = 0;
-      var total = SRCS.length;
-      var errored = false;
-      function onLoad(){
-        if(errored) return;
-        if(++done === total){ window._firebaseReady = true; window._firebaseLoadPromise = null; resolve(); }
-      }
-      function onError(e){
-        if(errored) return;
-        errored = true;
-        window._firebaseLoadPromise = null;
-        reject(new Error('Firebase script failed to load: ' + (e.target && e.target.src)));
-      }
+      function onLoad(){ if(++done===3){ window._firebaseReady = true; resolve(); } }
       function loadScript(src){
-        // Skip if already in DOM (e.g. hot reload / back-navigation)
-        if(document.querySelector('script[src="' + src + '"]')){
-          onLoad(); return;
-        }
         var s = document.createElement('script');
-        s.src = src;
-        s.onload = onLoad;
-        s.onerror = onError;
+        s.src = src; s.onload = onLoad; s.onerror = reject;
         document.head.appendChild(s);
       }
-      SRCS.forEach(loadScript);
+      loadScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+      loadScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js');
+      loadScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js');
     });
-    return window._firebaseLoadPromise;
   };
 })();
 </script>
@@ -976,7 +988,6 @@ function waitForAuth(){
   if(_authReady) return Promise.resolve();
   return new Promise(res => _authResolvers.push(res));
 }
-window.waitForAuth = waitForAuth;
 function _setAuthReady(){
   if(_authReady) return;
   _authReady = true;
@@ -992,48 +1003,29 @@ auth.signInAnonymously().catch((err) => {
   _setAuthReady();
   console.warn("⚠️ Auth:", err.code||err);
 });
+const _connRef = db.ref(".info/connected");
 let _wasConnected = false;
-let _connListenerRef = null;
-let _connListenerCb = null;
-function _attachConnListener(){
-  // Detach old listener if any
-  if(_connListenerRef && _connListenerCb){
-    _connListenerRef.off("value", _connListenerCb);
-  }
-  // Don't listen on stub — stub never fires true
-  if(!ROOM_CODE && window._fbStub && db === window._fbStub.database()) return;
-  _connListenerRef = db.ref(".info/connected");
-  _connListenerCb = function(snap){
-    const connected = snap.val() === true;
-    const lobbyConn = document.getElementById("lobby-conn");
-    const lobbyDot = document.getElementById("lobby-conn-dot");
-    const lobbyTxt = document.getElementById("lobby-conn-text");
-    if(connected){
-      if(lobbyConn) lobbyConn.style.display = "flex";
-      if(lobbyDot){ lobbyDot.style.background = "#00C853"; }
-      if(lobbyTxt){ lobbyTxt.textContent = "Server connected ✓"; lobbyTxt.style.color = "#00C853"; }
-      if(!_wasConnected){
-        setSyncStatus("ok");
-        if(document.getElementById("game-wrap").style.display !== "none"){
-          showToast("🟢 Reconnected!");
-        }
+_connRef.on("value", snap => {
+  const connected = snap.val() === true;
+  const lobbyDot = document.getElementById("lobby-conn-dot");
+  const lobbyTxt = document.getElementById("lobby-conn-text");
+  if(connected){
+    if(lobbyDot){ lobbyDot.style.background = "#00C853"; }
+    if(lobbyTxt){ lobbyTxt.textContent = "Server connected ✓"; lobbyTxt.style.color = "#00C853"; }
+    if(!_wasConnected){
+      setSyncStatus("ok");
+      if(_wasConnected === false && document.getElementById("game-wrap").style.display !== "none"){
+        showToast("🟢 Reconnected!");
       }
-      _wasConnected = true;
-    } else {
-      if(_wasConnected){
-        // Was connected before — show disconnected error
-        if(lobbyConn) lobbyConn.style.display = "flex";
-        if(lobbyDot){ lobbyDot.style.background = "#FF2D78"; }
-        if(lobbyTxt){ lobbyTxt.textContent = "No server connection ✗"; lobbyTxt.style.color = "#FF2D78"; }
-        setSyncStatus("err");
-        _wasConnected = false;
-      }
-      // First false fire — stay hidden, Firebase will connect shortly
     }
-  };
-  _connListenerRef.on("value", _connListenerCb);
-}
-// _attachConnListener is called from hsGoOnline() after real Firebase loads
+    _wasConnected = true;
+  } else {
+    if(lobbyDot){ lobbyDot.style.background = "#FF2D78"; }
+    if(lobbyTxt){ lobbyTxt.textContent = "No server connection ✗"; lobbyTxt.style.color = "#FF2D78"; }
+    setSyncStatus("err");
+    _wasConnected = false;
+  }
+});
 let PERF_MODE = (()=>{
   try{ return localStorage.getItem('ludo_perf')==='1'; }catch(e){ return false; }
 })();
@@ -1665,7 +1657,7 @@ const TOKEN_DESIGNS = [
   {
     id: 'mickey-chibi',
     name: 'Chibi Mickey',
-    emoji: '🤭',
+    emoji: '🥺',
     desc: 'Big head chibi Mickey with tiny body & legs',
     svgFn: (color, size) => {
       const cacheKey = `mickey-chibi|${color}|${size}`;
@@ -1811,14 +1803,6 @@ let ROOM_CODE = null;
 let MY_SEAT = null;
 let MY_NAME = "Player";
 let IS_HOST = false; // Only used for lobby UI (Start Game button)
-
-// Expose on window so other script blocks (VC, etc.) can access these
-Object.defineProperties(window, {
-  ROOM_CODE:  { get(){ return ROOM_CODE;  }, set(v){ ROOM_CODE  = v; }, configurable: true },
-  MY_SEAT:    { get(){ return MY_SEAT;    }, set(v){ MY_SEAT    = v; }, configurable: true },
-  MY_NAME:    { get(){ return MY_NAME;    }, set(v){ MY_NAME    = v; }, configurable: true },
-  IS_HOST:    { get(){ return IS_HOST;    }, set(v){ IS_HOST    = v; }, configurable: true },
-});
 let _forcedElderSeat = null; // null = auto, number = manual override from Firebase
 let _cachedElderResult = null;
 let _cachedElderOnlineSet = '';
@@ -1850,7 +1834,6 @@ let roomRef = null;
 let gameRef = null;
 let playersRef = null;
 let _listeners = [];
-window._listeners = _listeners; // expose for VC block — array ref is shared, .push() works cross-block
 let _presenceRef = null;
 let PLAYERS = [];
 let G = { turn:0, diceVal:null, rolled:false, waiting:false, over:false, sixes:0, tokens:[], placements:[] };
@@ -1859,7 +1842,6 @@ let _rolling = false;
 let _animating = false;
 let _gameLoaded = false;
 function showToast(msg, dur=2500){ /* toasts disabled */ }
-window.showToast = showToast;
 function setSyncStatus(status){
   const dot = document.getElementById("sync-dot");
   const txt = document.getElementById("sync-text");
@@ -1868,8 +1850,6 @@ function setSyncStatus(status){
 }
 function closeModals(){
   document.querySelectorAll(".modal-overlay").forEach(m=>m.classList.remove("show"));
-  const _vsr = document.getElementById('voice-status-row');
-  if(_vsr) _vsr.style.display = 'none';
 }
 window.showCreateRoom = function(){
   document.getElementById("modal-name").classList.add("show");
@@ -1885,9 +1865,12 @@ window.confirmHostName = function(){
 };
 function genCode(){
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  // Embed 2 chars from timestamp to guarantee uniqueness across sessions
+  const ts = Date.now().toString(36).toUpperCase().slice(-2);
   let code = "";
-  for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
-  return code;
+  for(let i=0;i<4;i++) code += chars[Math.floor(Math.random()*chars.length)];
+  // Insert timestamp chars at positions 2 and 5 so code looks random
+  return code.slice(0,2) + ts[0] + code.slice(2,4) + ts[1];
 }
 const SEAT_LAYOUTS = {
   2: [3, 1],
@@ -1895,7 +1878,6 @@ const SEAT_LAYOUTS = {
   4: [3, 0, 1, 2]
 };
 window.createRoom = async function(numPlayers){
-  clearSession();
   closeModals();
   showToast("Connecting to server...");
   try { await waitForAuth(); } catch(e){ showToast("⚠️ Auth error — check internet"); return; }
@@ -1925,7 +1907,6 @@ window.createRoom = async function(numPlayers){
       status: "waiting",
       host: MY_SEAT,
       seatLayout: layout,
-      voiceEnabled: window._voiceOptionEnabled ? true : false,
       createdAt: firebase.database.ServerValue.TIMESTAMP,
       players: {
         [MY_SEAT]: { name: MY_NAME, seat: MY_SEAT, online: true, joinedAt: firebase.database.ServerValue.TIMESTAMP }
@@ -1940,20 +1921,15 @@ window.createRoom = async function(numPlayers){
   _presenceRef.onDisconnect().set(false);
   document.getElementById("display-room-code").textContent = code;
   document.getElementById("modal-waiting").classList.add("show");
-  // Show voice status for host
-  const _voiceRow = document.getElementById('voice-status-row');
-  const _voiceLabel = document.getElementById('voice-status-label');
-  if(_voiceRow && _voiceLabel){
-    const voiceOn = window._voiceOptionEnabled === true;
-    _voiceRow.style.display = 'flex';
-    _voiceLabel.textContent = voiceOn ? 'Voice Chat: ON 🟢' : 'Voice Chat: OFF';
-    _voiceLabel.style.color = voiceOn ? 'rgba(100,255,150,0.9)' : 'rgba(240,240,255,0.5)';
-  }
   updatePlayerList({ [MY_SEAT]: { name: MY_NAME, seat: MY_SEAT, online: true } });
   listenRoom();
 };
-// Internal function — actually joins after all checks pass
-window._doJoinRoom = async function(code, name, preGrantedStream){
+window.joinRoom = async function(){
+  await waitForAuth();
+  showToast("Connecting...");
+  const code = document.getElementById("join-code-input").value.trim().toUpperCase();
+  const name = document.getElementById("join-name-input").value.trim() || "Player";
+  if(code.length !== 6){ showToast("Enter a 6-digit code"); return; }
   MY_NAME = name;
   const rSnap = await db.ref(`rooms/${code}`).once('value');
   if(!rSnap.exists()){ showToast("Room not found"); return; }
@@ -1970,10 +1946,6 @@ window._doJoinRoom = async function(code, name, preGrantedStream){
   roomRef = db.ref(`rooms/${code}`);
   gameRef = db.ref(`rooms/${code}/game`);
   playersRef = db.ref(`rooms/${code}/players`);
-  // If we already got a stream from permission modal, store it for VC system
-  if(preGrantedStream){
-    window._vcPreGrantedStream = preGrantedStream;
-  }
   await db.ref(`rooms/${code}/players/${MY_SEAT}`).set({
     name: MY_NAME, seat: MY_SEAT, online: true, joinedAt: firebase.database.ServerValue.TIMESTAMP
   });
@@ -1982,93 +1954,7 @@ window._doJoinRoom = async function(code, name, preGrantedStream){
   closeModals();
   document.getElementById("display-room-code").textContent = code;
   document.getElementById("modal-waiting").classList.add("show");
-  // Show voice status for joiner
-  const voiceRow = document.getElementById('voice-status-row');
-  const voiceLabel = document.getElementById('voice-status-label');
-  if(voiceRow && voiceLabel){
-    const voiceOn = rData.voiceEnabled === true;
-    voiceRow.style.display = 'flex';
-    voiceLabel.textContent = voiceOn ? 'Voice Chat: ON 🟢 (will activate on game start)' : 'Voice Chat: OFF';
-    voiceLabel.style.color = voiceOn ? 'rgba(100,255,150,0.9)' : 'rgba(240,240,255,0.5)';
-  }
   listenRoom();
-};
-
-window.joinRoom = async function(){
-  clearSession();
-  await waitForAuth();
-  const code = document.getElementById("join-code-input").value.trim().toUpperCase();
-  const name = document.getElementById("join-name-input").value.trim() || "Player";
-  if(code.length !== 6){ showToast("Enter a 6-digit code"); return; }
-
-  // Pre-fetch room to check if voice is enabled
-  showToast("Checking room...");
-  let rSnap, rData;
-  try {
-    rSnap = await db.ref(`rooms/${code}`).once('value');
-  } catch(e){ showToast("Connection error"); return; }
-  if(!rSnap.exists()){ showToast("Room not found"); return; }
-  rData = rSnap.val();
-  if(rData.status === "playing"){ showToast("Game already started"); return; }
-  const layout = rData.seatLayout || SEAT_LAYOUTS[rData.numPlayers] || [0,1,2,3];
-  const taken = Object.keys(rData.players||{}).map(Number);
-  const free = layout.filter(s=>!taken.includes(s));
-  if(free.length === 0){ showToast("Room is full"); return; }
-
-  // If voice is enabled, ask joiner for mic permission first
-  if(rData.voiceEnabled === true){
-    // Hide join modal, show voice permission modal
-    document.getElementById('modal-join').classList.remove('show');
-    document.getElementById('modal-voice-permission').classList.add('show');
-
-    // Store pending join info
-    window._pendingJoinCode = code;
-    window._pendingJoinName = name;
-    return; // wait for user action in modal buttons
-  }
-
-  // No voice — proceed directly
-  await window._doJoinRoom(code, name, null);
-};
-
-// Called when joiner clicks "Allow & Join" in voice permission modal
-window.voicePermissionAllow = async function(){
-  const code = window._pendingJoinCode;
-  const name = window._pendingJoinName;
-  if(!code){ showToast("Something went wrong"); return; }
-
-  const allowBtn = document.getElementById('btn-voice-allow');
-  if(allowBtn){ allowBtn.disabled = true; allowBtn.textContent = '⏳ Requesting mic...'; }
-
-  let stream = null;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-  } catch(err){
-    if(allowBtn){ allowBtn.disabled = false; allowBtn.textContent = '🎙️ Allow & Join'; }
-    const errName = err && err.name;
-    if(errName === 'NotAllowedError' || errName === 'PermissionDeniedError'){
-      showToast("Mic permission denied — cannot join voice room");
-    } else {
-      showToast("Mic unavailable — cannot join voice room");
-    }
-    // Stay on permission modal — user can retry or cancel
-    return;
-  }
-
-  // Permission granted — close modal and join
-  window._pendingJoinCode = null;
-  window._pendingJoinName = null;
-  await window._doJoinRoom(code, name, stream);
-};
-
-// Called when joiner clicks "Cancel" in voice permission modal
-window.voicePermissionDeny = function(){
-  document.getElementById('modal-voice-permission').classList.remove('show');
-  // Reopen join modal so user can try a different room
-  document.getElementById('modal-join').classList.add('show');
-  window._pendingJoinCode = null;
-  window._pendingJoinName = null;
-  showToast("Mic access required to join this room");
 };
 let _gameStarted = false;
 let _gameStartLock = false; // FIX 5: mutex so cb2 and cb3 can't both fire _doLoadAndStartGame
@@ -2629,13 +2515,13 @@ function pushGameState(extra={}){
 function saveSession(){
   if(window._cpuMode) return; // never save session for CPU games
   if(!ROOM_CODE || MY_SEAT === null || !MY_NAME) return;
-  try { localStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME})); } catch(e){}
+  try { sessionStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME})); } catch(e){}
 }
 function clearSession(){
-  try { localStorage.removeItem('ludo_session'); } catch(e){}
+  try { sessionStorage.removeItem('ludo_session'); } catch(e){}
 }
 function loadSession(){
-  try { const s=localStorage.getItem('ludo_session'); return s?JSON.parse(s):null; } catch(e){ return null; }
+  try { const s=sessionStorage.getItem('ludo_session'); return s?JSON.parse(s):null; } catch(e){ return null; }
 }
 (function checkRejoin(){
   const s=loadSession();
@@ -2705,7 +2591,6 @@ function hideHostLeaveOverlay(){
 }
 function listenHostOnline(){ /* Removed — no host concept in game logic */ }
 window.leaveToLobby = async function(){
-  _vcCleanup();
   clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
   stopTurnTimer();
@@ -2752,9 +2637,6 @@ window.leaveToLobby = async function(){
     hsShowHomeScreen();
   } else {
     // Online mode only: show rejoin card if session exists
-    _wasConnected = false;
-    const lobbyConn = document.getElementById('lobby-conn');
-    if (lobbyConn) lobbyConn.style.display = 'none';
     const s = loadSession();
     const rc = document.getElementById("rejoin-card");
     const rsub = document.getElementById("rejoin-sub");
@@ -2768,6 +2650,7 @@ window.leaveRoom = async function(){
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
   stopTurnTimer();
   if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
+  clearSession();
   _listeners.forEach(fn=>fn());
   _listeners = [];
   _gameStarted = false;
@@ -2775,7 +2658,6 @@ window.leaveRoom = async function(){
   _pendingSync = [];
   if(ROOM_CODE && MY_SEAT !== null){
     await db.ref(`rooms/${ROOM_CODE}/players/${MY_SEAT}/online`).set(false);
-    // Room delete is handled by _checkAllBotsDeleteTimer (all-bots detection)
   }
   ROOM_CODE = null; MY_SEAT = null; IS_HOST = false; MY_SLOT = 0;
   _rolling = false; _animating = false; _onlineSeats = new Set();
@@ -2784,11 +2666,7 @@ window.leaveRoom = async function(){
   _forcedElderSeat = null;
   const chatPanel = document.getElementById("chat-panel");
   if(chatPanel) chatPanel.classList.remove("open");
-  const s = loadSession();
-  const rc = document.getElementById("rejoin-card");
-  const rsub = document.getElementById("rejoin-sub");
-  if(rc && s){ rc.style.display="flex"; if(rsub) rsub.textContent=`Room ${s.code} · as ${s.name}`; }
-  else if(rc){ rc.style.display="none"; }
+  const rc=document.getElementById("rejoin-card"); if(rc) rc.style.display="none";
   document.getElementById("lobby").style.display = "flex";
   closeModals();
 };
@@ -2917,42 +2795,6 @@ window.voteForBot = async function(seat){
     if(badge) badge.classList.remove('voted');
   }
 };
-// All-bots delete timer — starts when every active player is a bot
-window._allBotDeleteTimer = null;
-function _checkAllBotsDeleteTimer(){
-  if(!ROOM_CODE || G.over || !_gameLoaded) return;
-  const activePlayers = PLAYERS.filter(p => p && p.active);
-  const allBots = activePlayers.length > 0 && activePlayers.every(p => p.isBot);
-  if(allBots){
-    if(window._allBotDeleteTimer) return; // already running
-    console.log('[ROOM] All players are bots — starting 10min delete timer');
-    showToast('⚠️ All players are bots — room deletes in 10 min');
-    window._allBotDeleteTimer = setTimeout(async ()=>{
-      if(!ROOM_CODE) return;
-      try {
-        const snap = await db.ref(`rooms/${ROOM_CODE}/players`).once('value');
-        const players = snap.val() || {};
-        const anyOnline = Object.values(players).some(p => p && p.online === true);
-        if(!anyOnline){
-          console.log('[ROOM] Auto-deleting room', ROOM_CODE, '— all bots, no one online');
-          clearSession();
-          const _rc = document.getElementById('rejoin-card');
-          if(_rc) _rc.style.display='none';
-          await db.ref(`rooms/${ROOM_CODE}`).remove();
-        }
-      } catch(e){ console.warn('[ROOM] All-bot delete failed:', e); }
-      window._allBotDeleteTimer = null;
-    }, 10 * 60 * 1000);
-  } else {
-    // Someone is not a bot — cancel timer
-    if(window._allBotDeleteTimer){
-      console.log('[ROOM] A player is active — cancelling delete timer');
-      clearTimeout(window._allBotDeleteTimer);
-      window._allBotDeleteTimer = null;
-    }
-  }
-}
-
 function _activateBot(seat){
   if(!PLAYERS[seat]) return;
   console.log('[VOTE] activating bot for seat ' + seat);
@@ -2984,8 +2826,6 @@ function _activateBot(seat){
     if(_botDice) _botDice.style.display = 'block';
   }
   showToast(`🤖 ${PLAYERS[seat].label} is now a bot`);
-  // Check if ALL active players are now bots — if so, start 10min room delete timer
-  _checkAllBotsDeleteTimer();
   if(amIElderPlayer() && !G.over){
     clearTimeout(_turnTimeoutTimer);
     _turnTimeoutTimer = null;
@@ -2999,8 +2839,6 @@ function _activateBot(seat){
 function _deactivateBot(seat){
   if(!PLAYERS[seat]?.isBot) return;
   PLAYERS[seat].isBot = false;
-  // Someone came back — cancel all-bot delete timer
-  _checkAllBotsDeleteTimer();
   const lbl = document.getElementById(`lbl-${seat}`);
   if(lbl){ const bl = lbl.querySelector('.bot-label'); if(bl) bl.remove(); }
   const offBadge = document.getElementById(`offbadge-${seat}`);
@@ -5469,12 +5307,12 @@ function nextTurn(same, wasSix){
 }
 function endGame(){
   G.over=true;
-  // Game finished — clear rejoin session so card disappears
-  clearSession();
-  const _rc = document.getElementById('rejoin-card');
-  if(_rc) _rc.style.display='none';
-  // Clear any pending all-bot room delete timer
-  if(window._allBotDeleteTimer){ clearTimeout(window._allBotDeleteTimer); window._allBotDeleteTimer=null; }
+  try{
+    if(ROOM_CODE && typeof window._vaultSaveRoom==='function'){
+      const pNames=PLAYERS.filter(p=>p&&p.active).map(p=>p.seat===MY_SEAT?(MY_NAME||'Me'):(p.label||`P${p.seat}`));
+      window._vaultSaveRoom(ROOM_CODE, pNames, MY_NAME||'Me');
+    }
+  }catch(e){}
   const medals=["🥇","🥈","🥉","4️⃣"];
   const lines=G.placements.map((pid,i)=>{
     const name = pid === MY_SEAT ? (MY_NAME || "You") : (PLAYERS[pid]?.label||`P${pid}`);
@@ -5920,7 +5758,6 @@ async function _doLoadAndStartGame(){
     _pendingSync = [];
     pending.forEach(p => { if(G.over === false) syncGameState(p); });
   }
-  if(ROOM_CODE) { try { await _vcInit(); } catch(e){ console.warn('[VC] _vcInit CRASHED:', e&&(e.code||e.message)||e, e&&e.stack||''); } }
 }
 function bindBtn(id, fn){
   const el = document.getElementById(id);
@@ -5938,9 +5775,7 @@ bindBtn("btn-start-game",   ()=>window.hostStartGame());
 bindBtn("btn-leave-waiting",()=>window.leaveRoom());
 bindBtn("btn-join",         ()=>window.joinRoom());
 bindBtn("btn-cancel-join",  ()=>closeModals());
-bindBtn("btn-voice-allow",  ()=>window.voicePermissionAllow());
-bindBtn("btn-voice-deny",   ()=>window.voicePermissionDeny());
-
+bindBtn("btn-test-mode", ()=>window.launchTestMode());
 bindBtn("btn-customization", ()=>document.getElementById("modal-customization").classList.add("show"));
 bindBtn("btn-customization-close", ()=>document.getElementById("modal-customization").classList.remove("show"));
 bindBtn("btn-board-theme", ()=>{ document.getElementById("modal-customization").classList.remove("show"); _showThemeModal(); });
@@ -6038,7 +5873,14 @@ function _testStartGame(numPlayers, chosenVisualSeat){
   _scrub.tid = null;
   showToast(window._cpuMode ? "VS Computer — " + numPlayers + "P — You are " + chosenColorName : "Test Mode — "+numPlayers+"P — You are "+chosenColorName);
 }
-
+bindBtn("btn-test-2p", ()=>_testSelectPlayers(2));
+bindBtn("btn-test-3p", ()=>_testSelectPlayers(3));
+bindBtn("btn-test-4p", ()=>_testSelectPlayers(4));
+bindBtn("btn-test-players-cancel", ()=>{ document.getElementById("modal-test-players").classList.remove("show"); });
+bindBtn("btn-test-color-back", ()=>{
+  document.getElementById("modal-test-color").classList.remove("show");
+  document.getElementById("modal-test-players").classList.add("show");
+});
 bindBtn("btn-resume",       ()=>window.togglePause());
 bindBtn("btn-leave-pause",  ()=>window.leaveToLobby());
 bindBtn("btn-home-confirm-yes", ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); window.leaveToLobby(); });
@@ -6048,17 +5890,11 @@ bindBtn("chat-header", (e)=>{ if(e.target.closest('#chat-close')) return; window
 (function(){
   const cc = document.getElementById("chat-close");
   if(!cc) return;
-  let _ccBusy = false;
-  function _doClose(e){
+  cc.addEventListener("pointerdown", function(e){
     e.stopImmediatePropagation();
     e.preventDefault();
-    if(_ccBusy) return;
-    _ccBusy = true;
-    setTimeout(()=>{ _ccBusy = false; }, 500);
     window.toggleChat();
-  }
-  cc.addEventListener("touchend",  _doClose, {passive:false});
-  cc.addEventListener("click",      _doClose, {passive:false});
+  }, {passive:false});
 })();
 bindBtn("chat-send",   ()=>window.sendChat());
 const chatInp = document.getElementById("chat-input");
@@ -6195,23 +6031,25 @@ window._setMY_SLOT         = function(v) { MY_SLOT = v; };
   console.log = function(...args){
     _origLog(...args);
     const msg = _toStr(args);
-    if(msg.startsWith('[VC]')){
-      window._dbgLog(msg, '#22c55e');
+    let color = '#0f0';
+    if(msg.startsWith('[SYNC]'))    color = '#FFD700';
+    if(msg.startsWith('[ANIM]'))    color = '#00bfff';
+    if(msg.startsWith('[SFX]'))     color = '#ff69b4';
+    if(msg.startsWith('[GAME]'))    color = '#00e5ff';
+    if(msg.startsWith('[VOTE]'))    color = '#c084fc';
+    if(msg.startsWith('[TOK]'))     color = '#ffa07a';
+    if(msg.startsWith('[SHIELD]'))  color = '#7fff7f';
+    if(msg.startsWith('[SYNC]') || msg.startsWith('[ANIM]') || msg.startsWith('[SFX]') || msg.startsWith('[GAME]') || msg.startsWith('[VOTE]') || msg.startsWith('[TOK]') || msg.startsWith('[SHIELD]')){
+      window._dbgLog(msg, color);
     }
   };
   console.warn = function(...args){
     _origWarn(...args);
-    const msg = _toStr(args);
-    if(msg.startsWith('[VC]') || msg.indexOf('[VC]') !== -1){
-      window._dbgLog('⚠️ ' + msg, '#FFA500');
-    }
+    window._dbgLog('⚠️ ' + _toStr(args), '#FFA500');
   };
   console.error = function(...args){
     _origError(...args);
-    const msg = _toStr(args);
-    if(msg.startsWith('[VC]') || msg.indexOf('[VC]') !== -1){
-      window._dbgLog('❌ ' + msg, '#FF4444');
-    }
+    window._dbgLog('❌ ' + _toStr(args), '#FF4444');
   };
   window.addEventListener('error', e => {
     window._dbgLog('❌ UNCAUGHT: ' + e.message + ' (' + (e.filename||'').split('/').pop() + ':' + e.lineno + ')', '#FF4444');
@@ -6384,8 +6222,6 @@ function hsGoOnline() {
     window.db = firebase.database();
     window.auth = firebase.auth();
     if (typeof _patchFirebaseRefs === 'function') _patchFirebaseRefs();
-    _wasConnected = false;
-    if (typeof _attachConnListener === 'function') _attachConnListener();
     window.auth.signInAnonymously().catch(function(e){ console.warn('Auth:', e.code); });
     if (btn) btn.style.opacity = '';
     hsHideHomeScreen(function() {
@@ -6795,510 +6631,6 @@ function cpuStartGame(n) {
     }
   }, 300);
 }
-// ══════════════════════════════════════════════════════
-// VOICE CHAT SYSTEM — WebRTC + Firebase Signaling
-// ══════════════════════════════════════════════════════
-window._voiceOptionEnabled = false;
-let _voiceEnabled = false;       // actual room setting (from Firebase)
-let _voiceActive = false;        // mic currently live
-let _localStream = null;
-let _vcPeers = {};               // seat -> RTCPeerConnection
-let _vcMicMuted = false;
-let _vcSpeakerMuted = false;     // global — mutes ALL incoming audio
-
-// TURN credentials hardcoded — no fetch needed, no CORS issues
-// App: 4whimsical | Domain: 4whimsical.metered.live
-const VC_ICE = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'turn:global.relay.metered.ca:80',                 username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
-    { urls: 'turn:global.relay.metered.ca:80?transport=tcp',   username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
-    { urls: 'turn:global.relay.metered.ca:443',                username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
-    { urls: 'turn:global.relay.metered.ca:443?transport=tcp',  username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
-    { urls: 'turns:global.relay.metered.ca:443',               username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
-    { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
-  ]
-};
-function _vcFetchIceServers(){ console.log('[VC] TURN servers hardcoded — no fetch needed'); }
-
-window.toggleVoiceOption = function(){
-  window._voiceOptionEnabled = !window._voiceOptionEnabled;
-  const btn = document.getElementById('voice-toggle-btn');
-  const knob = document.getElementById('voice-toggle-knob');
-  const subtitle = document.querySelector('#voice-toggle-row div > div:last-child');
-  if(window._voiceOptionEnabled){
-    btn.style.background = '#22c55e';
-    knob.style.transform = 'translateX(20px)';
-    if(subtitle) subtitle.textContent = 'Checking mic access...';
-    // Request mic permission immediately so user sees the browser prompt
-    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-      .then(stream => {
-        // Permission granted — stop the test stream (real one starts in _vcInit)
-        stream.getTracks().forEach(t => t.stop());
-        if(subtitle) subtitle.textContent = '🎙️ Mic ready — voice ON for this game';
-        subtitle.style.color = 'rgba(34,197,94,0.8)';
-      })
-      .catch(err => {
-        console.warn('[VC] Mic permission denied during toggle:', err.name);
-        // Revert toggle since mic is not available
-        window._voiceOptionEnabled = false;
-        btn.style.background = '#333';
-        knob.style.transform = 'translateX(0px)';
-        if(subtitle){ subtitle.textContent = 'Mic access denied — voice unavailable'; subtitle.style.color = 'rgba(255,80,80,0.8)'; }
-        setTimeout(()=>{ if(subtitle){ subtitle.textContent = 'Players can talk in-game'; subtitle.style.color = ''; } }, 3000);
-      });
-  } else {
-    btn.style.background = '#333';
-    knob.style.transform = 'translateX(0px)';
-    if(subtitle){ subtitle.textContent = 'Players can talk in-game'; subtitle.style.color = ''; }
-  }
-};
-
-// Called after game loads — check if voice is enabled for this room
-async function _vcInit(){
-  const RC = window.ROOM_CODE, MS = window.MY_SEAT, IH = window.IS_HOST;
-  console.log('[VC] _vcInit called | ROOM_CODE:', RC);
-  if(!RC){ console.warn('[VC] _vcInit aborted: no ROOM_CODE'); return; }
-  const _db = window.db;
-  // waitForAuth with 5s timeout so it never hangs forever
-  await Promise.race([window.waitForAuth(), new Promise(res=>setTimeout(res,5000))]).catch(()=>{});
-  console.log('[VC] auth wait done | db._stub:', !!(_db&&_db._stub));
-  if(_db && _db._stub){ console.warn('[VC] _vcInit aborted: db is still stub'); return; }
-  let voiceVal = false;
-  try {
-    console.log('[VC] Reading voiceEnabled | path: rooms/'+RC+'/voiceEnabled');
-    const snap = await _db.ref('rooms/'+RC+'/voiceEnabled').once('value');
-    const firebaseVal = snap.val();
-    console.log('[VC] Firebase voiceEnabled:', firebaseVal, '| type:', typeof firebaseVal);
-    if(firebaseVal === true){
-      voiceVal = true;
-    } else {
-      if(IH && window._voiceOptionEnabled === true){
-        console.log('[VC] Host override: Firebase='+firebaseVal+' but local=true — patching');
-        try { await _db.ref('rooms/'+RC+'/voiceEnabled').set(true); } catch(e2){ console.warn('[VC] Patch failed:', e2&&(e2.code||e2.message)||e2); }
-        voiceVal = true;
-      } else {
-        console.log('[VC] Voice is OFF — IS_HOST:'+IH+' _voiceOptionEnabled:'+window._voiceOptionEnabled);
-      }
-    }
-  } catch(e) {
-    console.warn('[VC] Firebase read failed:', e&&(e.code||e.message)||JSON.stringify(e));
-    voiceVal = window._voiceOptionEnabled === true;
-    console.log('[VC] Fallback voiceVal:', voiceVal);
-  }
-  _voiceEnabled = voiceVal;
-  console.log('[VC] Final voiceEnabled:', _voiceEnabled, '| IS_HOST:', IH);
-  if(!_voiceEnabled){ console.log('[VC] Voice OFF — bar will NOT show'); return; }
-  console.log('[VC] Voice IS enabled — showing bar...');
-  await _vcFetchIceServers();
-  // Only HOST clears old voice data — joiner must NOT delete host's signaling
-  if(IH){
-    try {
-      await _db.ref(`rooms/${RC}/voice`).remove();
-      console.log('[VC] Old Firebase voice data cleared ✅ (host only)');
-    } catch(e) {
-      console.warn('[VC] Could not clear old voice data:', e&&(e.code||e.message)||e);
-    }
-  } else {
-    console.log('[VC] Joiner — skipping voice data clear ✅');
-  }
-  _vcShowBar();
-  console.log('[VC] Bar shown, starting mic...');
-  await _vcStartMic();
-  console.log('[VC] Mic done, starting signaling listeners...');
-  _vcListenSignaling();
-  console.log('[VC] Signaling listeners started, waiting 500ms before sending offers...');
-  await new Promise(r => setTimeout(r, 500));
-  if(!window.ROOM_CODE){ console.warn('[VC] Room left during delay, aborting offers'); return; }
-  console.log('[VC] Repopulating dots...');
-  _vcRepopulateDots();
-  const pSnap = await _db.ref(`rooms/${window.ROOM_CODE}/players`).once('value');
-  const players = pSnap.val() || {};
-  console.log('[VC] Players in room:', Object.keys(players), '| MY_SEAT:', window.MY_SEAT);
-  for(const seatStr of Object.keys(players)){
-    const seat = Number(seatStr);
-    if(seat === window.MY_SEAT) continue;
-    if(window.MY_SEAT < seat){
-      console.log('[VC] Creating offer to seat', seat, '(I am lower seat — I am offerer)');
-      _vcCreateOffer(seat);
-    } else {
-      console.log('[VC] Waiting for offer from seat', seat, '(they are lower seat)');
-    }
-  }
-}
-
-function _vcRepopulateDots(){
-  const dots = document.getElementById('vc-dots');
-  if(!dots) return;
-  // Only repopulate if dots container is empty
-  if(dots.children.length > 0) return;
-  if(!window._getSEAT_LAYOUT_ACTIVE || !window._getSEAT_LAYOUT_ACTIVE()) return;
-  window._getSEAT_LAYOUT_ACTIVE().forEach(seat => {
-    if(seat === window.MY_SEAT) return;
-    const _p = (window.PLAYERS || [])[seat];
-    const playerName = (_p && _p.label) ? _p.label : `P${seat+1}`;
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 4px;border-radius:8px;';
-    const d = document.createElement('div');
-    d.id = `vc-dot-${seat}`;
-    d.style.cssText = 'width:9px;height:9px;border-radius:50%;background:#555;transition:background 0.2s;border:1.5px solid rgba(255,255,255,0.15);flex-shrink:0;';
-    const nameEl = document.createElement('div');
-    nameEl.style.cssText = 'font-size:.52rem;font-family:"Nunito",sans-serif;font-weight:800;color:rgba(240,240,255,0.7);letter-spacing:.3px;max-width:40px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;';
-    nameEl.textContent = playerName;
-    const statusEl = document.createElement('div');
-    statusEl.id = `vc-status-${seat}`;
-    statusEl.style.cssText = 'font-size:.48rem;font-family:"Rajdhani",sans-serif;font-weight:700;letter-spacing:.5px;color:#555;text-align:center;';
-    statusEl.textContent = '●';
-    wrap.appendChild(d);
-    wrap.appendChild(nameEl);
-    wrap.appendChild(statusEl);
-    dots.appendChild(wrap);
-  });
-}
-
-async function _vcStartMic(){
-  console.log('[VC] _vcStartMic called — requesting mic permission...');
-  try {
-    // If joiner already granted mic permission in the join flow, reuse that stream
-    if(window._vcPreGrantedStream){
-      console.log('[VC] Reusing pre-granted mic stream from join flow');
-      _localStream = window._vcPreGrantedStream;
-      window._vcPreGrantedStream = null;
-    } else {
-      _localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    }
-    _voiceActive = true;
-    const tracks = _localStream.getAudioTracks();
-    console.log('[VC] Mic started | tracks:', tracks.length, '| label:', tracks[0] ? tracks[0].label : 'none');
-    _vcUpdateBtns();
-    console.log('[VC] Mic button updated');
-  } catch(e){
-    console.warn('[VC] Mic error:', e.name, e.message);
-    window.showToast('🎙️ Mic access denied');
-  }
-}
-
-function _vcGetOrCreatePeer(remoteSeat){
-  if(_vcPeers[remoteSeat]){
-    console.log('[VC] Reusing existing peer for seat', remoteSeat, '| state:', _vcPeers[remoteSeat].connectionState);
-    return _vcPeers[remoteSeat];
-  }
-  console.log('[VC] Creating NEW RTCPeerConnection for seat', remoteSeat);
-  const pc = new RTCPeerConnection(VC_ICE);
-  _vcPeers[remoteSeat] = pc;
-  if(_localStream){
-    const tracks = _localStream.getTracks();
-    tracks.forEach(t => pc.addTrack(t, _localStream));
-    console.log('[VC] Added', tracks.length, 'local track(s) to peer seat', remoteSeat);
-  } else {
-    console.warn('[VC] No localStream when creating peer for seat', remoteSeat, '— no local tracks added');
-  }
-  pc.ontrack = e => {
-    let el = document.getElementById(`vc-audio-${remoteSeat}`);
-    if(!el){
-      el = document.createElement('audio');
-      el.id = `vc-audio-${remoteSeat}`;
-      el.autoplay = true;
-      el.style.display = 'none';
-      el.muted = _vcSpeakerMuted;
-      document.body.appendChild(el);
-      console.log('[VC] Created <audio> element for seat', remoteSeat);
-    }
-    el.srcObject = e.streams[0];
-    console.log('[VC] Remote audio track received from seat', remoteSeat, '| streams:', e.streams.length, '| track kind:', e.track.kind, '| track state:', e.track.readyState);
-  };
-  pc.onicecandidateerror = e => {
-    console.warn('[VC] ICE candidate error for seat', remoteSeat, '| errorCode:', e.errorCode, e.errorText, '| url:', e.url);
-  };
-  pc.onicecandidate = e => {
-    if(!e.candidate){
-      console.log('[VC] ICE gathering DONE for seat', remoteSeat, '| final iceGatheringState:', pc.iceGatheringState);
-      return;
-    }
-    console.log('[VC] Sending ICE candidate to seat', remoteSeat, '| type:', e.candidate.type, '| protocol:', e.candidate.protocol, '| address:', e.candidate.address);
-    window.db.ref(`rooms/${window.ROOM_CODE}/voice/ice/${remoteSeat}_${window.MY_SEAT}`).push(e.candidate.toJSON());
-  };
-  pc.onicegatheringstatechange = () => {
-    console.log('[VC] ICE gathering state for seat', remoteSeat, ':', pc.iceGatheringState);
-  };
-  pc.oniceconnectionstatechange = () => {
-    console.log('[VC] ICE connection state for seat', remoteSeat, ':', pc.iceConnectionState, '| signalingState:', pc.signalingState);
-    if(pc.iceConnectionState === 'failed'){
-      console.warn('[VC] ICE FAILED for seat', remoteSeat, '— attempting restart...');
-      pc.restartIce();
-    }
-    if(pc.iceConnectionState === 'disconnected'){
-      console.warn('[VC] ICE DISCONNECTED for seat', remoteSeat, '— may recover...');
-    }
-  };
-  pc.onconnectionstatechange = () => {
-    console.log('[VC] Peer', remoteSeat, 'connection state:', pc.connectionState, '| iceState:', pc.iceConnectionState);
-    _vcUpdateSpeakerDot(remoteSeat, pc.connectionState === 'connected');
-    if(pc.connectionState === 'failed'){
-      console.warn('[VC] PEER FAILED for seat', remoteSeat, '— closing and cleaning up');
-    }
-    if(pc.connectionState === 'connected'){
-      console.log('[VC] ✅ CONNECTED to seat', remoteSeat, '🎉 Voice chat active!');
-    }
-  };
-  return pc;
-}
-
-async function _vcCreateOffer(remoteSeat){
-  console.log('[VC] _vcCreateOffer → seat', remoteSeat);
-  const pc = _vcGetOrCreatePeer(remoteSeat);
-  console.log('[VC] Creating SDP offer for seat', remoteSeat, '| signalingState:', pc.signalingState);
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  console.log('[VC] LocalDescription set | sdp type:', offer.type);
-  console.log('[VC] Writing offer to Firebase | key:', window.MY_SEAT + '_' + remoteSeat, '| sdpLen:', offer.sdp.length);
-  await window.db.ref(`rooms/${window.ROOM_CODE}/voice/offer/${window.MY_SEAT}_${remoteSeat}`).set({ type: offer.type, sdp: offer.sdp });
-  console.log('[VC] ✅ Offer written to Firebase — key:', window.MY_SEAT + '_' + remoteSeat);
-}
-
-function _vcListenSignaling(){
-  if(!window.ROOM_CODE) return;
-  const sigRef = window.db.ref(`rooms/${window.ROOM_CODE}/voice`);
-
-  // Listen for offers addressed to me
-  const offerRef = window.db.ref(`rooms/${window.ROOM_CODE}/voice/offer`);
-  offerRef.on('child_added', async snap => {
-    const key = snap.key; // "fromSeat_toSeat"
-    const [fromStr, toStr] = key.split('_');
-    const from = Number(fromStr), to = Number(toStr);
-    console.log('[VC] Offer received | key:', key, '| from:', from, '→ to:', to, '| MY_SEAT:', window.MY_SEAT);
-    if(to !== window.MY_SEAT){ console.log('[VC] Offer not for me, ignoring'); return; }
-    if(!window.ROOM_CODE){ console.warn('[VC] No ROOM_CODE when handling offer'); return; }
-    const offer = snap.val();
-    const pc = _vcGetOrCreatePeer(from);
-    console.log('[VC] Peer signalingState for seat', from, ':', pc.signalingState);
-    if(pc.signalingState !== 'stable'){ console.warn('[VC] Skipping offer — signalingState not stable:', pc.signalingState); return; }
-    await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    console.log('[VC] RemoteDescription set for seat', from);
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    console.log('[VC] LocalDescription (answer) set for seat', from);
-    if(!window.ROOM_CODE){ console.warn('[VC] ROOM_CODE gone before writing answer'); return; }
-    console.log('[VC] Writing answer to Firebase | key:', window.MY_SEAT + '_' + from, '| sdpLen:', answer.sdp.length);
-    await window.db.ref(`rooms/${window.ROOM_CODE}/voice/answer/${window.MY_SEAT}_${from}`).set({ type: answer.type, sdp: answer.sdp });
-    console.log('[VC] ✅ Answer written to Firebase — key:', window.MY_SEAT + '_' + from);
-  });
-  window._listeners.push(() => offerRef.off('child_added'));
-
-  // Listen for answers addressed to me
-  const ansRef = window.db.ref(`rooms/${window.ROOM_CODE}/voice/answer`);
-  ansRef.on('child_added', async snap => {
-    const key = snap.key;
-    const [fromStr, toStr] = key.split('_');
-    const from = Number(fromStr), to = Number(toStr);
-    console.log('[VC] Answer received | key:', key, '| from:', from, '→ to:', to, '| MY_SEAT:', window.MY_SEAT);
-    if(to !== window.MY_SEAT){ console.log('[VC] Answer not for me, ignoring'); return; }
-    const answer = snap.val();
-    const pc = _vcPeers[from];
-    if(!pc){ console.warn('[VC] No peer found for seat', from, 'when processing answer'); return; }
-    console.log('[VC] Peer signalingState for seat', from, ':', pc.signalingState);
-    if(pc.signalingState !== 'have-local-offer'){ console.warn('[VC] Skipping answer — signalingState:', pc.signalingState); return; }
-    await pc.setRemoteDescription(new RTCSessionDescription(answer));
-    console.log('[VC] Got answer from seat', from, '— RemoteDescription set ✅');
-  });
-  window._listeners.push(() => ansRef.off('child_added'));
-
-  // Listen for ICE candidates for me
-  const iceRef = window.db.ref(`rooms/${window.ROOM_CODE}/voice/ice`);
-  iceRef.on('child_added', async snap => {
-    const key = snap.key; // "fromSeat_toSeat"
-    const [fromStr, toStr] = key.split('_');
-    const from = Number(fromStr), to = Number(toStr);
-    if(to !== window.MY_SEAT) return;
-    const pc = _vcGetOrCreatePeer(from);
-    let count = 0;
-    snap.forEach(child => {
-      const cand = child.val();
-      pc.addIceCandidate(new RTCIceCandidate(cand))
-        .then(()=>{ console.log('[VC] ✅ ICE candidate added from seat', from, '| type:', cand.type||'?', '| proto:', cand.protocol||'?'); })
-        .catch(e=>{ console.warn('[VC] ❌ addIceCandidate failed from seat', from, '|', e&&e.message||e); });
-      count++;
-    });
-    console.log('[VC] ICE batch received from seat', from, '| count:', count, '| peerState:', pc.connectionState, '| iceState:', pc.iceConnectionState);
-  });
-  iceRef.on('child_changed', async snap => {
-    const key = snap.key;
-    const [fromStr, toStr] = key.split('_');
-    const from = Number(fromStr), to = Number(toStr);
-    if(to !== window.MY_SEAT) return;
-    const pc = _vcGetOrCreatePeer(from);
-    let count = 0;
-    snap.forEach(child => {
-      const cand = child.val();
-      pc.addIceCandidate(new RTCIceCandidate(cand))
-        .then(()=>{ console.log('[VC] ✅ ICE candidate updated from seat', from, '| type:', cand.type||'?'); })
-        .catch(e=>{ console.warn('[VC] ❌ addIceCandidate update failed from seat', from, '|', e&&e.message||e); });
-      count++;
-    });
-    console.log('[VC] ICE batch changed from seat', from, '| count:', count);
-  });
-  window._listeners.push(() => iceRef.off('child_added'));
-  window._listeners.push(() => iceRef.off('child_changed'));
-}
-
-function _vcCleanup(){
-  console.log('[VC] _vcCleanup called | peers:', Object.keys(_vcPeers).length, '| voiceActive:', _voiceActive);
-  Object.entries(_vcPeers).forEach(([seat, pc]) => {
-    try { pc.close(); console.log('[VC] Closed peer for seat', seat); } catch(e){ console.warn('[VC] Error closing peer seat', seat, e); }
-  });
-  _vcPeers = {};
-  _vcSpeakerMuted = false;
-  if(_localStream){
-    _localStream.getTracks().forEach(t => { t.stop(); console.log('[VC] Stopped track:', t.label); });
-    _localStream = null;
-    console.log('[VC] localStream stopped and cleared');
-  }
-  _voiceActive = false; _voiceEnabled = false;
-  const audioEls = document.querySelectorAll('[id^="vc-audio-"]');
-  audioEls.forEach(el => el.remove());
-  console.log('[VC] Removed', audioEls.length, '<audio> element(s)');
-  const bar = document.getElementById('vc-bar');
-  if(bar){ bar.remove(); console.log('[VC] Voice bar removed from DOM'); }
-  else { console.log('[VC] Voice bar was already absent from DOM'); }
-  console.log('[VC] Cleanup complete ✅');
-}
-
-function _vcToggleMic(){
-  if(!_localStream) return;
-  _vcMicMuted = !_vcMicMuted;
-  _localStream.getAudioTracks().forEach(t => t.enabled = !_vcMicMuted);
-  _vcUpdateBtns();
-  window.showToast(_vcMicMuted ? '🔇 Mic off' : '🎙️ Mic on');
-}
-
-function _vcToggleSpeaker(){
-  _vcSpeakerMuted = !_vcSpeakerMuted;
-  // Mute/unmute all incoming audio elements
-  document.querySelectorAll('[id^="vc-audio-"]').forEach(el => {
-    el.muted = _vcSpeakerMuted;
-  });
-  _vcUpdateBtns();
-  window.showToast(_vcSpeakerMuted ? '🔇 Speaker off' : '🔊 Speaker on');
-}
-
-function _vcUpdateBtns(){
-  const micBtn = document.getElementById('vc-mic-btn');
-  if(micBtn){
-    micBtn.textContent = _vcMicMuted ? '🔇' : '🎙️';
-    micBtn.title = _vcMicMuted ? 'Unmute mic' : 'Mute mic';
-    micBtn.style.opacity = _vcMicMuted ? '0.45' : '1';
-    micBtn.style.borderColor = _vcMicMuted ? 'rgba(239,68,68,0.6)' : 'rgba(34,197,94,0.5)';
-    micBtn.style.background = _vcMicMuted ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.1)';
-  }
-  const spkBtn = document.getElementById('vc-speaker-btn');
-  if(spkBtn){
-    spkBtn.textContent = _vcSpeakerMuted ? '🔇' : '🔊';
-    spkBtn.title = _vcSpeakerMuted ? 'Unmute speaker' : 'Mute speaker';
-    spkBtn.style.opacity = _vcSpeakerMuted ? '0.45' : '1';
-    spkBtn.style.borderColor = _vcSpeakerMuted ? 'rgba(239,68,68,0.6)' : 'rgba(34,197,94,0.5)';
-    spkBtn.style.background = _vcSpeakerMuted ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.1)';
-  }
-}
-
-function _vcUpdateSpeakerDot(seat, connected){
-  const dot = document.getElementById(`vc-dot-${seat}`);
-  const status = document.getElementById(`vc-status-${seat}`);
-  if(!dot) return;
-  if(connected){
-    dot.style.background = '#22c55e';
-    if(status){ status.textContent = 'ACTIVE'; status.style.color = '#22c55e'; }
-  } else {
-    dot.style.background = '#555';
-    if(status){ status.textContent = '●'; status.style.color = '#555'; }
-  }
-}
-
-function _vcShowBar(){
-  console.log('[VC] _vcShowBar called');
-  if(document.getElementById('vc-bar')){ console.log('[VC] Bar already exists in DOM, skipping'); return; }
-  console.log('[VC] Creating voice bar element...');
-  const bar = document.createElement('div');
-  bar.id = 'vc-bar';
-  bar.style.cssText = 'position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:9998;display:flex;align-items:center;gap:8px;background:rgba(10,10,25,0.95);border:1.5px solid rgba(34,197,94,0.5);border-radius:30px;padding:6px 14px;backdrop-filter:blur(8px);box-shadow:0 4px 24px rgba(0,0,0,0.7);pointer-events:auto;';
-  bar.innerHTML = `
-    <span style="font-size:.62rem;font-weight:800;font-family:'Rajdhani',sans-serif;letter-spacing:1.5px;color:rgba(34,197,94,0.9);">🎙 VOICE</span>
-    <div id="vc-dots" style="display:flex;gap:5px;align-items:center;"></div>
-    <button id="vc-mic-btn" onclick="window._vcToggleMic()" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(34,197,94,0.5);background:rgba(34,197,94,0.1);color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;">🎙️</button>
-    <button id="vc-speaker-btn" onclick="window._vcToggleSpeaker()" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(34,197,94,0.5);background:rgba(34,197,94,0.1);color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;">🔊</button>
-  `;
-  document.body.appendChild(bar);
-  console.log('[VC] Voice bar appended to body | position: fixed bottom:12px center');
-  window._vcToggleMic = _vcToggleMic;
-  window._vcToggleSpeaker = _vcToggleSpeaker;
-  console.log('[VC] _vcToggleMic and _vcToggleSpeaker exposed on window');
-  // Add dots immediately, with retry fallback after 800ms
-  const _buildDots = () => {
-    const dots = document.getElementById('vc-dots');
-    if(!dots) return;
-    dots.innerHTML = '';
-    const layout = (window._getSEAT_LAYOUT_ACTIVE && window._getSEAT_LAYOUT_ACTIVE()) || [];
-    if(layout.length === 0){
-      if(!_buildDots._retries) _buildDots._retries = 0;
-      _buildDots._retries++;
-      if(_buildDots._retries > 15){ console.warn('[VC] SEAT_LAYOUT_ACTIVE never became ready — giving up'); return; }
-      console.log('[VC] SEAT_LAYOUT_ACTIVE not ready yet, retrying in 800ms...');
-      setTimeout(_buildDots, 800);
-      return;
-    }
-    console.log('[VC] Building dots | layout:', layout, '| MY_SEAT:', window.MY_SEAT);
-    layout.forEach(seat => {
-      if(seat === window.MY_SEAT) return;
-      const _p2 = (window.PLAYERS || [])[seat];
-      const playerName = (_p2 && _p2.label) ? _p2.label : `P${seat+1}`;
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 4px;border-radius:8px;';
-      const d = document.createElement('div');
-      d.id = `vc-dot-${seat}`;
-      d.style.cssText = 'width:9px;height:9px;border-radius:50%;background:#555;transition:background 0.2s;border:1.5px solid rgba(255,255,255,0.15);flex-shrink:0;';
-      const nameEl = document.createElement('div');
-      nameEl.style.cssText = 'font-size:.52rem;font-family:"Nunito",sans-serif;font-weight:800;color:rgba(240,240,255,0.7);letter-spacing:.3px;max-width:40px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;';
-      nameEl.textContent = playerName;
-      const statusEl = document.createElement('div');
-      statusEl.id = `vc-status-${seat}`;
-      statusEl.style.cssText = 'font-size:.48rem;font-family:"Rajdhani",sans-serif;font-weight:700;letter-spacing:.5px;color:#555;text-align:center;';
-      statusEl.textContent = '●';
-      wrap.appendChild(d);
-      wrap.appendChild(nameEl);
-      wrap.appendChild(statusEl);
-      dots.appendChild(wrap);
-    });
-    const builtSeats = layout.filter(s => s !== window.MY_SEAT);
-    console.log('[VC] Bar dots built for seats:', builtSeats, '| total dots:', builtSeats.length);
-  };
-  setTimeout(_buildDots, 200);
-}
-
-// Reset voice toggle when create modal cancels
-document.addEventListener('DOMContentLoaded', ()=>{
-  const cancelCreate = document.getElementById('btn-cancel-create');
-  if(cancelCreate){
-    cancelCreate.addEventListener('click', ()=>{
-      window._voiceOptionEnabled = false;
-      const btn = document.getElementById('voice-toggle-btn');
-      const knob = document.getElementById('voice-toggle-knob');
-      const subtitle = document.querySelector('#voice-toggle-row div > div:last-child');
-      if(btn) btn.style.background = '#333';
-      if(knob) knob.style.transform = 'translateX(0px)';
-      if(subtitle){ subtitle.textContent = 'Players can talk in-game'; subtitle.style.color = ''; }
-    });
-  }
-});
-
-// Block scroll/touchmove on lobby and home screen
-document.addEventListener('touchmove', function(e){
-  const lobby = document.getElementById('lobby');
-  const home = document.getElementById('home-screen');
-  if((lobby && lobby.style.display !== 'none') || (home && home.style.display !== 'none' && home.style.opacity !== '0')){
-    e.preventDefault();
-  }
-}, { passive: false });
-
 // ── Back to Home from Lobby ──
 // Patch the existing "Leave" / home button to also show home screen
 (function patchBackToHome() {
@@ -7353,6 +6685,148 @@ document.addEventListener('touchmove', function(e){
       });
     }
   });
+})();
+</script>
+<!-- Chat Vault -->
+<div id="chat-vault-overlay" onclick="if(event.target===this)window.closeVault()"></div>
+<div id="chat-vault">
+  <div id="cv-header">
+    <span id="cv-title">👑 &nbsp;OUR MATCHES</span>
+    <button id="cv-close" onclick="window.closeVault()">✕</button>
+  </div>
+  <div id="cv-body">
+    <div id="cv-rooms-list"></div>
+    <div id="cv-chat-view" style="display:none;">
+      <div id="cv-chat-header">
+        <button id="cv-back" onclick="window.vaultBack()">‹ Back</button>
+        <span id="cv-chat-room-label"></span>
+        <button id="cv-dl-btn" onclick="window.vaultDownload()">⬇ Save</button>
+      </div>
+      <div id="cv-messages"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CHAT VAULT ────────────────────────────────────────────────────────────────
+(function(){
+  const LS_KEY = 'ludo_chat_vault_rooms';
+  const TAPS_NEEDED = 10;
+  const RESET_MS = 4000;
+  let _taps = 0, _tapTimer = null;
+  let _currentRoom = null, _currentMsgs = [];
+
+  window._vaultSaveRoom = function(code, playerNames, myName){
+    if(!code) return;
+    try {
+      const list = JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+      const exists = list.find(r=>r.code===code);
+      if(exists){ exists.date=new Date().toISOString(); localStorage.setItem(LS_KEY,JSON.stringify(list)); return; }
+      list.unshift({code, date:new Date().toISOString(), players:playerNames||[], myName:myName||'Me'});
+      if(list.length>20) list.splice(20);
+      localStorage.setItem(LS_KEY, JSON.stringify(list));
+    } catch(e){}
+  };
+
+  window.togglePrivateChat = function(){
+    _taps++;
+    clearTimeout(_tapTimer);
+    if(_taps >= TAPS_NEEDED){
+      _taps = 0;
+      _openVault();
+    } else {
+      _tapTimer = setTimeout(()=>{ _taps=0; }, RESET_MS);
+      const crown = document.getElementById('lobby-crown');
+      if(crown){ crown.style.transform=`scale(${1+_taps*0.03})`; setTimeout(()=>{ crown.style.transform=''; },140); }
+    }
+  };
+
+  function _openVault(){
+    _renderRooms();
+    document.getElementById('chat-vault-overlay').classList.add('show');
+    document.getElementById('chat-vault').classList.add('open');
+    document.getElementById('cv-rooms-list').style.display='flex';
+    document.getElementById('cv-chat-view').style.display='none';
+  }
+
+  window.closeVault = function(){
+    document.getElementById('chat-vault-overlay').classList.remove('show');
+    document.getElementById('chat-vault').classList.remove('open');
+    _currentRoom=null; _currentMsgs=[];
+  };
+
+  window.vaultBack = function(){
+    document.getElementById('cv-rooms-list').style.display='flex';
+    document.getElementById('cv-chat-view').style.display='none';
+    _currentRoom=null; _currentMsgs=[];
+  };
+
+  function _renderRooms(){
+    const list = _getRooms();
+    const el = document.getElementById('cv-rooms-list');
+    if(!el) return;
+    if(!list.length){
+      el.innerHTML='<div class="cv-empty"><span class="cv-empty-icon">💬</span>Koi match nahi abhi.<br>Game khelo — chat auto-save hogi!</div>';
+      return;
+    }
+    el.innerHTML = list.map((r,i)=>{
+      const d = new Date(r.date);
+      const ds = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+      const ts = d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+      const ps = r.players.length ? r.players.join(' vs ') : 'Players';
+      return `<div class="cv-room-card" onclick="window.vaultOpenRoom(${i})"><div class="cv-room-icon">🎲</div><div class="cv-room-info"><div class="cv-room-date">${ds} &nbsp;·&nbsp; ${ts}</div><div class="cv-room-players">${_esc(ps)}</div><div class="cv-room-code">${_esc(r.code)}</div></div><div class="cv-room-arrow">›</div></div>`;
+    }).join('');
+  }
+
+  window.vaultOpenRoom = function(idx){
+    const room = _getRooms()[idx];
+    if(!room) return;
+    _currentRoom = room;
+    document.getElementById('cv-rooms-list').style.display='none';
+    document.getElementById('cv-chat-view').style.display='flex';
+    const d = new Date(room.date);
+    document.getElementById('cv-chat-room-label').textContent = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' · '+room.players.join(' vs ');
+    const box = document.getElementById('cv-messages');
+    box.innerHTML='<div class="cv-loading">Loading...</div>';
+    if(typeof db!=='undefined' && db && db.ref){
+      db.ref(`rooms/${room.code}/chat`).orderByKey().once('value', snap=>{
+        _currentMsgs=[];
+        box.innerHTML='';
+        if(!snap.exists()||!snap.numChildren()){ box.innerHTML='<div class="cv-loading">Is match mein chat nahi thi 🙈</div>'; return; }
+        snap.forEach(child=>{
+          const m=child.val();
+          if(m.type==='sys'||!m.text) return;
+          _currentMsgs.push(m);
+          const mine = m.name===room.myName;
+          const t = m.ts ? new Date(m.ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+          const div=document.createElement('div');
+          div.className='cv-msg'+(mine?' mine':'');
+          div.innerHTML=`<div class="cv-msg-meta"><span class="cv-msg-name">${_esc(m.name||'?')}</span><span class="cv-msg-time">${t}</span></div><div class="cv-msg-text">${_esc(m.text)}</div>`;
+          box.appendChild(div);
+        });
+        if(!box.children.length) box.innerHTML='<div class="cv-loading">Is match mein chat nahi thi 🙈</div>';
+        box.scrollTop=box.scrollHeight;
+      },()=>{ box.innerHTML='<div class="cv-loading">Load nahi ho payi 😕</div>'; });
+    } else {
+      box.innerHTML='<div class="cv-loading">Firebase connected nahi</div>';
+    }
+  };
+
+  window.vaultDownload = function(){
+    if(!_currentRoom||!_currentMsgs.length){ alert('Koi messages nahi!'); return; }
+    const r=_currentRoom, d=new Date(r.date);
+    const lines=['💕 Ludo Match Chat','📅 '+d.toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}),'🎮 '+r.players.join(' vs '),'─'.repeat(44),''];
+    _currentMsgs.forEach(m=>{ const t=m.ts?new Date(m.ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):''; lines.push(`[${t}] ${m.name}: ${m.text}`); });
+    lines.push('','─'.repeat(44),'✨ Ludo King');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'}));
+    a.download='match-chat-'+d.toISOString().slice(0,10)+'.txt';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+  };
+
+  function _getRooms(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch(e){ return []; } }
+  function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 })();
 </script>
 </body>
