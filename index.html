@@ -6967,6 +6967,21 @@ function cpuStartGame(n) {
 })();
 </script>
 <!-- Chat Vault -->
+<!-- Vault Password Modal -->
+<div id="vault-pw-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(4px);z-index:9500;align-items:center;justify-content:center;">
+  <div style="background:#1a1a35;border:1.5px solid #333366;border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;width:300px;box-shadow:0 16px 60px rgba(0,0,0,.7);">
+    <div style="font-size:1.8rem;">🔐</div>
+    <div style="color:white;font-size:1.1rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif;">Chat Vault</div>
+    <div style="color:rgba(240,240,255,.4);font-size:12px;text-align:center;font-family:'Nunito',sans-serif;">Password enter karo</div>
+    <input id="vault-pw-input" type="password" placeholder="Password" maxlength="32"
+      style="width:100%;padding:13px 16px;background:#13132a;border:1.5px solid #333366;border-radius:12px;color:white;font-size:1rem;font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:4px;text-align:center;outline:none;"
+      onfocus="this.style.borderColor='#F5C518'" onblur="this.style.borderColor='#333366'"
+      onkeydown="if(event.key==='Enter')window._submitVaultPw()"/>
+    <div id="vault-pw-err" style="color:#FF2D78;font-size:12px;font-family:'Nunito',sans-serif;min-height:16px;text-align:center;"></div>
+    <button onclick="window._submitVaultPw()" style="width:100%;padding:14px 0;font-size:.9rem;font-weight:800;border:none;border-radius:12px;cursor:pointer;background:#F5C518;color:#000;letter-spacing:.5px;font-family:'Nunito',sans-serif;">Open 🔓</button>
+    <button onclick="window._closeVaultPwModal()" style="width:100%;padding:14px 0;font-size:.9rem;font-weight:800;border:1.5px solid #333366;border-radius:12px;cursor:pointer;background:#13132a;color:rgba(240,240,255,.8);letter-spacing:.5px;font-family:'Nunito',sans-serif;">Cancel</button>
+  </div>
+</div>
 <div id="chat-vault-overlay" onclick="if(event.target===this)window.closeVault()"></div>
 <div id="chat-vault">
   <div id="cv-header">
@@ -7024,22 +7039,43 @@ function cpuStartGame(n) {
   };
 
   function _askVaultPassword(){
-    const entered = prompt('🔐 Enter password:');
-    if(entered === null) return;
+    const overlay = document.getElementById('vault-pw-overlay');
+    const input = document.getElementById('vault-pw-input');
+    const err = document.getElementById('vault-pw-err');
+    if(!overlay || !input) return;
+    err.textContent = '';
+    input.value = '';
+    overlay.style.display = 'flex';
+    setTimeout(()=>input.focus(), 100);
+  }
+
+  window._closeVaultPwModal = function(){
+    const overlay = document.getElementById('vault-pw-overlay');
+    if(overlay) overlay.style.display = 'none';
+  };
+
+  window._submitVaultPw = function(){
+    const input = document.getElementById('vault-pw-input');
+    const err = document.getElementById('vault-pw-err');
+    const entered = input ? input.value.trim() : '';
+    if(!entered){ err.textContent = '⚠️ Password khali hai'; return; }
     if(typeof db==='undefined' || !db || !db.ref){
-      showToast('❌ Firebase connected nahi');
+      err.textContent = '❌ Firebase connected nahi';
       return;
     }
+    err.textContent = '⏳ Check ho raha hai...';
     db.ref('config/vaultPassword').once('value', snap=>{
       if(snap.exists() && entered === snap.val()){
+        window._closeVaultPwModal();
         _openVault();
       } else {
-        showToast('❌ Wrong password');
+        err.textContent = '❌ Wrong password';
+        if(input){ input.value=''; input.focus(); }
       }
     }, ()=>{
-      showToast('❌ Password check nahi ho paya');
+      err.textContent = '❌ Password check nahi ho paya';
     });
-  }
+  };
 
   function _openVault(){
     document.getElementById('chat-vault-overlay').classList.add('show');
