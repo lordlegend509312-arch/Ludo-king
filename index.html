@@ -28,8 +28,8 @@ const SFX = (function(){
     if(_ctx.state === 'suspended'){
     }
   }
-  document.addEventListener('touchstart', _unlockAudio, { once: true, passive: true });
-  document.addEventListener('click', _unlockAudio, { once: true, passive: true });
+  document.addEventListener('touchstart', _unlockAudio, { once: false, passive: true });
+  document.addEventListener('click', _unlockAudio, { once: false, passive: true });
   function registerExtra(name, b64){
     _buffers[name] = { b64, buf: null, loading: false };
   }
@@ -2169,7 +2169,6 @@ async function loadAndStartGame(){
 function _flushSyncPending(){
   if(_syncAnimPending.length === 0) return;
   const next = _syncAnimPending.shift();
-  _syncPendingRebuildIndex();
   syncGameState(next);
 }
 let _syncAnimPending = []; // FIX: queue instead of single slot — prevents dropped rapid updates
@@ -2181,21 +2180,6 @@ function _sfxDiceRollSynced(data) {
   if (age >= DICE_DUR_MS) return;
   const delay = Math.max(0, 40 - age) / 1000;
   SFX.play('dice', { delay });
-}
-// PERF: O(1) index maps for _syncAnimPending — avoids repeated findIndex scans
-const _pendingRollBySeat = {}; // seat -> index in _syncAnimPending
-const _pendingSkipBySeat = {}; // seat -> index in _syncAnimPending
-const _pendingMoveBySeat = {}; // seat -> index in _syncAnimPending (first move per seat)
-function _syncPendingRebuildIndex(){
-  Object.keys(_pendingRollBySeat).forEach(k=>delete _pendingRollBySeat[k]);
-  Object.keys(_pendingSkipBySeat).forEach(k=>delete _pendingSkipBySeat[k]);
-  Object.keys(_pendingMoveBySeat).forEach(k=>delete _pendingMoveBySeat[k]);
-  for(let i=0;i<_syncAnimPending.length;i++){
-    const p=_syncAnimPending[i];
-    if(p.action==="roll" && _pendingRollBySeat[p.actionBy]==null) _pendingRollBySeat[p.actionBy]=i;
-    else if(p.action==="skip" && _pendingSkipBySeat[p.actionBy]==null) _pendingSkipBySeat[p.actionBy]=i;
-    else if(p.action==="move" && _pendingMoveBySeat[p.actionBy]==null) _pendingMoveBySeat[p.actionBy]=i;
-  }
 }
 function syncGameState(data, _forceApply){
   if(!_gameLoaded){ return; }
@@ -2214,17 +2198,14 @@ function syncGameState(data, _forceApply){
         return;
       }
       if(ts) _processedMoveTs[seat].add(ts);
-      // Rescue dice from pending roll (O(1) lookup)
-      const rollIdx = _pendingRollBySeat[seat] ?? -1;
+      const rollIdx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === seat);
       if(rollIdx >= 0){
         const rescuedDice = _syncAnimPending[rollIdx].dice ?? _syncAnimPending[rollIdx].diceVal;
         if(rescuedDice != null && data.dice == null && data.diceVal == null){
           data = { ...data, dice: rescuedDice, diceVal: rescuedDice };
         }
         _syncAnimPending.splice(rollIdx, 1);
-        _syncPendingRebuildIndex();
       }
-      // Insert in timestamp order
       let insertIdx = _syncAnimPending.length;
       for(let i = 0; i < _syncAnimPending.length; i++){
         if(_syncAnimPending[i].action === "move" && (_syncAnimPending[i].timestamp || 0) > (ts || 0)){
@@ -2232,23 +2213,22 @@ function syncGameState(data, _forceApply){
         }
       }
       _syncAnimPending.splice(insertIdx, 0, data);
-      _syncPendingRebuildIndex();
     } else if(data.action === "skip"){
-      const rollIdx = _pendingRollBySeat[data.actionBy] ?? -1;
-      if(rollIdx >= 0){ _syncAnimPending.splice(rollIdx, 1); _syncPendingRebuildIndex(); }
-      const sameIdx = _pendingSkipBySeat[data.actionBy] ?? -1;
+      const rollIdx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === data.actionBy);
+      if(rollIdx >= 0) _syncAnimPending.splice(rollIdx, 1);
+      const sameIdx = _syncAnimPending.findIndex(p => p.action === "skip" && p.actionBy === data.actionBy);
       if(sameIdx >= 0) _syncAnimPending[sameIdx] = data;
-      else { _syncAnimPending.push(data); _syncPendingRebuildIndex(); }
+      else _syncAnimPending.push(data);
     } else if(data.action === "roll"){
-      const moveIdx = _pendingMoveBySeat[data.actionBy] ?? -1;
+      const moveIdx = _syncAnimPending.findIndex(p => (p.action === "move" || p.action === "skip") && p.actionBy === data.actionBy);
       if(moveIdx >= 0) return;
-      const idx = _pendingRollBySeat[data.actionBy] ?? -1;
+      const idx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === data.actionBy);
       if(idx >= 0) _syncAnimPending[idx] = data;
-      else { _syncAnimPending.push(data); _syncPendingRebuildIndex(); }
+      else _syncAnimPending.push(data);
     } else {
       const idx = _syncAnimPending.findIndex(p => p.action === data.action || (!p.action && !data.action));
       if(idx >= 0) _syncAnimPending[idx] = data;
-      else { _syncAnimPending.push(data); _syncPendingRebuildIndex(); }
+      else _syncAnimPending.push(data);
     }
     return;
   }
@@ -2597,7 +2577,6 @@ function showHostLeaveOverlay(){
   let dotFrame = 0;
   const dotStates = ["● ○ ○","● ● ○","● ● ●","○ ● ●","○ ○ ●","○ ○ ○"];
   const dotsEl = div.querySelector("#host-leave-dots");
-  if(_hostLeaveOverlay._dotTimer){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay._dotTimer = null; }
   _hostLeaveOverlay._dotTimer = setInterval(()=>{
     if(dotsEl) dotsEl.textContent = dotStates[dotFrame++ % dotStates.length];
   }, 320);
@@ -3013,14 +2992,11 @@ function renderSeatVisuals(seat){
   const tokW = _domCache.ptok[seat] || document.getElementById(`ptok-${seat}`);
   if(tokW && tokW.dataset.rc !== color){ tokW.innerHTML = tokIconHTML(color, 36, 1.65); tokW.dataset.rc = color; }
   const lbl = _domCache.lbl[seat] || document.getElementById(`lbl-${seat}`);
-  if(lbl){
-    const _lblColor = isActive ? color : "rgba(240,240,255,0.5)";
-    if(lbl._lastColor !== _lblColor){ lbl._lastColor = _lblColor; lbl.style.color = _lblColor; }
-  }
+  if(lbl) lbl.style.color = isActive ? color : "rgba(240,240,255,0.5)";
   const bg = _domCache.pbg[seat] || document.getElementById(`pbg-${seat}`);
   if(bg){
-    if(bg._lastBorderColor !== 'transparent'){ bg._lastBorderColor = 'transparent'; bg.style.borderColor = 'transparent'; }
-    if(bg._lastBoxShadow !== 'none'){ bg._lastBoxShadow = 'none'; bg.style.boxShadow = 'none'; }
+    bg.style.borderColor = 'transparent';
+    bg.style.boxShadow = 'none';
   }
 }
 function lighten(hex,a=15){let c=hex.replace("#","");const r=Math.min(255,parseInt(c.slice(0,2),16)+a);const g=Math.min(255,parseInt(c.slice(2,4),16)+a);const b=Math.min(255,parseInt(c.slice(4,6),16)+a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
@@ -4544,16 +4520,12 @@ function refreshUI(){
       const active = G.turn === p.id && !G.over;
       const isMyTurn = G.turn === MY_SEAT && p.id === MY_SEAT;
       if(active){
-        const wasInactive = d3d.classList.contains("inactive");
-        if(wasInactive) d3d.classList.remove("inactive");
+        d3d.classList.remove("inactive");
         const canRoll = isMyTurn && !G.rolled && !G.over;
-        const wasOff = d3d.classList.contains("off");
-        if(wasOff !== !canRoll) d3d.classList.toggle("off", !canRoll);
+        d3d.classList.toggle("off", !canRoll);
       } else {
-        const wasInactive2 = d3d.classList.contains("inactive");
-        if(!wasInactive2) d3d.classList.add("inactive");
-        const wasOff2 = d3d.classList.contains("off");
-        if(wasOff2) d3d.classList.remove("off");
+        d3d.classList.add("inactive");
+        d3d.classList.remove("off");
       }
       const cube = _domCache.dcube[p.id] || document.getElementById(`dcube-${p.id}`);
       if(cube && dAcc.last[p.id] == null && !dAcc.busy[p.id]){
@@ -4618,7 +4590,6 @@ function startTurnTimer(seat){
   }
   const _capturedSeat = seat;
   let _timerPhase = 0;
-  if(_timerInterval){ clearInterval(_timerInterval); _timerInterval = null; }
   _timerInterval = setInterval(()=>{
     const elapsed = (Date.now() - _timerStart) / 1000;
     const remaining = TURN_TIMER_SEC - elapsed;
