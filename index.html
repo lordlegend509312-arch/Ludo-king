@@ -6810,11 +6810,14 @@ let _vcSpeakerMuted = false;     // global — mutes ALL incoming audio
 // App: 4whimsical | Domain: 4whimsical.metered.live
 const VC_ICE = {
   iceServers: [
-    { urls: 'stun:stun.relay.metered.ca:80' },
-    { urls: 'turn:standard.relay.metered.ca:80',        username: '69fc399d4fc75fbbb6d8a4d0', credential: '69fc399d4fc75fbbb6d8a4d0' },
-    { urls: 'turn:standard.relay.metered.ca:80?transport=tcp', username: '69fc399d4fc75fbbb6d8a4d0', credential: '69fc399d4fc75fbbb6d8a4d0' },
-    { urls: 'turn:standard.relay.metered.ca:443',       username: '69fc399d4fc75fbbb6d8a4d0', credential: '69fc399d4fc75fbbb6d8a4d0' },
-    { urls: 'turns:standard.relay.metered.ca:443?transport=tcp', username: '69fc399d4fc75fbbb6d8a4d0', credential: '69fc399d4fc75fbbb6d8a4d0' },
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'turn:global.relay.metered.ca:80',                 username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
+    { urls: 'turn:global.relay.metered.ca:80?transport=tcp',   username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
+    { urls: 'turn:global.relay.metered.ca:443',                username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
+    { urls: 'turn:global.relay.metered.ca:443?transport=tcp',  username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
+    { urls: 'turns:global.relay.metered.ca:443',               username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
+    { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'a8ad461834dada1c2b92a562', credential: 'dtNaeEYym97qqNIc' },
   ]
 };
 function _vcFetchIceServers(){ console.log('[VC] TURN servers hardcoded — no fetch needed'); }
@@ -6889,12 +6892,16 @@ async function _vcInit(){
   if(!_voiceEnabled){ console.log('[VC] Voice OFF — bar will NOT show'); return; }
   console.log('[VC] Voice IS enabled — showing bar...');
   await _vcFetchIceServers();
-  // Clean old voice signaling data from Firebase before starting
-  try {
-    await _db.ref(`rooms/${RC}/voice`).remove();
-    console.log('[VC] Old Firebase voice data cleared ✅');
-  } catch(e) {
-    console.warn('[VC] Could not clear old voice data:', e&&(e.code||e.message)||e);
+  // Only HOST clears old voice data — joiner must NOT delete host's signaling
+  if(IH){
+    try {
+      await _db.ref(`rooms/${RC}/voice`).remove();
+      console.log('[VC] Old Firebase voice data cleared ✅ (host only)');
+    } catch(e) {
+      console.warn('[VC] Could not clear old voice data:', e&&(e.code||e.message)||e);
+    }
+  } else {
+    console.log('[VC] Joiner — skipping voice data clear ✅');
   }
   _vcShowBar();
   console.log('[VC] Bar shown, starting mic...');
