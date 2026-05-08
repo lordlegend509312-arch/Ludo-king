@@ -26,14 +26,12 @@ const SFX = (function(){
   function _unlockAudio(){
     if(!_ctx){ _ctx = new (window.AudioContext || window.webkitAudioContext)(); }
     if(_ctx.state === 'suspended'){
-      _ctx.resume().then(()=>{ console.log('[SFX] AudioContext unlocked:', _ctx.state); }).catch(()=>{});
     }
   }
-  document.addEventListener('touchstart', _unlockAudio, { once: false, passive: true });
-  document.addEventListener('click', _unlockAudio, { once: false, passive: true });
+  document.addEventListener('touchstart', _unlockAudio, { once: true, passive: true });
+  document.addEventListener('click', _unlockAudio, { once: true, passive: true });
   function registerExtra(name, b64){
     _buffers[name] = { b64, buf: null, loading: false };
-    console.log('[SFX] registered:', name, 'b64 len:', b64 ? b64.length : 0);
   }
   function _decode(name, cb){
     const entry = _buffers[name];
@@ -41,7 +39,6 @@ const SFX = (function(){
     if(entry.buf){ cb(entry.buf); return; }
     if(entry.loading){ setTimeout(()=>_decode(name,cb), 80); return; }
     entry.loading = true;
-    console.log('[SFX] decoding:', name);
     try{
       const ctx = _getCtx();
       const bin = atob(entry.b64);
@@ -50,7 +47,6 @@ const SFX = (function(){
       ctx.decodeAudioData(bytes.buffer, buf=>{
         entry.buf = buf;
         entry.loading = false;
-        console.log('[SFX] decoded OK:', name, 'duration:', buf.duration.toFixed(2)+'s');
         cb(buf);
       }, err=>{
         entry.loading = false;
@@ -62,12 +58,10 @@ const SFX = (function(){
     }
   }
   function play(name, opts){
-    console.log('[SFX] play called:', name, '| muted:', _muted, '| exists:', !!_buffers[name]);
     if(_muted) return;
     const entry = _buffers[name];
     if(!entry){ console.warn('[SFX] not found:', name, '| registered:', Object.keys(_buffers)); return; }
     const ctx = _getCtx();
-    console.log('[SFX] ctx state:', ctx.state);
     const doPlay = () => {
       _decode(name, buf=>{
         try{
@@ -78,7 +72,6 @@ const SFX = (function(){
           src.connect(gain);
           gain.connect(ctx.destination);
           src.start(ctx.currentTime + (opts && opts.delay || 0));
-          console.log('[SFX] playing:', name);
         } catch(e){ console.warn('[SFX] play error', name, e); }
       });
     };
@@ -427,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function(){
         <div class="s-card-shine"></div>
       </div>
     </div>
-      <div class="s-card" id="btn-test-mode" style="border-color:rgba(255,197,24,.3);background:rgba(255,197,24,.06);">
+      <div class="s-card" id="btn-test-mode" style="display:none;border-color:rgba(255,197,24,.3);background:rgba(255,197,24,.06);">
         <div class="s-card-icon" style="background:linear-gradient(135deg,#F5C518,#b8920f);">🧪</div>
         <div class="s-card-text">
           <div class="s-card-title">Test Mode</div>
@@ -885,6 +878,7 @@ document.addEventListener('DOMContentLoaded', function(){
     <h1 id="win-msg">You Win!</h1>
     <div id="win-podium"></div>
     <button id="btn-play-again">Play Again</button>
+    <button id="btn-back-lobby" style="padding:12px 44px;font-size:.88rem;border:1.5px solid var(--border2);border-radius:14px;cursor:pointer;background:var(--surface);color:var(--muted);font-weight:800;letter-spacing:.5px;opacity:0;animation:slideUp 0.5s 1.05s ease-out forwards;transition:transform 0.12s,background 0.12s,color 0.12s;" onmouseover="this.style.background='var(--surface2)';this.style.color='var(--text)'" onmouseout="this.style.background='var(--surface)';this.style.color='var(--muted)'">🏠 Back to Lobby</button>
   </div>
 </div>
 <div id="toast"></div>
@@ -1967,10 +1961,16 @@ function listenRoom(){
     if(IS_HOST){
       const btn = document.getElementById("btn-start-game");
       const ready = count >= 2;
-      btn.disabled = !ready;
-      btn.style.background = ready ? "var(--gold)" : "var(--surface)";
-      btn.style.color = ready ? "#000" : "var(--muted)";
-      btn.style.borderColor = ready ? "var(--gold)" : "var(--border2)";
+      if(btn){
+        btn.disabled = !ready;
+        btn.style.background = ready ? "var(--gold)" : "var(--surface)";
+        btn.style.color = ready ? "#000" : "var(--muted)";
+        btn.style.borderColor = ready ? "var(--gold)" : "var(--border2)";
+      }
+      // Play Again auto-start: if this is a play-again room and all expected players joined
+      if(count >= NUM_PLAYERS && !_gameStarted && !_gameStartLock){
+        setTimeout(()=>{ if(!_gameStarted) window.hostStartGame(); }, 600);
+      }
     }
   };
   playersRef.on('value', cb1);
@@ -2169,6 +2169,7 @@ async function loadAndStartGame(){
 function _flushSyncPending(){
   if(_syncAnimPending.length === 0) return;
   const next = _syncAnimPending.shift();
+  _syncPendingRebuildIndex();
   syncGameState(next);
 }
 let _syncAnimPending = []; // FIX: queue instead of single slot — prevents dropped rapid updates
@@ -2181,6 +2182,21 @@ function _sfxDiceRollSynced(data) {
   const delay = Math.max(0, 40 - age) / 1000;
   SFX.play('dice', { delay });
 }
+// PERF: O(1) index maps for _syncAnimPending — avoids repeated findIndex scans
+const _pendingRollBySeat = {}; // seat -> index in _syncAnimPending
+const _pendingSkipBySeat = {}; // seat -> index in _syncAnimPending
+const _pendingMoveBySeat = {}; // seat -> index in _syncAnimPending (first move per seat)
+function _syncPendingRebuildIndex(){
+  Object.keys(_pendingRollBySeat).forEach(k=>delete _pendingRollBySeat[k]);
+  Object.keys(_pendingSkipBySeat).forEach(k=>delete _pendingSkipBySeat[k]);
+  Object.keys(_pendingMoveBySeat).forEach(k=>delete _pendingMoveBySeat[k]);
+  for(let i=0;i<_syncAnimPending.length;i++){
+    const p=_syncAnimPending[i];
+    if(p.action==="roll" && _pendingRollBySeat[p.actionBy]==null) _pendingRollBySeat[p.actionBy]=i;
+    else if(p.action==="skip" && _pendingSkipBySeat[p.actionBy]==null) _pendingSkipBySeat[p.actionBy]=i;
+    else if(p.action==="move" && _pendingMoveBySeat[p.actionBy]==null) _pendingMoveBySeat[p.actionBy]=i;
+  }
+}
 function syncGameState(data, _forceApply){
   if(!_gameLoaded){ return; }
   if(!_forceApply && data.actionBy === MY_SEAT) return;
@@ -2190,24 +2206,25 @@ function syncGameState(data, _forceApply){
     data = { ...data, dice: _lastSeenDice[data.actionBy], diceVal: _lastSeenDice[data.actionBy] };
   }
   if(_syncAnimPlaying || _animating){
-    console.log(`[SYNC] Queuing — action:${data.action} actionBy:${data.actionBy} ts:${data.timestamp} | animating:${_animating} syncAnimPlaying:${_syncAnimPlaying} | queueLen:${_syncAnimPending.length}`);
     if(data.action === "move"){
       const ts = data.timestamp;
       const seat = data.actionBy;
       if(!_processedMoveTs[seat]) _processedMoveTs[seat] = new Set();
       if(ts && _processedMoveTs[seat].has(ts)){
-        console.log(`[SYNC] move duplicate skipped ts:${ts}`);
         return;
       }
       if(ts) _processedMoveTs[seat].add(ts);
-      const rollIdx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === seat);
+      // Rescue dice from pending roll (O(1) lookup)
+      const rollIdx = _pendingRollBySeat[seat] ?? -1;
       if(rollIdx >= 0){
         const rescuedDice = _syncAnimPending[rollIdx].dice ?? _syncAnimPending[rollIdx].diceVal;
         if(rescuedDice != null && data.dice == null && data.diceVal == null){
           data = { ...data, dice: rescuedDice, diceVal: rescuedDice };
         }
         _syncAnimPending.splice(rollIdx, 1);
+        _syncPendingRebuildIndex();
       }
+      // Insert in timestamp order
       let insertIdx = _syncAnimPending.length;
       for(let i = 0; i < _syncAnimPending.length; i++){
         if(_syncAnimPending[i].action === "move" && (_syncAnimPending[i].timestamp || 0) > (ts || 0)){
@@ -2215,23 +2232,23 @@ function syncGameState(data, _forceApply){
         }
       }
       _syncAnimPending.splice(insertIdx, 0, data);
-      console.log(`[SYNC] move queued for seat:${seat} dice:${data.dice ?? data.diceVal} ts:${ts} | queueLen now:${_syncAnimPending.length}`);
+      _syncPendingRebuildIndex();
     } else if(data.action === "skip"){
-      const rollIdx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === data.actionBy);
-      if(rollIdx >= 0) _syncAnimPending.splice(rollIdx, 1);
-      const sameIdx = _syncAnimPending.findIndex(p => p.action === "skip" && p.actionBy === data.actionBy);
+      const rollIdx = _pendingRollBySeat[data.actionBy] ?? -1;
+      if(rollIdx >= 0){ _syncAnimPending.splice(rollIdx, 1); _syncPendingRebuildIndex(); }
+      const sameIdx = _pendingSkipBySeat[data.actionBy] ?? -1;
       if(sameIdx >= 0) _syncAnimPending[sameIdx] = data;
-      else _syncAnimPending.push(data);
+      else { _syncAnimPending.push(data); _syncPendingRebuildIndex(); }
     } else if(data.action === "roll"){
-      const moveIdx = _syncAnimPending.findIndex(p => (p.action === "move" || p.action === "skip") && p.actionBy === data.actionBy);
+      const moveIdx = _pendingMoveBySeat[data.actionBy] ?? -1;
       if(moveIdx >= 0) return;
-      const idx = _syncAnimPending.findIndex(p => p.action === "roll" && p.actionBy === data.actionBy);
+      const idx = _pendingRollBySeat[data.actionBy] ?? -1;
       if(idx >= 0) _syncAnimPending[idx] = data;
-      else _syncAnimPending.push(data);
+      else { _syncAnimPending.push(data); _syncPendingRebuildIndex(); }
     } else {
       const idx = _syncAnimPending.findIndex(p => p.action === data.action || (!p.action && !data.action));
       if(idx >= 0) _syncAnimPending[idx] = data;
-      else _syncAnimPending.push(data);
+      else { _syncAnimPending.push(data); _syncPendingRebuildIndex(); }
     }
     return;
   }
@@ -2308,14 +2325,11 @@ function _applySyncGameState(data){
         incoming.forEach(ip => {
           const cur = G.tokens.find(t => t.pid === ip.pid && t.tid === ip.tid);
           if(cur && ip.step < cur.step){
-            console.log(`[SYNC] applyFinalState: guarding backward snap pid:${ip.pid} tid:${ip.tid} incoming:${ip.step} current:${cur.step}`);
             ip.step = cur.step;
           }
         });
         G.tokens = incoming;
-        console.log(`[SYNC] applyFinalState: tokens updated, pending:0`);
       } else if(hasPendingMoves){
-        console.log(`[SYNC] applyFinalState: tokens deferred — ${_syncAnimPending.filter(p=>p.action==="move"&&p.actionBy===rolledBy).length} move(s) pending for seat:${rolledBy}`);
       }
       G.turn       = data.turn;
       G.rolled     = false;
@@ -2345,7 +2359,6 @@ function _applySyncGameState(data){
         const tok = tokOf(pid, tid);
         if(tok && !_animating){
           _animating = true;
-          console.log(`[ANIM] Start — pid:${pid} tid:${tid} type:${type} tok.step:${tok.step} finalStep:${finalStep} dice:${dice}`);
           try {
             if(type === "open" && tok.step === 0){
               const spawnKey = `${pid}-${tid}`;
@@ -2362,25 +2375,20 @@ function _applySyncGameState(data){
                 await jumpStep(_tokEls[spawnKey].wrap, _tokEls[spawnKey].shadow, spawnStart.x, spawnStart.y, entryXY.x, entryXY.y, _tokRW(BASE_W2), oppColor, cp2, oppLayer);
               }
             } else if(type === "open" && tok.step >= 1){
-              console.log(`[ANIM] Duplicate open ignored — pid:${pid} tid:${tid} tok.step already:${tok.step}`);
             } else if(type === "move"){
               if(tok.step === 0 && finalStep > 0){
                 const snapStep = Math.max(1, finalStep - dice);
-                console.log(`[ANIM] tok.step=0 snap — snapStep:${snapStep} finalStep:${finalStep} dice:${dice}`);
                 tok.step = snapStep;
                 renderTokens();
                 await rafDelay(40);
               }
               const steps = finalStep - tok.step;
               if(steps < 0){
-                console.log(`[ANIM] Skipping stale move — tok.step:${tok.step} > finalStep:${finalStep}, steps:${steps}`);
               } else if(steps === 0){
-                console.log(`[ANIM] steps=0, no animation needed tok.step:${tok.step} finalStep:${finalStep}`);
               } else if(steps > 0 && steps <= 6){
                 await animateMove(tok, steps);
                 if(tok.step >= STEP_DONE){}
               } else if(steps > 6 && dice != null && dice >= 1 && dice <= 6){
-                console.log(`[ANIM] steps>6 snap — steps:${steps} tok.step:${tok.step} finalStep:${finalStep} dice:${dice}`);
                 const snapStep = Math.max(tok.step + 1, finalStep - dice);
                 if(snapStep > tok.step && snapStep < finalStep){
                   tok.step = snapStep;
@@ -2539,6 +2547,19 @@ window.tryRejoin = async function(){
   if(!rSnap||!rSnap.exists()){ showToast('Room no longer exists'); clearSession(); document.getElementById('rejoin-card').style.display='none'; return; }
   const rData=rSnap.val();
   if(rData.status==='waiting'){ showToast('Game not started yet'); clearSession(); return; }
+  // Block rejoin into a finished game
+  const gameSnap = await db.ref(`rooms/${s.code}/game/over`).once('value').catch(()=>null);
+  if(gameSnap && gameSnap.val()===true){ showToast('That game has already ended'); clearSession(); document.getElementById('rejoin-card').style.display='none'; return; }
+  // Block rejoin into an abandoned/expired room
+  if(rData.abandonedAt){
+    const elapsed = Date.now() - rData.abandonedAt;
+    if(elapsed >= 15*60*1000){ showToast('Room expired — everyone left'); clearSession(); document.getElementById('rejoin-card').style.display='none'; return; }
+  }
+  // Fallback: if no one wrote abandonedAt (all left simultaneously), check lastActiveAt
+  if(!rData.abandonedAt && rData.lastActiveAt){
+    const elapsed = Date.now() - rData.lastActiveAt;
+    if(elapsed >= 15*60*1000){ showToast('Room expired — inactive for 15 min'); clearSession(); document.getElementById('rejoin-card').style.display='none'; return; }
+  }
   const playerSnap=await db.ref(`rooms/${s.code}/players/${s.seat}`).once('value').catch(()=>null);
   if(!playerSnap||!playerSnap.exists()){ showToast('Seat no longer available'); clearSession(); return; }
   MY_SEAT=s.seat; IS_HOST=(rData.host===s.seat);
@@ -2576,6 +2597,7 @@ function showHostLeaveOverlay(){
   let dotFrame = 0;
   const dotStates = ["● ○ ○","● ● ○","● ● ●","○ ● ●","○ ○ ●","○ ○ ○"];
   const dotsEl = div.querySelector("#host-leave-dots");
+  if(_hostLeaveOverlay._dotTimer){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay._dotTimer = null; }
   _hostLeaveOverlay._dotTimer = setInterval(()=>{
     if(dotsEl) dotsEl.textContent = dotStates[dotFrame++ % dotStates.length];
   }, 320);
@@ -2593,6 +2615,8 @@ function listenHostOnline(){ /* Removed — no host concept in game logic */ }
 window.leaveToLobby = async function(){
   clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
+  clearTimeout(_abandonCheckTimer); _abandonCheckTimer = null;
+  _stopHeartbeat();
   stopTurnTimer();
   if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
   _listeners.forEach(fn=>fn());
@@ -2636,11 +2660,14 @@ window.leaveToLobby = async function(){
     document.getElementById("lobby").style.display = "none";
     hsShowHomeScreen();
   } else {
-    // Online mode only: show rejoin card if session exists
+    // Online mode: show lobby. Rejoin card visibility depends on session.
+    // Do NOT clear session here — let the user choose to rejoin or not.
+    // Session is only cleared on explicit intentional leave (leaveRoom) or when room is gone.
     const s = loadSession();
     const rc = document.getElementById("rejoin-card");
     const rsub = document.getElementById("rejoin-sub");
     if(rc && s){ rc.style.display="flex"; if(rsub) rsub.textContent=`Room ${s.code} · as ${s.name}`; }
+    else if(rc){ rc.style.display="none"; }
     document.getElementById("lobby").style.display = "flex";
   }
   closeModals();
@@ -2648,6 +2675,8 @@ window.leaveToLobby = async function(){
 window.leaveRoom = async function(){
   clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
   clearTimeout(_hostOfflineTimer); _hostOfflineTimer = null;
+  clearTimeout(_abandonCheckTimer); _abandonCheckTimer = null;
+  _stopHeartbeat();
   stopTurnTimer();
   if(_hostLeaveOverlay){ clearInterval(_hostLeaveOverlay._dotTimer); _hostLeaveOverlay.remove(); _hostLeaveOverlay=null; }
   clearSession();
@@ -2673,6 +2702,89 @@ window.leaveRoom = async function(){
 window.backToLobby = window.leaveToLobby;
 const _timerExpireCount = {};
 const EXPIRE_COUNT_FOR_VOTE = 2;
+const ROOM_ABANDON_MS = 15 * 60 * 1000; // 15 minutes
+let _abandonCheckTimer = null;
+
+// Check if all active players are either offline or bots
+function _isRoomAbandoned(){
+  if(!ROOM_CODE || G.over || !_gameLoaded) return false;
+  return SEAT_LAYOUT_ACTIVE.every(seat => {
+    const p = PLAYERS[seat];
+    if(!p || !p.active) return true; // inactive seat counts as "not playing"
+    if(p.isBot) return true;         // bot = abandoned by human
+    if(seat === MY_SEAT) return !_onlineSeats.has(seat); // self
+    return !_onlineSeats.has(seat);  // others offline
+  });
+}
+
+// Write abandonedAt when room becomes fully abandoned, clear it when someone is online
+async function _updateAbandonTimestamp(){
+  if(!ROOM_CODE || !roomRef || G.over) return;
+  if(!amIElderPlayer()) return; // only elder writes this
+  if(_isRoomAbandoned()){
+    // Read current abandonedAt before writing to avoid resetting existing one
+    const snap = await db.ref(`rooms/${ROOM_CODE}/abandonedAt`).once('value').catch(()=>null);
+    if(!snap || snap.val() == null){
+      db.ref(`rooms/${ROOM_CODE}/abandonedAt`).set(firebase.database.ServerValue.TIMESTAMP).catch(()=>{});
+    }
+  } else {
+    // Someone is online — clear the abandoned timestamp
+    db.ref(`rooms/${ROOM_CODE}/abandonedAt`).remove().catch(()=>{});
+  }
+}
+
+// Heartbeat: any online player writes lastActiveAt every 2 min
+// This lets us detect abandoned rooms even when all clients disconnected simultaneously
+let _heartbeatTimer = null;
+function _startHeartbeat(){
+  if(!ROOM_CODE || !roomRef || G.over) return;
+  _stopHeartbeat();
+  const _writeHeartbeat = () => {
+    if(!ROOM_CODE || G.over){ _stopHeartbeat(); return; }
+    db.ref(`rooms/${ROOM_CODE}/lastActiveAt`).set(firebase.database.ServerValue.TIMESTAMP).catch(()=>{});
+  };
+  _writeHeartbeat(); // write immediately
+  _heartbeatTimer = setInterval(_writeHeartbeat, 2 * 60 * 1000);
+}
+function _stopHeartbeat(){
+  if(_heartbeatTimer){ clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
+}
+
+// Listen to abandonedAt — if 15min passed, delete room and clear session
+function _listenAbandonedAt(){
+  if(!ROOM_CODE || !roomRef) return;
+  const ref = db.ref(`rooms/${ROOM_CODE}/abandonedAt`);
+  const cb = snap => {
+    clearTimeout(_abandonCheckTimer);
+    const ts = snap.val();
+    if(!ts || G.over) return;
+    const elapsed = Date.now() - ts;
+    const remaining = ROOM_ABANDON_MS - elapsed;
+    if(remaining <= 0){
+      _doExpireRoom();
+    } else {
+      _abandonCheckTimer = setTimeout(_doExpireRoom, remaining);
+    }
+  };
+  ref.on('value', cb);
+  _listeners.push(()=>{ ref.off('value', cb); clearTimeout(_abandonCheckTimer); _abandonCheckTimer = null; });
+}
+
+async function _doExpireRoom(){
+  if(!ROOM_CODE || G.over) return;
+  // Only elder deletes the room
+  if(amIElderPlayer()){
+    try { await db.ref(`rooms/${ROOM_CODE}`).remove(); } catch(e){}
+  }
+  showToast('🕐 Room expired — everyone was away for 15 min');
+  clearSession();
+  const rc = document.getElementById('rejoin-card');
+  if(rc) rc.style.display = 'none';
+  // Leave to lobby if currently in game
+  if(document.getElementById('game-wrap')?.style.display !== 'none'){
+    window.leaveToLobby();
+  }
+}
 function listenPlayerPresence(){
   if(!ROOM_CODE) return;
   if(MY_SEAT !== null) _onlineSeats.add(MY_SEAT);
@@ -2703,11 +2815,14 @@ function listenPlayerPresence(){
           db.ref(`rooms/${ROOM_CODE}/botVotes/${seat}`).remove().catch(()=>{});
         }
       }
+      // Update abandon timestamp whenever presence changes
+      setTimeout(_updateAbandonTimestamp, 500);
     };
     ref.on('value', cb);
     _listeners.push(()=>ref.off('value', cb));
   });
   listenBotVotes();
+  _listenAbandonedAt();
 }
 function _updateOfflineBadge(seat, isOffline){
   const badge = document.getElementById(`offbadge-${seat}`);
@@ -2774,7 +2889,6 @@ window.voteForBot = async function(seat){
   if(seat === MY_SEAT) return;
   if(PLAYERS[seat]?.isBot) return;
   if((_botVotes[seat]||{})[MY_SEAT]) return;
-  console.log('[VOTE] voting for seat ' + seat);
   const badge = document.getElementById(`offbadge-${seat}`);
   if(badge) badge.classList.add('voted');
   navigator.vibrate && navigator.vibrate(18);
@@ -2797,7 +2911,6 @@ window.voteForBot = async function(seat){
 };
 function _activateBot(seat){
   if(!PLAYERS[seat]) return;
-  console.log('[VOTE] activating bot for seat ' + seat);
   const wasInactive = !PLAYERS[seat].active;
   PLAYERS[seat].isBot = true;
   PLAYERS[seat].active = true;
@@ -2835,6 +2948,8 @@ function _activateBot(seat){
       setTimeout(()=>{ if(!G.over && PLAYERS[G.turn]?.isBot && !G.rolled) _doBotTurn(G.turn); }, 400);
     }
   }
+  // Check if all players are now bots/offline → room may be abandoned
+  setTimeout(_updateAbandonTimestamp, 500);
 }
 function _deactivateBot(seat){
   if(!PLAYERS[seat]?.isBot) return;
@@ -2864,6 +2979,8 @@ function _deactivateBot(seat){
   }
   delete _botVotes[seat];
   showToast(`✅ ${PLAYERS[seat].label} back online — bot removed`);
+  // Someone came back — clear abandon timestamp
+  setTimeout(_updateAbandonTimestamp, 300);
 }
 const homeZones=[
   {r0:0,c0:0, col:PINK,   seat:0},
@@ -2896,11 +3013,14 @@ function renderSeatVisuals(seat){
   const tokW = _domCache.ptok[seat] || document.getElementById(`ptok-${seat}`);
   if(tokW && tokW.dataset.rc !== color){ tokW.innerHTML = tokIconHTML(color, 36, 1.65); tokW.dataset.rc = color; }
   const lbl = _domCache.lbl[seat] || document.getElementById(`lbl-${seat}`);
-  if(lbl) lbl.style.color = isActive ? color : "rgba(240,240,255,0.5)";
+  if(lbl){
+    const _lblColor = isActive ? color : "rgba(240,240,255,0.5)";
+    if(lbl._lastColor !== _lblColor){ lbl._lastColor = _lblColor; lbl.style.color = _lblColor; }
+  }
   const bg = _domCache.pbg[seat] || document.getElementById(`pbg-${seat}`);
   if(bg){
-    bg.style.borderColor = 'transparent';
-    bg.style.boxShadow = 'none';
+    if(bg._lastBorderColor !== 'transparent'){ bg._lastBorderColor = 'transparent'; bg.style.borderColor = 'transparent'; }
+    if(bg._lastBoxShadow !== 'none'){ bg._lastBoxShadow = 'none'; bg.style.boxShadow = 'none'; }
   }
 }
 function lighten(hex,a=15){let c=hex.replace("#","");const r=Math.min(255,parseInt(c.slice(0,2),16)+a);const g=Math.min(255,parseInt(c.slice(2,4),16)+a);const b=Math.min(255,parseInt(c.slice(4,6),16)+a);return`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;}
@@ -4083,7 +4203,6 @@ function rcToXY(r,c){
   const cp=cellPx();
   const x=PAD+c*(cp+GAP)+cp/2;
   const y=PAD+r*(cp+GAP)+cp/2;
-  console.log(`[TOK] 📐 rcToXY [r=${r},c=${c}] cellPx=${cp.toFixed(1)} PAD=${PAD} GAP=${GAP} → x=${x.toFixed(2)} y=${y.toFixed(2)} | formula: x=PAD+c*(cp+GAP)+cp/2 = ${PAD}+${c}*(${cp.toFixed(1)}+${GAP})+${(cp/2).toFixed(1)}`);
   return{x,y};
 }
 function getBoardCenterPx(){
@@ -4106,7 +4225,6 @@ const _slotPxCache={};
 function baseCirclePx(homeR,homeC,slotIdx){
   const ck=`${homeR},${homeC},${slotIdx},${getBoardRotation()}`;
   if(_slotPxCache[ck]){
-    console.log(`[TOK] slotPxCache HIT [${ck}] → (${_slotPxCache[ck].x.toFixed(1)},${_slotPxCache[ck].y.toFixed(1)})`);
     return _slotPxCache[ck];
   }
   const layer=document.getElementById('tokens-layer');
@@ -4126,7 +4244,6 @@ function baseCirclePx(homeR,homeC,slotIdx){
     const ux=dx*Math.cos(rad)-dy*Math.sin(rad)+bcx;
     const uy=dx*Math.sin(rad)+dy*Math.cos(rad)+bcy;
     const r={x:ux-lR.left, y:uy-lR.top};
-    console.log(`[TOK] slotPxCache MISS DOM [${ck}] rot=${deg}° → (${r.x.toFixed(1)},${r.y.toFixed(1)})`);
     _slotPxCache[ck]=r;
     return r;
   }
@@ -4141,7 +4258,6 @@ function baseCirclePx(homeR,homeC,slotIdx){
   const cellW=(wbW-2*pad-gap)/2;
   const col=slotIdx%2, row=Math.floor(slotIdx/2);
   const fbR={x:wbX+pad+col*(cellW+gap)+cellW/2, y:wbY+pad+row*(cellW+gap)+cellW/2};
-  console.log(`[TOK] slotPxCache MISS MATH [${ck}] → (${fbR.x.toFixed(1)},${fbR.y.toFixed(1)})`);
   return fbR;
 }
 let _renderScheduled = false;
@@ -4231,7 +4347,6 @@ function _doRenderTokens(){
       const bp=baseCirclePx(hr,hc,tok.tid);
       px=bp.x; py=bp.y; scale=1.02;
       const _colorName=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
-      console.log(`[TOK] HOME seat=${tok.pid}(${_colorName}) tid=${tok.tid} homeCorner=[${hr},${hc}] slotPx=(${bp.x.toFixed(1)},${bp.y.toFixed(1)}) boardRot=${getBoardRotation()}°`);
     } else if(tok.step>=STEP_DONE){
       const centerRC=[7,7];
       const cxy=rcToXY(centerRC[0],centerRC[1]);
@@ -4302,15 +4417,9 @@ function _doRenderTokens(){
     const _cty = py - rHH  - _tipDY;
     wrap.dataset.visualScale = visualScale;
     const _colorName2=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
-    console.log(`[TOK] 📌 PLACE pid=${tok.pid}(${_colorName2}) tid=${tok.tid} step=${tok.step} rot=${_tr}°`);
-    console.log(`[TOK]    cellCenter=(${px.toFixed(2)},${py.toFixed(2)}) scale=${visualScale}`);
-    console.log(`[TOK]    rW=${rW} rH=${rH.toFixed(1)} tipOffset=${tipOffset.toFixed(1)} rHH=${rHH.toFixed(1)}`);
-    console.log(`[TOK]    tipFromCenter=${_tipFromCenter.toFixed(1)} rad=${_rad.toFixed(4)} tipDX=${_tipDX.toFixed(2)} tipDY=${_tipDY.toFixed(2)}`);
-    console.log(`[TOK]    translate=(${_ctx.toFixed(2)},${_cty.toFixed(2)}) formula: x=px-rW/2+tipDX=${px.toFixed(1)}-${(rW/2).toFixed(1)}+${_tipDX.toFixed(2)} | y=py-rHH-tipDY=${py.toFixed(1)}-${rHH.toFixed(1)}-${_tipDY.toFixed(2)}`);
     const _verifyTipX = _ctx + rW/2 - _tipFromCenter*Math.sin(_rad);
     const _verifyTipY = _cty + rHH + _tipFromCenter*Math.cos(_rad);
     const _errX=(_verifyTipX-px).toFixed(2), _errY=(_verifyTipY-py).toFixed(2);
-    console.log(`[TOK]    TIP verify=(${_verifyTipX.toFixed(2)},${_verifyTipY.toFixed(2)}) cellCenter=(${px.toFixed(2)},${py.toFixed(2)}) err=(${_errX},${_errY}) ${(Math.abs(parseFloat(_errX))<0.5&&Math.abs(parseFloat(_errY))<0.5)?'✅ centred':'❌ OFF'}`);
     if(!wrap.dataset.animating){
       const _newTr=`translate(${_ctx}px,${_cty}px) rotate(${_tr}deg)${scaleTransform}`;
       if(wrap._lastStaticTr!==_newTr){wrap._lastStaticTr=_newTr;wrap.style.transform=_newTr;}
@@ -4412,7 +4521,6 @@ function _doRenderTokens(){
           els.shield.innerHTML=svg;
         }
         els.shield.className=`tok-shield ${blockType}`;
-        console.log(`[SHIELD] SHOW pid=${tok.pid} tid=${tok.tid} ${blockType} step=${tok.step} cx=${_cx.toFixed(1)} cy=${_cy.toFixed(1)} rot=${_rot}`);
       } else {
         if(els.shield._lastType){
           els.shield._lastType=null;
@@ -4436,12 +4544,16 @@ function refreshUI(){
       const active = G.turn === p.id && !G.over;
       const isMyTurn = G.turn === MY_SEAT && p.id === MY_SEAT;
       if(active){
-        d3d.classList.remove("inactive");
+        const wasInactive = d3d.classList.contains("inactive");
+        if(wasInactive) d3d.classList.remove("inactive");
         const canRoll = isMyTurn && !G.rolled && !G.over;
-        d3d.classList.toggle("off", !canRoll);
+        const wasOff = d3d.classList.contains("off");
+        if(wasOff !== !canRoll) d3d.classList.toggle("off", !canRoll);
       } else {
-        d3d.classList.add("inactive");
-        d3d.classList.remove("off");
+        const wasInactive2 = d3d.classList.contains("inactive");
+        if(!wasInactive2) d3d.classList.add("inactive");
+        const wasOff2 = d3d.classList.contains("off");
+        if(wasOff2) d3d.classList.remove("off");
       }
       const cube = _domCache.dcube[p.id] || document.getElementById(`dcube-${p.id}`);
       if(cube && dAcc.last[p.id] == null && !dAcc.busy[p.id]){
@@ -4506,6 +4618,7 @@ function startTurnTimer(seat){
   }
   const _capturedSeat = seat;
   let _timerPhase = 0;
+  if(_timerInterval){ clearInterval(_timerInterval); _timerInterval = null; }
   _timerInterval = setInterval(()=>{
     const elapsed = (Date.now() - _timerStart) / 1000;
     const remaining = TURN_TIMER_SEC - elapsed;
@@ -4895,12 +5008,6 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer,visualSc
     const dx=endX-startX, dy=endY-startY;
     const jumpSinComponent = -Math.sin(rad);
     const jumpCosComponent = -Math.cos(rad);
-    console.log(`[TOK] 🚀 JUMP START | color=${color} rot=${_tr}°`);
-    console.log(`[TOK]    rW=${rW} rH=${rH.toFixed(1)} tipOffset=${tipOffset.toFixed(1)} tipFromCenter=${tipFromCenter.toFixed(1)}`);
-    console.log(`[TOK]    rad=${rad.toFixed(4)} tipDX=${tipDX.toFixed(2)} tipDY=${tipDY.toFixed(2)}`);
-    console.log(`[TOK]    start=(${startX.toFixed(1)},${startY.toFixed(1)}) end=(${endX.toFixed(1)},${endY.toFixed(1)}) Δ=(${dx.toFixed(1)},${dy.toFixed(1)})`);
-    console.log(`[TOK]    jumpHeight h=cp*0.55=${h.toFixed(1)}px`);
-    console.log(`[TOK] 🐛 jumpAxis: rot=${_tr}° → jumpSin=${jumpSinComponent.toFixed(3)} jumpCos=${jumpCosComponent.toFixed(3)} | expected for 0°:(0,-1) 90°:(-1,0) 180°:(0,1) 270°:(1,0)`);
     if(layer && !PERF_MODE && (++_trailSkip%3===0))spawnTrailDot(startX,startY,color,layer);
     let _lastShadowKey='';
     let _frameCount=0;
@@ -4924,10 +5031,6 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer,visualSc
         const tipWorldY = ey + rHHalf + tipFromCenter*Math.cos(rad);
         const targetX=x+jumpX, targetY=y+jumpY;
         const errX=(tipWorldX-targetX).toFixed(2), errY=(tipWorldY-targetY).toFixed(2);
-        console.log(`[TOK] 🎞️ frame#${_frameCount} t=${t.toFixed(3)} eased=${et.toFixed(3)} jump=${jump.toFixed(1)}px → jumpX=${jumpX.toFixed(1)} jumpY=${jumpY.toFixed(1)}`);
-        console.log(`[TOK]    pos=(${x.toFixed(1)},${y.toFixed(1)}) translate=(${ex.toFixed(1)},${ey.toFixed(1)})`);
-        console.log(`[TOK] 🐛 TIP world=(${tipWorldX.toFixed(1)},${tipWorldY.toFixed(1)}) target=(${targetX.toFixed(1)},${targetY.toFixed(1)}) err=(${errX},${errY}) ${(Math.abs(parseFloat(errX))<0.5&&Math.abs(parseFloat(errY))<0.5)?'✅':'❌'}`);
-        console.log(`[TOK]    shadowPos=(${(x-shadowHalf).toFixed(1)},${(y-shadowHalfH+1).toFixed(1)})`);
       }
       if(shadowEl){
         const peakRatio=1-Math.abs(2*t-1);
@@ -4942,7 +5045,6 @@ function jumpStep(el,shadowEl,startX,startY,endX,endY,rW,color,cp,layer,visualSc
       }
       if(t<1) requestAnimationFrame(tick);
       else {
-        console.log(`[TOK] ✅ JUMP END after ${_frameCount} frames | final pos=(${endX.toFixed(1)},${endY.toFixed(1)})`);
         resolve();
       }
     }
@@ -4967,8 +5069,6 @@ async function animateMove(tok,steps){
   const els=_tokEls[key];
   if(!els) return;
   const _amColorName=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
-  console.log(`[TOK] ▶️ animateMove pid=${tok.pid}(${_amColorName}) tid=${tok.tid} from step=${tok.step} +${steps} steps | cp=${cp.toFixed(1)} BASE_W=${BASE_W} rot=${_tokenRotationDeg}°`);
-  console.log(`[TOK]    oH=${oH.toFixed(1)} oTip=${oTip.toFixed(1)} oHH=${oHH.toFixed(1)} oTipFromCenter=${oTipFromCenter.toFixed(1)}`);
   els.wrap.dataset.animating="1";
   const isMickeyAnim = _tokenStyleId === 'mickey-face' || _tokenStyleId === 'mickey-chibi';
   els.wrap.dataset.visualScale = isMickeyAnim ? "1.2" : "1";
@@ -4987,9 +5087,6 @@ async function animateMove(tok,steps){
     if(!rc) continue;
     endXY=rcToXY(rc[0],rc[1]);
     const _stepColorName=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
-    console.log(`[TOK] 🔢 STEP ${i+1}/${steps} pid=${tok.pid}(${_stepColorName}) tid=${tok.tid} step:${curStep-1}→${curStep} cell:[${prevCell}]→[${rc}]`);
-    console.log(`[TOK]    startPx=(${startXY.x.toFixed(1)},${startXY.y.toFixed(1)}) endPx=(${endXY.x.toFixed(1)},${endXY.y.toFixed(1)}) Δ=(${(endXY.x-startXY.x).toFixed(1)},${(endXY.y-startXY.y).toFixed(1)})`);
-    console.log(`[TOK]    dist=${Math.hypot(endXY.x-startXY.x,endXY.y-startXY.y).toFixed(1)}px | cp=${cp.toFixed(1)} jumpH=cp*0.55=${(cp*0.55).toFixed(1)}px`);
     const prevKey=`${prevCell[0]}-${prevCell[1]}`;
     const newKey=`${rc[0]}-${rc[1]}`;
     G.tokens.forEach(other=>{
@@ -5042,9 +5139,6 @@ async function animateMove(tok,steps){
   const _lsVerifyX = _tx2 + _rW0/2 - _tfc2*Math.sin(_rad2);
   const _lsVerifyY = _ty2 + _rHH2 + _tfc2*Math.cos(_rad2);
   const _lsErrX=(_lsVerifyX-endXY.x).toFixed(2), _lsErrY=(_lsVerifyY-endXY.y).toFixed(2);
-  console.log(`[TOK] 💥 LAND SQUASH finalCell endPx=(${endXY.x.toFixed(1)},${endXY.y.toFixed(1)})`);
-  console.log(`[TOK]    _tfc2=${_tfc2.toFixed(1)} tipDX=${_tdx2.toFixed(2)} tipDY=${_tdy2.toFixed(2)}`);
-  console.log(`[TOK]    sqTranslate=(${_tx2.toFixed(2)},${_ty2.toFixed(2)}) verify tip=(${_lsVerifyX.toFixed(2)},${_lsVerifyY.toFixed(2)}) err=(${_lsErrX},${_lsErrY}) ${(Math.abs(parseFloat(_lsErrX))<0.5&&Math.abs(parseFloat(_lsErrY))<0.5)?'✅':'❌'}`);
   els.wrap.style.setProperty('--sq-trl',_sqTrl);
   els.wrap.style.setProperty('--sq-rot',_sqRot);
   els.wrap.classList.remove('tok-land');
@@ -5203,9 +5297,6 @@ async function doMove(pid,tid,v){
       const els=_tokEls[key];
       const color=getDisplayColorForSeat(tok.pid);
       const _spawnColorName=['PINK','YELLOW','GREEN','BLUE'][tok.pid]||tok.pid;
-      console.log(`[TOK] 🐣 SPAWN pid=${tok.pid}(${_spawnColorName}) tid=${tok.tid} homeCorner=[${spawnHr},${spawnHc}]`);
-      console.log(`[TOK]    spawnPx=(${spawnStart.x.toFixed(1)},${spawnStart.y.toFixed(1)}) entryCell=[${entryCell}] entryPx=(${entryXY.x.toFixed(1)},${entryXY.y.toFixed(1)})`);
-      console.log(`[TOK]    cp=${cp.toFixed(1)} BASE_W=${BASE_W} Δ=(${(entryXY.x-spawnStart.x).toFixed(1)},${(entryXY.y-spawnStart.y).toFixed(1)}) dist=${Math.hypot(entryXY.x-spawnStart.x,entryXY.y-spawnStart.y).toFixed(1)}px`);
       if(els) await jumpStep(els.wrap,els.shadow,spawnStart.x,spawnStart.y,entryXY.x,entryXY.y,_tokRW(BASE_W),color,cp,layer);
       renderTokens();await rafDelay(20);
       const eck=`${entryCell[0]}-${entryCell[1]}`;
@@ -5234,7 +5325,6 @@ async function doMove(pid,tid,v){
         const totalActive = PLAYERS.filter(p=>p.active).length;
         const myRank = G.placements.length; // 1-indexed rank of last finisher
         const gameOverWinLimit = totalActive >= 4 ? 3 : totalActive >= 3 ? 2 : 1;
-        console.log('[GAME] game over — rank:' + myRank + ' total:' + totalActive + ' limit:' + gameOverWinLimit);
         endGame();return;
       }
       const myRankMid = G.placements.length; // 1-indexed (1=1st, 2=2nd, ...)
@@ -5307,6 +5397,21 @@ function nextTurn(same, wasSix){
 }
 function endGame(){
   G.over=true;
+  clearTimeout(_abandonCheckTimer); _abandonCheckTimer = null;
+  _stopHeartbeat();
+  // Game is definitively over — clear session so rejoin card won't appear
+  clearSession();
+  // Online mode: elder deletes the room after a delay (lets everyone see win screen)
+  if(ROOM_CODE && roomRef && !window._cpuMode && !window._pnpMode){
+    if(amIElderPlayer()){
+      setTimeout(async ()=>{
+        if(!ROOM_CODE) return;
+        try { await db.ref(`rooms/${ROOM_CODE}`).remove(); } catch(e){}
+      }, 4000); // 4 sec — enough to see win screen, before play-again logic kicks in
+    }
+    // Listen for playAgainCode written by elder
+    _listenPlayAgain();
+  }
   try{
     if(ROOM_CODE && typeof window._vaultSaveRoom==='function'){
       const pNames=PLAYERS.filter(p=>p&&p.active).map(p=>p.seat===MY_SEAT?(MY_NAME||'Me'):(p.label||`P${p.seat}`));
@@ -5430,23 +5535,160 @@ function endGame(){
   }
   }
 }
-function restartGame(){
+// ── Play Again system ──────────────────────────────────────────────────────
+let _playAgainListener = null;
+let _playAgainVoted = false;
+
+function _listenPlayAgain(){
+  if(!ROOM_CODE) return;
+  if(_playAgainListener) return; // already listening
+  const ref = db.ref(`rooms/${ROOM_CODE}/playAgainCode`);
+  const cb = snap => {
+    const newCode = snap.val();
+    if(!newCode) return;
+    _joinPlayAgainRoom(newCode);
+  };
+  ref.on('value', cb);
+  _playAgainListener = () => ref.off('value', cb);
+}
+
+async function _joinPlayAgainRoom(newCode){
+  if(_playAgainListener){ _playAgainListener(); _playAgainListener = null; }
+  // Hide win screen
+  document.getElementById("win").classList.remove("show");
+  if(window._confettiFrame){ cancelAnimationFrame(window._confettiFrame); window._confettiFrame=null; }
+  showToast('🎮 Joining new room...');
+  // Full reset (same as leaveToLobby but without showing lobby)
+  clearTimeout(_turnTimeoutTimer); _turnTimeoutTimer = null;
+  clearTimeout(_abandonCheckTimer); _abandonCheckTimer = null;
+  _stopHeartbeat();
+  _listeners.forEach(fn=>fn()); _listeners = [];
+  _gameStarted = false; _gameStartLock = false; _pendingSync = [];
+  _rolling = false; _animating = false; _onlineSeats = new Set();
+  Object.keys(_processedMoveTs).forEach(k=>delete _processedMoveTs[k]);
+  Object.keys(_lastSeenDice).forEach(k=>delete _lastSeenDice[k]);
+  _lastTimerTurn = -1; _cachedElderResult = null; _cachedElderOnlineSet = '';
+  _forcedElderSeat = null; _gameLoaded = false; _playAgainVoted = false;
+  smartDice.targetPids.clear();
+  Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
+  document.getElementById("game-wrap").style.display = "none";
+  document.getElementById("top-bar").style.display = "none";
+  document.getElementById("pause-overlay").classList.remove("show");
+  _chatOpen = false; _unreadCount = 0; _chatListening = false; _lastChatKey = null;
+  _replyTarget = null;
+  const chatPanel = document.getElementById("chat-panel");
+  if(chatPanel) chatPanel.classList.remove("open");
+
+  // Wait a moment for the new room to be set up, then join
+  await new Promise(r => setTimeout(r, 800));
+  try {
+    await waitForAuth();
+    const rSnap = await db.ref(`rooms/${newCode}`).once('value');
+    if(!rSnap || !rSnap.exists()){ showToast('New room not ready yet, try again'); return; }
+    const rData = rSnap.val();
+    const layout = rData.seatLayout || SEAT_LAYOUTS[rData.numPlayers] || [0,1,2,3];
+    const taken = Object.keys(rData.players||{}).map(Number);
+    // Try to reclaim same seat as before, else take first free
+    const oldSeat = MY_SEAT; // still set from previous game
+    let newSeat = layout.includes(oldSeat) && !taken.includes(oldSeat) ? oldSeat : layout.find(s=>!taken.includes(s));
+    if(newSeat == null){ showToast('Room is full'); return; }
+    MY_SEAT = newSeat;
+    IS_HOST = (rData.host === MY_SEAT) || amIElderPlayer(); // elder becomes host of new room
+    NUM_PLAYERS = rData.numPlayers;
+    ROOM_CODE = newCode;
+    roomRef = db.ref(`rooms/${newCode}`);
+    gameRef = db.ref(`rooms/${newCode}/game`);
+    playersRef = db.ref(`rooms/${newCode}/players`);
+    await db.ref(`rooms/${newCode}/players/${MY_SEAT}`).set({
+      name: MY_NAME, seat: MY_SEAT, online: true, joinedAt: firebase.database.ServerValue.TIMESTAMP
+    });
+    _presenceRef = db.ref(`rooms/${newCode}/players/${MY_SEAT}/online`);
+    await _presenceRef.set(true);
+    _presenceRef.onDisconnect().set(false);
+    saveSession();
+    _gameStarted = true;
+    _gameStartLock = true;
+    // Show waiting modal briefly while others join, then auto-start when room fills
+    document.getElementById("lobby").style.display = "none";
+    document.getElementById("display-room-code").textContent = newCode;
+    listenRoom();
+    showToast('✅ New room joined! Waiting for others...');
+  } catch(e) {
+    console.error('[PLAY-AGAIN] join failed:', e);
+    showToast('Failed to join new room');
+  }
+}
+
+async function _handlePlayAgainClick(){
+  if(_playAgainVoted) return;
+  if(window._cpuMode){ restartGameLocal(); return; }
+  if(window._pnpMode){ restartGameLocal(); return; }
+  if(!ROOM_CODE){ restartGameLocal(); return; }
+
+  _playAgainVoted = true;
+  // Update button to show voted state
+  const btn = document.getElementById('btn-play-again');
+  if(btn){ btn.textContent = '⏳ Waiting...'; btn.disabled = true; }
+
+  // If elder: create new room and write playAgainCode to old room
+  if(amIElderPlayer()){
+    try {
+      const numP = NUM_PLAYERS;
+      const layout = SEAT_LAYOUTS[numP] || [0,1,2,3];
+      let newCode, exists;
+      do {
+        newCode = genCode();
+        const snap = await db.ref(`rooms/${newCode}`).once('value');
+        exists = snap.exists();
+      } while(exists);
+      // Write new room skeleton
+      await db.ref(`rooms/${newCode}`).set({
+        numPlayers: numP,
+        status: 'waiting',
+        host: layout[0],
+        seatLayout: layout,
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        players: {}
+      });
+      // Broadcast new code on old room (others will pick it up)
+      if(ROOM_CODE){ await db.ref(`rooms/${ROOM_CODE}/playAgainCode`).set(newCode); }
+    } catch(e) {
+      console.error('[PLAY-AGAIN] create failed:', e);
+      showToast('Failed to create new room');
+      _playAgainVoted = false;
+      if(btn){ btn.textContent = 'Play Again'; btn.disabled = false; }
+    }
+  }
+  // Non-elder: just wait — _listenPlayAgain will fire when elder writes the code
+}
+
+function restartGameLocal(){
+  // CPU / PnP restart — no Firebase involved
   if(window._confettiFrame){cancelAnimationFrame(window._confettiFrame);window._confettiFrame=null;}
   const canvas=document.getElementById("win-confetti-canvas");
   if(canvas){const c=canvas.getContext("2d");c.clearRect(0,0,canvas.width,canvas.height);}
   document.querySelectorAll(".win-ring").forEach(r=>r.remove());
   document.getElementById("win").classList.remove("show");
-  if (window._cpuMode && typeof _cpuNumPlayers !== 'undefined') {
-    // Re-launch CPU game using same cpuStartGame path (handles names, bots, first turn)
-    window._cpuMode = false; // cpuStartGame will re-set it
+  if(window._cpuMode && typeof _cpuNumPlayers !== 'undefined'){
+    window._cpuMode = false;
     cpuStartGame(_cpuNumPlayers);
-  } else if (window._pnpMode && typeof _pnpNumPlayers !== 'undefined') {
+  } else if(window._pnpMode && typeof _pnpNumPlayers !== 'undefined'){
     window._pnpMode = false;
     passPlayStartGame(_pnpNumPlayers);
   } else {
     window.leaveToLobby();
   }
 }
+
+function restartGame(){
+  // Legacy call — route to new handler
+  if(window._cpuMode || window._pnpMode || !ROOM_CODE){
+    restartGameLocal();
+  } else {
+    _handlePlayAgainClick();
+  }
+}
+// ── End Play Again system ───────────────────────────────────────────────────
 window.togglePause=function(){
   if(G.over) return;
   G_PAUSED=!G_PAUSED;
@@ -5752,6 +5994,7 @@ async function _doLoadAndStartGame(){
   await loadAndStartGame();
   listenChat();
   listenPlayerPresence();
+  _startHeartbeat();
   listenHostOnline();
   if(_pendingSync.length > 0){
     const pending = _pendingSync.slice();
@@ -5882,10 +6125,11 @@ bindBtn("btn-test-color-back", ()=>{
   document.getElementById("modal-test-players").classList.add("show");
 });
 bindBtn("btn-resume",       ()=>window.togglePause());
-bindBtn("btn-leave-pause",  ()=>window.leaveToLobby());
-bindBtn("btn-home-confirm-yes", ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); window.leaveToLobby(); });
+bindBtn("btn-leave-pause",  ()=>{ clearSession(); window.leaveToLobby(); });
+bindBtn("btn-home-confirm-yes", ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); clearSession(); window.leaveToLobby(); });
 bindBtn("btn-home-confirm-no",  ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); });
-bindBtn("btn-play-again",   ()=>restartGame());
+bindBtn("btn-play-again",   ()=>_handlePlayAgainClick());
+bindBtn("btn-back-lobby",   ()=>{ document.getElementById("win").classList.remove("show"); clearSession(); window.leaveToLobby(); });
 bindBtn("chat-header", (e)=>{ if(e.target.closest('#chat-close')) return; window.toggleChat(); });
 (function(){
   const cc = document.getElementById("chat-close");
@@ -6007,7 +6251,7 @@ window._setMY_SLOT         = function(v) { MY_SLOT = v; };
   </div>
   <div id="dbg-log" style="overflow-y:auto;flex:1;padding:6px 10px;font-size:11px;color:#0f0;line-height:1.6;"></div>
 </div>
-<button id="dbg-toggle" onclick="const p=document.getElementById('dbg-panel');p.style.display=p.style.display==='none'?'flex':'none';" style="position:fixed;bottom:10px;right:10px;z-index:99998;background:#222;color:#FFD700;border:1px solid #FFD700;border-radius:20px;padding:6px 14px;font-size:12px;font-family:monospace;">🐛 Log</button>
+<button id="dbg-toggle" onclick="const p=document.getElementById('dbg-panel');p.style.display=p.style.display==='none'?'flex':'none';" style="display:none;position:fixed;bottom:10px;right:10px;z-index:99998;background:#222;color:#FFD700;border:1px solid #FFD700;border-radius:20px;padding:6px 14px;font-size:12px;font-family:monospace;">🐛 Log</button>
 <script>
 (function(){
   const _maxLogs = 200;
@@ -6733,13 +6977,30 @@ function cpuStartGame(n) {
     clearTimeout(_tapTimer);
     if(_taps >= TAPS_NEEDED){
       _taps = 0;
-      _openVault();
+      _askVaultPassword();
     } else {
       _tapTimer = setTimeout(()=>{ _taps=0; }, RESET_MS);
       const crown = document.getElementById('lobby-crown');
       if(crown){ crown.style.transform=`scale(${1+_taps*0.03})`; setTimeout(()=>{ crown.style.transform=''; },140); }
     }
   };
+
+  function _askVaultPassword(){
+    const entered = prompt('🔐 Enter password:');
+    if(entered === null) return; // cancelled
+    // Fetch password from Firebase (so it's never in source code)
+    const pwRef = firebase.database().ref('config/vaultPassword');
+    pwRef.once('value').then(snap => {
+      const correct = snap.val();
+      if(correct && entered === correct){
+        _openVault();
+      } else {
+        showToast('❌ Wrong password');
+      }
+    }).catch(()=>{
+      showToast('⚠️ Could not verify — check connection');
+    });
+  }
 
   function _openVault(){
     _renderRooms();
