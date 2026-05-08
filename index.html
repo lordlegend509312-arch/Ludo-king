@@ -6270,7 +6270,7 @@ window._setMY_SLOT         = function(v) { MY_SLOT = v; };
   </div>
   <div id="dbg-log" style="overflow-y:auto;flex:1;padding:6px 10px;font-size:11px;color:#0f0;line-height:1.6;"></div>
 </div>
-<button id="dbg-toggle" onclick="const p=document.getElementById('dbg-panel');p.style.display=p.style.display==='none'?'flex':'none';" style="display:block;position:fixed;bottom:10px;right:10px;z-index:99998;background:#222;color:#FFD700;border:1px solid #FFD700;border-radius:20px;padding:6px 14px;font-size:12px;font-family:monospace;">🐛 Log</button>
+<button id="dbg-toggle" onclick="const p=document.getElementById('dbg-panel');p.style.display=p.style.display==='none'?'flex':'none';" style="display:none;position:fixed;bottom:10px;right:10px;z-index:99998;background:#222;color:#FFD700;border:1px solid #FFD700;border-radius:20px;padding:6px 14px;font-size:12px;font-family:monospace;">🐛 Log</button>
 <script>
 (function(){
   const _maxLogs = 200;
@@ -6504,6 +6504,12 @@ function hsGoOnline() {
       if (hostInput) hostInput.value = name;
       const joinInput = document.getElementById('join-name-input');
       if (joinInput) joinInput.value = name;
+      // Show rejoin card if session exists
+      const s = loadSession();
+      const rc = document.getElementById('rejoin-card');
+      const rsub = document.getElementById('rejoin-sub');
+      if (rc && s) { rc.style.display = 'flex'; if (rsub) rsub.textContent = 'Room ' + s.code + ' · as ' + s.name; }
+      else if (rc) { rc.style.display = 'none'; }
     });
   }).catch(function() {
     if (btn) btn.style.opacity = '';
@@ -6983,22 +6989,25 @@ function cpuStartGame(n) {
 <script>
 // ── CHAT VAULT ────────────────────────────────────────────────────────────────
 (function(){
-  const LS_KEY = 'ludo_chat_vault_rooms';
+  // localStorage completely removed — Firebase vault_index is single source of truth
   const TAPS_NEEDED = 10;
   const RESET_MS = 4000;
   let _taps = 0, _tapTimer = null;
   let _currentRoom = null, _currentMsgs = [];
+  let _cachedRooms = []; // in-memory cache after fetch
 
+  // Save room info to Firebase /vault_index/{code}
   window._vaultSaveRoom = function(code, playerNames, myName){
     if(!code) return;
+    if(typeof db==='undefined' || !db || !db.ref) return;
     try {
-      const list = JSON.parse(localStorage.getItem(LS_KEY)||'[]');
-      const exists = list.find(r=>r.code===code);
-      if(exists){ exists.date=new Date().toISOString(); localStorage.setItem(LS_KEY,JSON.stringify(list)); return; }
-      list.unshift({code, date:new Date().toISOString(), players:playerNames||[], myName:myName||'Me'});
-      if(list.length>20) list.splice(20);
-      localStorage.setItem(LS_KEY, JSON.stringify(list));
-    } catch(e){}
+      db.ref('vault_index/'+code).set({
+        code: code,
+        date: new Date().toISOString(),
+        players: playerNames || [],
+        myName: myName || 'Me'
+      });
+    } catch(e){ console.warn('[Vault] save failed', e); }
   };
 
   window.togglePrivateChat = function(){
@@ -7016,38 +7025,34 @@ function cpuStartGame(n) {
 
   function _askVaultPassword(){
     const entered = prompt('🔐 Enter password:');
-    if(entered === null) return; // cancelled
-    // window.db use karo — real Firebase ya stub jo bhi ho
-    const currentDb = window.db || (typeof db !== 'undefined' ? db : null);
-    if(!currentDb || !currentDb.ref){
-      showToast('⚠️ Not connected — open Online mode first');
+    if(entered === null) return;
+    if(typeof db==='undefined' || !db || !db.ref){
+      showToast('❌ Firebase connected nahi');
       return;
     }
-    const pwRef = currentDb.ref('config/vaultPassword');
-    pwRef.once('value').then(snap => {
-      const correct = snap.val();
-      if(correct && entered === correct){
+    db.ref('config/vaultPassword').once('value', snap=>{
+      if(snap.exists() && entered === snap.val()){
         _openVault();
       } else {
         showToast('❌ Wrong password');
       }
-    }).catch(()=>{
-      showToast('⚠️ Could not verify — check connection');
+    }, ()=>{
+      showToast('❌ Password check nahi ho paya');
     });
   }
 
   function _openVault(){
-    _renderRooms();
     document.getElementById('chat-vault-overlay').classList.add('show');
     document.getElementById('chat-vault').classList.add('open');
     document.getElementById('cv-rooms-list').style.display='flex';
     document.getElementById('cv-chat-view').style.display='none';
+    _renderRooms();
   }
 
   window.closeVault = function(){
     document.getElementById('chat-vault-overlay').classList.remove('show');
     document.getElementById('chat-vault').classList.remove('open');
-    _currentRoom=null; _currentMsgs=[];
+    _currentRoom=null; _currentMsgs=[]; _cachedRooms=[];
   };
 
   window.vaultBack = function(){
@@ -7056,35 +7061,56 @@ function cpuStartGame(n) {
     _currentRoom=null; _currentMsgs=[];
   };
 
+  // Fetch all rooms from Firebase /vault_index, then render
   function _renderRooms(){
-    const list = _getRooms();
     const el = document.getElementById('cv-rooms-list');
     if(!el) return;
-    if(!list.length){
-      el.innerHTML='<div class="cv-empty"><span class="cv-empty-icon">💬</span>Koi match nahi abhi.<br>Game khelo — chat auto-save hogi!</div>';
+    el.innerHTML='<div class="cv-loading">⏳ Rooms load ho rahi hain...</div>';
+
+    if(typeof db==='undefined' || !db || !db.ref){
+      el.innerHTML='<div class="cv-loading">Firebase connected nahi 😕</div>';
       return;
     }
-    el.innerHTML = list.map((r,i)=>{
-      const d = new Date(r.date);
-      const ds = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-      const ts = d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-      const ps = r.players.length ? r.players.join(' vs ') : 'Players';
-      return `<div class="cv-room-card" onclick="window.vaultOpenRoom(${i})"><div class="cv-room-icon">🎲</div><div class="cv-room-info"><div class="cv-room-date">${ds} &nbsp;·&nbsp; ${ts}</div><div class="cv-room-players">${_esc(ps)}</div><div class="cv-room-code">${_esc(r.code)}</div></div><div class="cv-room-arrow">›</div></div>`;
-    }).join('');
+
+    db.ref('vault_index').orderByChild('date').once('value', snap=>{
+      _cachedRooms=[];
+      if(!snap.exists()||!snap.numChildren()){
+        el.innerHTML='<div class="cv-empty"><span class="cv-empty-icon">💬</span>Koi match nahi abhi.<br>Game khelo — chat auto-save hogi!</div>';
+        return;
+      }
+      // collect and sort newest first
+      snap.forEach(child=>{
+        const r = child.val();
+        if(r && r.code) _cachedRooms.unshift(r); // unshift = reverse chronological
+      });
+      if(!_cachedRooms.length){
+        el.innerHTML='<div class="cv-empty"><span class="cv-empty-icon">💬</span>Koi match nahi abhi.<br>Game khelo — chat auto-save hogi!</div>';
+        return;
+      }
+      el.innerHTML = _cachedRooms.map((r,i)=>{
+        const d = new Date(r.date);
+        const ds = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+        const ts = d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+        const ps = (r.players && r.players.length) ? r.players.join(' vs ') : 'Players';
+        return `<div class="cv-room-card" onclick="window.vaultOpenRoom(${i})"><div class="cv-room-icon">🎲</div><div class="cv-room-info"><div class="cv-room-date">${ds} &nbsp;·&nbsp; ${ts}</div><div class="cv-room-players">${_esc(ps)}</div><div class="cv-room-code">${_esc(r.code)}</div></div><div class="cv-room-arrow">›</div></div>`;
+      }).join('');
+    }, ()=>{
+      el.innerHTML='<div class="cv-loading">Rooms load nahi ho payi 😕</div>';
+    });
   }
 
   window.vaultOpenRoom = function(idx){
-    const room = _getRooms()[idx];
+    const room = _cachedRooms[idx];
     if(!room) return;
     _currentRoom = room;
     document.getElementById('cv-rooms-list').style.display='none';
     document.getElementById('cv-chat-view').style.display='flex';
     const d = new Date(room.date);
-    document.getElementById('cv-chat-room-label').textContent = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' · '+room.players.join(' vs ');
+    document.getElementById('cv-chat-room-label').textContent = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' · '+(room.players||[]).join(' vs ');
     const box = document.getElementById('cv-messages');
     box.innerHTML='<div class="cv-loading">Loading...</div>';
     if(typeof db!=='undefined' && db && db.ref){
-      db.ref(`rooms/${room.code}/chat`).orderByKey().once('value', snap=>{
+      db.ref('rooms/'+room.code+'/chat').orderByKey().once('value', snap=>{
         _currentMsgs=[];
         box.innerHTML='';
         if(!snap.exists()||!snap.numChildren()){ box.innerHTML='<div class="cv-loading">Is match mein chat nahi thi 🙈</div>'; return; }
@@ -7110,7 +7136,7 @@ function cpuStartGame(n) {
   window.vaultDownload = function(){
     if(!_currentRoom||!_currentMsgs.length){ alert('Koi messages nahi!'); return; }
     const r=_currentRoom, d=new Date(r.date);
-    const lines=['💕 Ludo Match Chat','📅 '+d.toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}),'🎮 '+r.players.join(' vs '),'─'.repeat(44),''];
+    const lines=['💕 Ludo Match Chat','📅 '+d.toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}),'🎮 '+(r.players||[]).join(' vs '),'─'.repeat(44),''];
     _currentMsgs.forEach(m=>{ const t=m.ts?new Date(m.ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):''; lines.push(`[${t}] ${m.name}: ${m.text}`); });
     lines.push('','─'.repeat(44),'✨ Ludo King');
     const a=document.createElement('a');
@@ -7120,7 +7146,6 @@ function cpuStartGame(n) {
     setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
   };
 
-  function _getRooms(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch(e){ return []; } }
   function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 })();
 </script>
