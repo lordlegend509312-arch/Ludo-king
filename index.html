@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <div id="home-screen">
   <div class="hs-content">
     <div class="hs-jewel">
-      <div class="hs-crown">👑</div>
+      <div class="hs-crown" id="hs-crown-dbg">👑</div>
       <div class="hs-title">LUDO KING</div>
       <div class="hs-sub">Roll the dice. Rule the board.</div>
     </div>
@@ -6270,7 +6270,7 @@ window._setMY_SLOT         = function(v) { MY_SLOT = v; };
   </div>
   <div id="dbg-log" style="overflow-y:auto;flex:1;padding:6px 10px;font-size:11px;color:#0f0;line-height:1.6;"></div>
 </div>
-<button id="dbg-toggle" onclick="const p=document.getElementById('dbg-panel');p.style.display=p.style.display==='none'?'flex':'none';" style="display:none;position:fixed;bottom:10px;right:10px;z-index:99998;background:#222;color:#FFD700;border:1px solid #FFD700;border-radius:20px;padding:6px 14px;font-size:12px;font-family:monospace;">🐛 Log</button>
+<button id="dbg-toggle" style="display:none;position:fixed;bottom:10px;right:10px;z-index:99998;background:#1a1a1a;color:#FFD700;border:1.5px solid #FFD700;border-radius:20px;padding:6px 14px;font-size:12px;font-family:monospace;cursor:pointer;" onclick="(function(){const p=document.getElementById('dbg-panel');const isOpen=p.style.display==='flex';p.style.display=isOpen?'none':'flex';document.getElementById('dbg-toggle').textContent=isOpen?'🐛 Log':'🐛 Close';})()">🐛 Log</button>
 <script>
 (function(){
   const _maxLogs = 200;
@@ -6325,7 +6325,37 @@ window._setMY_SLOT         = function(v) { MY_SLOT = v; };
   });
 })();
 </script>
-<!-- Board Theme Selection Modal -->
+<script>
+// ── HS-CROWN 10-TAP DEBUG TOGGLE ─────────────────────────────────────────────
+(function(){
+  let _taps = 0, _timer = null, _dbgOn = false;
+  const TAPS = 10, RESET = 2000;
+  document.addEventListener('DOMContentLoaded', function(){
+    const crown = document.getElementById('hs-crown-dbg');
+    if(!crown) return;
+    crown.addEventListener('touchstart', function(e){
+      e.preventDefault(); // block the click that follows touchstart
+      e.stopPropagation();
+      _taps++;
+      clearTimeout(_timer);
+      _timer = setTimeout(()=>{ _taps = 0; }, RESET);
+      if(_taps >= TAPS){
+        _taps = 0;
+        clearTimeout(_timer);
+        _dbgOn = !_dbgOn;
+        const btn = document.getElementById('dbg-toggle');
+        if(btn) btn.style.display = _dbgOn ? 'block' : 'none';
+        if(!_dbgOn) document.getElementById('dbg-panel').style.display = 'none';
+        // flash feedback
+        crown.style.filter = _dbgOn
+          ? 'drop-shadow(0 0 30px #FFD700) brightness(1.5)'
+          : 'drop-shadow(0 0 20px rgba(245,200,66,0.6))';
+        setTimeout(()=>{ crown.style.filter = ''; }, 800);
+      }
+    }, { passive: false });
+  });
+})();
+</script>
 <div class="modal-overlay" id="modal-board-theme">
   <div class="modal-box" style="width:330px;max-width:95vw;">
     <div class="modal-title">🎨 Board Style</div>
@@ -7054,26 +7084,69 @@ function cpuStartGame(n) {
     if(overlay) overlay.style.display = 'none';
   };
 
+  function _dbLog(msg, color){
+    console.log('🐛 [Vault]', msg);
+    if(typeof window._dbgLog === 'function') window._dbgLog('[Vault] ' + msg, color || '#a0a0ff');
+  }
+
   window._submitVaultPw = function(){
     const input = document.getElementById('vault-pw-input');
     const err = document.getElementById('vault-pw-err');
     const entered = input ? input.value.trim() : '';
+
+    _dbLog('━━━ PASSWORD SUBMIT ━━━');
+    _dbLog('entered length: ' + entered.length + ' | val: ' + JSON.stringify(entered));
+
     if(!entered){ err.textContent = '⚠️ Password khali hai'; return; }
-    const _db = window.db || (typeof db !== 'undefined' ? db : null);
+
+    const _windowDb  = window.db;
+    const _closureDb = (typeof db !== 'undefined') ? db : null;
+    const _db        = _windowDb || _closureDb;
+
+    _dbLog('window.db exists: ' + !!_windowDb);
+    _dbLog('window.db._stub: ' + (_windowDb && !!_windowDb._stub), _windowDb && _windowDb._stub ? '#FF2D78' : '#00C853');
+    _dbLog('closure db exists: ' + !!_closureDb);
+    _dbLog('closure db._stub: ' + (_closureDb && !!_closureDb._stub), _closureDb && _closureDb._stub ? '#FF2D78' : '#00C853');
+    _dbLog('using: ' + (_windowDb ? 'window.db' : (_closureDb ? 'closure db' : 'NONE ❌')));
+    _dbLog('final _stub: ' + (_db && !!_db._stub), _db && _db._stub ? '#FF2D78' : '#00C853');
+
     if(!_db || !_db.ref){
       err.textContent = '❌ Firebase connected nahi';
+      _dbLog('❌ ABORT — no valid db', '#FF2D78');
       return;
     }
+    if(_db._stub){
+      _dbLog('⚠️ STUB db! Online mode choose nahi hua shayad', '#FFD600');
+    }
+
     err.textContent = '⏳ Check ho raha hai...';
+    _dbLog('Querying: config/vaultPassword');
+
     _db.ref('config/vaultPassword').once('value', snap=>{
-      if(snap.exists() && entered === snap.val()){
+      const storedVal = snap.val();
+      const exists    = snap.exists();
+      _dbLog('snap.exists: ' + exists, exists ? '#00C853' : '#FF2D78');
+      _dbLog('snap.val: ' + JSON.stringify(storedVal));
+      _dbLog('typeof val: ' + typeof storedVal);
+      _dbLog('match: ' + (entered === storedVal), entered === storedVal ? '#00C853' : '#FF2D78');
+      if(!exists){
+        _dbLog('❌ config/vaultPassword node nahi mila Firebase mein', '#FF2D78');
+      } else if(entered !== storedVal){
+        _dbLog('❌ Mismatch!', '#FF2D78');
+        _dbLog('entered chars: [' + [...entered].map(c=>c.charCodeAt(0)).join(',') + ']');
+        _dbLog('stored  chars: [' + [...String(storedVal)].map(c=>c.charCodeAt(0)).join(',') + ']');
+      } else {
+        _dbLog('✅ Password correct!', '#00C853');
+      }
+      if(exists && entered === storedVal){
         window._closeVaultPwModal();
         _openVault();
       } else {
         err.textContent = '❌ Wrong password';
         if(input){ input.value=''; input.focus(); }
       }
-    }, ()=>{
+    }, (e)=>{
+      _dbLog('❌ Firebase error: ' + e, '#FF2D78');
       err.textContent = '❌ Password check nahi ho paya';
     });
   };
