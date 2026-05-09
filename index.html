@@ -6367,11 +6367,30 @@ window._setMY_SLOT         = function(v) { MY_SLOT = v; };
 <script>
 // ── HS-CROWN 10-TAP DEBUG TOGGLE ─────────────────────────────────────────────
 (function(){
-  let _taps = 0, _timer = null, _dbgOn = false;
+  const DBG_KEY = 'ludo_dbg_on';
+  let _taps = 0, _timer = null;
+  // default always off — only restore if explicitly saved as on
+  let _dbgOn = false;
+  try { _dbgOn = localStorage.getItem(DBG_KEY) === '1'; } catch(e){}
+
+  function _applyDebugState(crown){
+    const btn = document.getElementById('dbg-toggle');
+    if(btn) btn.style.display = _dbgOn ? 'block' : 'none';
+    if(!_dbgOn){ const p=document.getElementById('dbg-panel'); if(p) p.style.display='none'; }
+    if(crown){
+      crown.style.filter = _dbgOn
+        ? 'drop-shadow(0 0 30px #FFD700) brightness(1.5)'
+        : '';
+    }
+    try { if(_dbgOn) localStorage.setItem(DBG_KEY,'1'); else localStorage.removeItem(DBG_KEY); } catch(e){}
+  }
+
   const TAPS = 10, RESET = 2000;
   document.addEventListener('DOMContentLoaded', function(){
     const crown = document.getElementById('hs-crown-dbg');
     if(!crown) return;
+    // Apply persisted state on load
+    _applyDebugState(crown);
     crown.addEventListener('touchstart', function(e){
       e.preventDefault(); // block the click that follows touchstart
       e.stopPropagation();
@@ -6382,14 +6401,12 @@ window._setMY_SLOT         = function(v) { MY_SLOT = v; };
         _taps = 0;
         clearTimeout(_timer);
         _dbgOn = !_dbgOn;
-        const btn = document.getElementById('dbg-toggle');
-        if(btn) btn.style.display = _dbgOn ? 'block' : 'none';
-        if(!_dbgOn) document.getElementById('dbg-panel').style.display = 'none';
+        _applyDebugState(crown);
         // flash feedback
         crown.style.filter = _dbgOn
           ? 'drop-shadow(0 0 30px #FFD700) brightness(1.5)'
           : 'drop-shadow(0 0 20px rgba(245,200,66,0.6))';
-        setTimeout(()=>{ crown.style.filter = ''; }, 800);
+        setTimeout(()=>{ crown.style.filter = _dbgOn ? 'drop-shadow(0 0 30px #FFD700) brightness(1.5)' : ''; }, 800);
       }
     }, { passive: false });
   });
@@ -6574,17 +6591,27 @@ function hsGoOnline() {
       const joinInput = document.getElementById('join-name-input');
       if (joinInput) joinInput.value = name;
 
-      // Session check — route based on room status
-      const s = loadSession();
+      // Show rejoin card immediately from localStorage — no Firebase wait needed
+      if(typeof window.checkRejoin === 'function') window.checkRejoin();
+
+      // Session check — wait for auth then route based on room status
+      const s = (function(){ try{ const x=localStorage.getItem('ludo_session'); return x?JSON.parse(x):null; }catch(e){ return null; } })();
       if(s){
-        console.log('%c[REJOIN] hsGoOnline — session found, checking status...','color:#00AEEF;font-weight:bold', s);
+        console.log('%c[REJOIN] hsGoOnline — session found, waiting for auth...','color:#00AEEF;font-weight:bold', s);
         try {
+          // Wait for Firebase auth before hitting the DB
+          await new Promise((resolve) => {
+            const unsub = window.auth.onAuthStateChanged((user) => {
+              if(user){ unsub(); resolve(); }
+            });
+            // Fallback: resolve after 4s regardless
+            setTimeout(resolve, 4000);
+          });
           const rSnap = await db.ref(`rooms/${s.code}`).once('value').catch(()=>null);
           if(rSnap && rSnap.exists()){
             const rData = rSnap.val();
             console.log('[REJOIN] room status:', rData.status);
             if(rData.status === 'waiting'){
-              // Auto-restore waiting room — no card needed, go directly
               console.log('%c[REJOIN] status=waiting → auto-restoring room','color:#00C853;font-weight:bold');
               MY_NAME = s.name;
               MY_SEAT = s.seat;
@@ -6603,16 +6630,17 @@ function hsGoOnline() {
               return;
             }
           } else {
-            // Room gone — clear session, show normal lobby
+            // Room gone — clear session and hide rejoin card
             console.log('[REJOIN] room gone — clearing session');
-            clearSession();
+            try{ localStorage.removeItem('ludo_session'); }catch(e){}
+            const rc2 = document.getElementById('rejoin-card');
+            if(rc2) rc2.style.display = 'none';
           }
         } catch(e){
           console.warn('[REJOIN] status check failed:', e);
         }
       }
-      // Show rejoin card if session exists (for started games)
-      checkRejoin();
+      // checkRejoin already called above — no duplicate needed
     });
   }).catch(function() {
     if (btn) btn.style.opacity = '';
