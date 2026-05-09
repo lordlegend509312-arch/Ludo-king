@@ -2542,13 +2542,20 @@ function pushGameState(extra={}){
 function saveSession(){
   if(window._cpuMode) return; // never save session for CPU games
   if(!ROOM_CODE || MY_SEAT === null || !MY_NAME) return;
-  try { sessionStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME})); } catch(e){}
+  try { localStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME, ts:Date.now()})); } catch(e){}
 }
 function clearSession(){
-  try { sessionStorage.removeItem('ludo_session'); } catch(e){}
+  try { localStorage.removeItem('ludo_session'); } catch(e){}
 }
 function loadSession(){
-  try { const s=sessionStorage.getItem('ludo_session'); return s?JSON.parse(s):null; } catch(e){ return null; }
+  try {
+    const s = localStorage.getItem('ludo_session');
+    if(!s) return null;
+    const parsed = JSON.parse(s);
+    // Auto-expire session older than 2 hours
+    if(parsed.ts && (Date.now() - parsed.ts) > 2*60*60*1000){ localStorage.removeItem('ludo_session'); return null; }
+    return parsed;
+  } catch(e){ return null; }
 }
 (function checkRejoin(){
   const s=loadSession();
@@ -6997,19 +7004,28 @@ function cpuStartGame(n) {
 })();
 </script>
 <!-- Chat Vault -->
-<!-- Vault Password Modal -->
+<!-- Vault Auth Modal -->
 <div id="vault-pw-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(4px);z-index:9500;align-items:center;justify-content:center;">
   <div style="background:#1a1a35;border:1.5px solid #333366;border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;width:300px;box-shadow:0 16px 60px rgba(0,0,0,.7);">
     <div style="font-size:1.8rem;">🔐</div>
     <div style="color:white;font-size:1.1rem;font-weight:800;letter-spacing:.5px;font-family:'Rajdhani',sans-serif;">Chat Vault</div>
-    <div style="color:rgba(240,240,255,.4);font-size:12px;text-align:center;font-family:'Nunito',sans-serif;">Password enter karo</div>
-    <input id="vault-pw-input" type="password" placeholder="Password" maxlength="32"
-      style="width:100%;padding:13px 16px;background:#13132a;border:1.5px solid #333366;border-radius:12px;color:white;font-size:1rem;font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:4px;text-align:center;outline:none;"
-      onfocus="this.style.borderColor='#F5C518'" onblur="this.style.borderColor='#333366'"
-      onkeydown="if(event.key==='Enter')window._submitVaultPw()"/>
-    <div id="vault-pw-err" style="color:#FF2D78;font-size:12px;font-family:'Nunito',sans-serif;min-height:16px;text-align:center;"></div>
-    <button onclick="window._submitVaultPw()" style="width:100%;padding:14px 0;font-size:.9rem;font-weight:800;border:none;border-radius:12px;cursor:pointer;background:#F5C518;color:#000;letter-spacing:.5px;font-family:'Nunito',sans-serif;">Open 🔓</button>
-    <button onclick="window._closeVaultPwModal()" style="width:100%;padding:14px 0;font-size:.9rem;font-weight:800;border:1.5px solid #333366;border-radius:12px;cursor:pointer;background:#13132a;color:rgba(240,240,255,.8);letter-spacing:.5px;font-family:'Nunito',sans-serif;">Cancel</button>
+    <!-- Step 1: Send OTP -->
+    <div id="vault-step-email" style="width:100%;display:flex;flex-direction:column;gap:10px;align-items:center;">
+      <div style="color:rgba(240,240,255,.5);font-size:12px;text-align:center;font-family:'Nunito',sans-serif;">OTP aayega tumhari email pe</div>
+      <button onclick="window._vaultSendOtp()" id="vault-send-btn" style="width:100%;padding:14px 0;font-size:.9rem;font-weight:800;border:none;border-radius:12px;cursor:pointer;background:#F5C518;color:#000;letter-spacing:.5px;font-family:'Nunito',sans-serif;">Send OTP 📧</button>
+    </div>
+    <!-- Step 2: Verify OTP -->
+    <div id="vault-step-otp" style="width:100%;display:none;flex-direction:column;gap:10px;">
+      <div style="color:rgba(240,240,255,.5);font-size:12px;text-align:center;font-family:'Nunito',sans-serif;">Email check karo — OTP enter karo</div>
+      <input id="vault-otp-input" type="tel" placeholder="6-digit OTP" maxlength="6"
+        style="width:100%;padding:13px 16px;background:#13132a;border:1.5px solid #333366;border-radius:12px;color:white;font-size:1.3rem;font-family:'Nunito',sans-serif;font-weight:700;letter-spacing:8px;text-align:center;outline:none;box-sizing:border-box;"
+        onfocus="this.style.borderColor='#F5C518'" onblur="this.style.borderColor='#333366'"
+        onkeydown="if(event.key==='Enter')window._vaultVerifyOtp()"/>
+      <button onclick="window._vaultVerifyOtp()" style="width:100%;padding:14px 0;font-size:.9rem;font-weight:800;border:none;border-radius:12px;cursor:pointer;background:#F5C518;color:#000;letter-spacing:.5px;font-family:'Nunito',sans-serif;">Verify & Open 🔓</button>
+      <button onclick="window._vaultBackToSend()" style="width:100%;padding:10px 0;font-size:.8rem;font-weight:700;border:1.5px solid #333366;border-radius:12px;cursor:pointer;background:transparent;color:rgba(240,240,255,.4);font-family:'Nunito',sans-serif;">↩ Resend OTP</button>
+    </div>
+    <div id="vault-pw-err" style="color:#FF2D78;font-size:12px;font-family:'Nunito',sans-serif;min-height:16px;text-align:center;width:100%;"></div>
+    <button onclick="window._closeVaultPwModal()" style="width:100%;padding:12px 0;font-size:.85rem;font-weight:800;border:1.5px solid #333366;border-radius:12px;cursor:pointer;background:#13132a;color:rgba(240,240,255,.7);letter-spacing:.5px;font-family:'Nunito',sans-serif;">Cancel</button>
   </div>
 </div>
 <div id="chat-vault-overlay" onclick="if(event.target===this)window.closeVault()"></div>
@@ -7068,86 +7084,148 @@ function cpuStartGame(n) {
     }
   };
 
+  // ── VAULT AUTH — EmailJS OTP + 7-day session ─────────────────────────────────
+  const _EJS_SVC  = 'service_s5brhx6';
+  const _EJS_TPL  = 'template_dd8feue';
+  const _EJS_KEY  = 'RbM5Rsgy_oCmzH3Pv';
+  const _V_EMAIL  = atob('bG9yZGxlZ2VuZDQ5MzEyQGdtYWlsLmNvbQ==');
+  const _SESS_KEY = '__vs7';
+  const _SESS_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+  const _OTP_SKEY = '__vo';  // sessionStorage key for pending OTP
+
+  // In-memory OTP — restored from sessionStorage on load
+  let _otp    = null;
+  let _otpExp = 0;
+
+  // Restore pending OTP from sessionStorage (survives page reload)
+  (function(){
+    try {
+      const raw = sessionStorage.getItem(_OTP_SKEY);
+      if(raw){
+        const o = JSON.parse(raw);
+        if(o && o.c && o.e && Date.now() < o.e){ _otp = o.c; _otpExp = o.e; }
+        else sessionStorage.removeItem(_OTP_SKEY);
+      }
+    } catch(e){}
+  })();
+
+  function _saveOtpSession(code, exp){
+    try { sessionStorage.setItem(_OTP_SKEY, JSON.stringify({c: code, e: exp})); } catch(e){}
+  }
+  function _clearOtpSession(){
+    try { sessionStorage.removeItem(_OTP_SKEY); } catch(e){}
+    _otp = null; _otpExp = 0;
+  }
+
+  function _sessOk(){
+    try { const o=JSON.parse(localStorage.getItem(_SESS_KEY)||'{}'); return o.e && Date.now()<o.e; } catch(e){ return false; }
+  }
+  function _saveSess(){
+    try { localStorage.setItem(_SESS_KEY, JSON.stringify({e: Date.now()+_SESS_TTL})); } catch(e){}
+  }
+
   function _askVaultPassword(){
-    const overlay = document.getElementById('vault-pw-overlay');
-    const input = document.getElementById('vault-pw-input');
-    const err = document.getElementById('vault-pw-err');
-    if(!overlay || !input) return;
-    err.textContent = '';
-    input.value = '';
-    overlay.style.display = 'flex';
-    setTimeout(()=>input.focus(), 100);
+    if(_sessOk()){ _openVault(); return; }
+    const ov = document.getElementById('vault-pw-overlay');
+    if(!ov) return;
+    document.getElementById('vault-pw-err').textContent = '';
+    // Agar pending OTP hai toh seedha Step 2 dikhao
+    if(_otp && Date.now() < _otpExp){
+      document.getElementById('vault-step-email').style.display = 'none';
+      document.getElementById('vault-step-otp').style.display = 'flex';
+      const inp = document.getElementById('vault-otp-input');
+      if(inp){ inp.value = ''; setTimeout(()=>inp.focus(), 100); }
+    } else {
+      _clearOtpSession();
+      document.getElementById('vault-step-email').style.display = 'flex';
+      document.getElementById('vault-step-otp').style.display = 'none';
+    }
+    ov.style.display = 'flex';
   }
 
   window._closeVaultPwModal = function(){
-    const overlay = document.getElementById('vault-pw-overlay');
-    if(overlay) overlay.style.display = 'none';
+    const ov = document.getElementById('vault-pw-overlay');
+    if(ov) ov.style.display = 'none';
   };
 
-  function _dbLog(msg, color){
-    console.log('🐛 [Vault]', msg);
-    if(typeof window._dbgLog === 'function') window._dbgLog('[Vault] ' + msg, color || '#a0a0ff');
-  }
+  window._vaultBackToSend = function(){
+    document.getElementById('vault-step-email').style.display = 'flex';
+    document.getElementById('vault-step-otp').style.display = 'none';
+    document.getElementById('vault-pw-err').textContent = '';
+    _clearOtpSession();
+  };
 
-  window._submitVaultPw = function(){
-    const input = document.getElementById('vault-pw-input');
+  window._vaultSendOtp = async function(){
     const err = document.getElementById('vault-pw-err');
-    const entered = input ? input.value.trim() : '';
+    const btn = document.getElementById('vault-send-btn');
+    err.style.color = '#FF2D78';
+    err.textContent = '';
+    btn.disabled = true;
+    btn.textContent = '⏳ Bhej raha hai...';
 
-    _dbLog('━━━ PASSWORD SUBMIT ━━━');
-    _dbLog('entered length: ' + entered.length + ' | val: ' + JSON.stringify(entered));
+    _otp    = Math.floor(100000 + Math.random() * 900000).toString();
+    _otpExp = Date.now() + 10 * 60 * 1000;
+    _saveOtpSession(_otp, _otpExp);
 
-    if(!entered){ err.textContent = '⚠️ Password khali hai'; return; }
-
-    // Always read window.db fresh — closure db is stale (captured at page-load when db was stub)
-    const _db = (window.db && !window.db._stub) ? window.db
-              : (window.firebase && window.firebase.apps && window.firebase.apps.length ? window.firebase.database() : null);
-
-    _dbLog('window.db exists: ' + !!window.db);
-    _dbLog('window.db._stub: ' + (window.db && !!window.db._stub), window.db && window.db._stub ? '#FF2D78' : '#00C853');
-    _dbLog('using: ' + (_db ? (_db === window.db ? 'window.db' : 'firebase.database()') : 'NONE ❌'));
-    _dbLog('final _stub: ' + (_db && !!_db._stub), _db && _db._stub ? '#FF2D78' : '#00C853');
-
-    if(!_db || !_db.ref){
-      err.textContent = '❌ Firebase connected nahi';
-      _dbLog('❌ ABORT — no valid db', '#FF2D78');
-      return;
-    }
-    if(_db._stub){
-      _dbLog('⚠️ STUB db! Online mode choose nahi hua shayad', '#FFD600');
-    }
-
-    err.textContent = '⏳ Check ho raha hai...';
-    _dbLog('Querying: config/vaultPassword');
-
-    _db.ref('config/vaultPassword').once('value', snap=>{
-      const storedVal = snap.val();
-      const exists    = snap.exists();
-      _dbLog('snap.exists: ' + exists, exists ? '#00C853' : '#FF2D78');
-      _dbLog('snap.val: ' + JSON.stringify(storedVal));
-      _dbLog('typeof val: ' + typeof storedVal);
-      _dbLog('match: ' + (entered === storedVal), entered === storedVal ? '#00C853' : '#FF2D78');
-      if(!exists){
-        _dbLog('❌ config/vaultPassword node nahi mila Firebase mein', '#FF2D78');
-      } else if(entered !== storedVal){
-        _dbLog('❌ Mismatch!', '#FF2D78');
-        _dbLog('entered chars: [' + [...entered].map(c=>c.charCodeAt(0)).join(',') + ']');
-        _dbLog('stored  chars: [' + [...String(storedVal)].map(c=>c.charCodeAt(0)).join(',') + ']');
-      } else {
-        _dbLog('✅ Password correct!', '#00C853');
+    try {
+      // Load EmailJS SDK if not loaded
+      if(!window.emailjs){
+        await new Promise((res,rej)=>{
+          const s=document.createElement('script');
+          s.src='https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
+          s.onload=res; s.onerror=rej;
+          document.head.appendChild(s);
+        });
       }
-      if(exists && entered === storedVal){
-        window._closeVaultPwModal();
-        _openVault();
-      } else {
-        err.textContent = '❌ Wrong password';
-        if(input){ input.value=''; input.focus(); }
-      }
-    }, (e)=>{
-      _dbLog('❌ Firebase error: ' + e, '#FF2D78');
-      err.textContent = '❌ Password check nahi ho paya';
-    });
+      emailjs.init(_EJS_KEY);
+
+      await emailjs.send(_EJS_SVC, _EJS_TPL, {
+        to_email: _V_EMAIL,
+        passcode: _otp,
+        time: new Date().toLocaleTimeString('en-IN')
+      });
+
+      btn.disabled = false;
+      btn.textContent = 'Send OTP 📧';
+      document.getElementById('vault-step-email').style.display = 'none';
+      const otpStep = document.getElementById('vault-step-otp');
+      otpStep.style.display = 'flex';
+      err.style.color = '#00C853';
+      err.textContent = '✅ OTP bheja gaya!';
+      setTimeout(()=>{ err.textContent=''; err.style.color='#FF2D78'; }, 2500);
+      setTimeout(()=>{ const i=document.getElementById('vault-otp-input'); if(i) i.focus(); }, 100);
+
+    } catch(e){
+      btn.disabled = false;
+      btn.textContent = 'Send OTP 📧';
+      err.textContent = '❌ OTP send nahi hua, retry karo';
+      _clearOtpSession();
+    }
   };
+
+  window._vaultVerifyOtp = function(){
+    const inp = document.getElementById('vault-otp-input');
+    const err = document.getElementById('vault-pw-err');
+    const entered = inp ? inp.value.trim() : '';
+    err.style.color = '#FF2D78';
+
+    if(!entered || entered.length < 6){ err.textContent = '⚠️ 6-digit OTP daalo'; return; }
+    if(!_otp){ err.textContent = '⚠️ Pehle OTP bhejo'; return; }
+    if(Date.now() > _otpExp){ err.textContent = '❌ OTP expire ho gaya — resend karo'; _otp=null; return; }
+
+    if(entered === _otp){
+      _saveSess();
+      _clearOtpSession();
+      window._closeVaultPwModal();
+      _openVault();
+    } else {
+      err.textContent = '❌ Galat OTP';
+      if(inp){ inp.value=''; inp.focus(); }
+    }
+  };
+
+  window._submitVaultPw = window._vaultVerifyOtp;
 
   function _openVault(){
     document.getElementById('chat-vault-overlay').classList.add('show');
