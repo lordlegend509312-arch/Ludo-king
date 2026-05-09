@@ -2547,24 +2547,26 @@ function pushGameState(extra={}){
 function saveSession(){
   if(window._cpuMode) return; // never save session for CPU games
   if(!ROOM_CODE || MY_SEAT === null || !MY_NAME) return;
-  try { localStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME})); } catch(e){}
+  const data = {code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME};
+  try { localStorage.setItem('ludo_session', JSON.stringify(data)); console.log('[SESSION] Saved:', JSON.stringify(data)); } catch(e){ console.warn('[SESSION] Save failed:', e); }
 }
 function clearSession(){
-  try { localStorage.removeItem('ludo_session'); } catch(e){}
+  try { localStorage.removeItem('ludo_session'); console.log('[SESSION] Cleared'); } catch(e){}
 }
 function loadSession(){
-  try { const s=localStorage.getItem('ludo_session'); return s?JSON.parse(s):null; } catch(e){ return null; }
+  try { const s=localStorage.getItem('ludo_session'); const parsed = s?JSON.parse(s):null; console.log('[SESSION] Loaded:', parsed); return parsed; } catch(e){ return null; }
 }
 // checkRejoin: called whenever lobby becomes visible
-function checkRejoin(){
+window.checkRejoin = function checkRejoin(){
   const s=loadSession();
   const card=document.getElementById('rejoin-card');
   const sub=document.getElementById('rejoin-sub');
+  console.log('[REJOIN] checkRejoin called — session:', s, '— card found:', !!card);
   if(!card) return;
   if(s){ card.style.display='flex'; if(sub) sub.textContent=`Room ${s.code} · as ${s.name}`; }
   else { card.style.display='none'; }
 }
-document.addEventListener('DOMContentLoaded', checkRejoin);
+document.addEventListener('DOMContentLoaded', window.checkRejoin);
 window.tryRejoin = async function(){
   const s=loadSession();
   if(!s){ clearSession(); return; }
@@ -7166,11 +7168,7 @@ function cpuStartGame(n) {
           access_key: _W3F_KEY,
           to: _V_EMAIL,
           subject: 'Ludo King — Your OTP',
-          message: 'Your Ludo King OTP is: ' + _otp + '
-
-Time: ' + new Date().toLocaleTimeString('en-IN') + '
-
-Valid for 10 minutes. Do not share.'
+          message: `Your Ludo King OTP is: ${_otp}\n\nTime: ${new Date().toLocaleTimeString('en-IN')}\n\nValid for 10 minutes. Do not share.`
         })
       });
       const data = await res.json();
