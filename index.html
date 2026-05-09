@@ -2191,6 +2191,13 @@ async function loadAndStartGame(){
   saveSession();
   SFX.play('gamestart');
   _gameLoaded = true;
+  // Save room to vault as soon as game starts
+  try{
+    if(ROOM_CODE && typeof window._vaultSaveRoom==='function'){
+      const pNames=PLAYERS.filter(p=>p&&p.active).map(p=>p.seat===MY_SEAT?(MY_NAME||'Me'):(p.label||`P${p.seat}`));
+      window._vaultSaveRoom(ROOM_CODE, pNames, MY_NAME||'Me');
+    }
+  }catch(e){}
 }
 function _flushSyncPending(){
   if(_syncAnimPending.length === 0) return;
@@ -2832,6 +2839,17 @@ async function _doExpireRoom(){
   if(!ROOM_CODE || G.over) return;
   // Only elder deletes the room
   if(amIElderPlayer()){
+    // Backup chat to vault_index before deleting room
+    try {
+      const chatSnap = await window.db.ref(`rooms/${ROOM_CODE}/chat`).once('value');
+      if(chatSnap.exists()){
+        const msgs = [];
+        chatSnap.forEach(child=>{ const m=child.val(); if(m && m.text && m.type!=='sys') msgs.push(m); });
+        if(msgs.length){
+          await window.db.ref('vault_index/'+ROOM_CODE+'/messages').set(msgs);
+        }
+      }
+    } catch(e){ console.warn('[Vault] chat backup failed', e); }
     try { await db.ref(`rooms/${ROOM_CODE}`).remove(); } catch(e){}
   }
   showToast('🕐 Room expired — everyone was away for 15 min');
@@ -5912,7 +5930,14 @@ window.sendChat = function(){
     window.clearReply();
   }
   const chatRef = db.ref(`rooms/${ROOM_CODE}/chat`);
-  chatRef.push(payload).catch(()=>showToast("Chat send failed"));
+  chatRef.push(payload).then(ref=>{
+    // Also save to vault_index so chat survives room deletion
+    try{
+      if(window.db && ROOM_CODE){
+        window.db.ref('vault_index/'+ROOM_CODE+'/messages/'+ref.key).set(payload).catch(()=>{});
+      }
+    }catch(e){}
+  }).catch(()=>showToast("Chat send failed"));
 };
 let _replyTarget = null;
 window.clearReply = function(){
@@ -7154,9 +7179,9 @@ function cpuStartGame(n) {
   // Save room info to Firebase /vault_index/{code}
   window._vaultSaveRoom = function(code, playerNames, myName){
     if(!code) return;
-    if(typeof db==='undefined' || !db || !db.ref) return;
+    if(typeof window.db==='undefined' || !window.db || !window.db.ref) return;
     try {
-      db.ref('vault_index/'+code).set({
+      window.db.ref('vault_index/'+code).set({
         code: code,
         date: new Date().toISOString(),
         players: playerNames || [],
@@ -7341,12 +7366,12 @@ function cpuStartGame(n) {
     if(!el) return;
     el.innerHTML='<div class="cv-loading">⏳ Rooms load ho rahi hain...</div>';
 
-    if(typeof db==='undefined' || !db || !db.ref){
+    if(typeof window.db==='undefined' || !window.db || !window.db.ref){
       el.innerHTML='<div class="cv-loading">Firebase connected nahi 😕</div>';
       return;
     }
 
-    db.ref('vault_index').orderByChild('date').once('value', snap=>{
+    window.db.ref('vault_index').orderByChild('date').once('value', snap=>{
       _cachedRooms=[];
       if(!snap.exists()||!snap.numChildren()){
         el.innerHTML='<div class="cv-empty"><span class="cv-empty-icon">💬</span>Koi match nahi abhi.<br>Game khelo — chat auto-save hogi!</div>';
@@ -7383,13 +7408,12 @@ function cpuStartGame(n) {
     document.getElementById('cv-chat-room-label').textContent = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' · '+(room.players||[]).join(' vs ');
     const box = document.getElementById('cv-messages');
     box.innerHTML='<div class="cv-loading">Loading...</div>';
-    if(typeof db!=='undefined' && db && db.ref){
-      db.ref('rooms/'+room.code+'/chat').orderByKey().once('value', snap=>{
+    if(typeof window.db!=='undefined' && window.db && window.db.ref){
+      function _renderMsgs(msgs){
         _currentMsgs=[];
         box.innerHTML='';
-        if(!snap.exists()||!snap.numChildren()){ box.innerHTML='<div class="cv-loading">Is match mein chat nahi thi 🙈</div>'; return; }
-        snap.forEach(child=>{
-          const m=child.val();
+        if(!msgs||!msgs.length){ box.innerHTML='<div class="cv-loading">Is match mein chat nahi thi 🙈</div>'; return; }
+        msgs.forEach(m=>{
           if(m.type==='sys'||!m.text) return;
           _currentMsgs.push(m);
           const mine = m.name===room.myName;
@@ -7401,6 +7425,20 @@ function cpuStartGame(n) {
         });
         if(!box.children.length) box.innerHTML='<div class="cv-loading">Is match mein chat nahi thi 🙈</div>';
         box.scrollTop=box.scrollHeight;
+      }
+      // First try backed-up messages in vault_index, then live room chat
+      window.db.ref('vault_index/'+room.code+'/messages').once('value', vSnap=>{
+        if(vSnap.exists()){
+          const arr=[];
+          vSnap.forEach(c=>{ arr.push(c.val()); });
+          _renderMsgs(arr);
+        } else {
+          window.db.ref('rooms/'+room.code+'/chat').orderByKey().once('value', snap=>{
+            const arr=[];
+            if(snap.exists()) snap.forEach(c=>{ arr.push(c.val()); });
+            _renderMsgs(arr);
+          },()=>{ box.innerHTML='<div class="cv-loading">Load nahi ho payi 😕</div>'; });
+        }
       },()=>{ box.innerHTML='<div class="cv-loading">Load nahi ho payi 😕</div>'; });
     } else {
       box.innerHTML='<div class="cv-loading">Firebase connected nahi</div>';
