@@ -1932,6 +1932,7 @@ window.createRoom = async function(numPlayers){
   }
   _presenceRef = db.ref(`rooms/${code}/players/${MY_SEAT}/online`);
   _presenceRef.onDisconnect().set(false);
+  saveSession();
   document.getElementById("display-room-code").textContent = code;
   document.getElementById("modal-waiting").classList.add("show");
   updatePlayerList({ [MY_SEAT]: { name: MY_NAME, seat: MY_SEAT, online: true } });
@@ -1964,6 +1965,7 @@ window.joinRoom = async function(){
   });
   _presenceRef = db.ref(`rooms/${code}/players/${MY_SEAT}/online`);
   _presenceRef.onDisconnect().set(false);
+  saveSession();
   closeModals();
   document.getElementById("display-room-code").textContent = code;
   document.getElementById("modal-waiting").classList.add("show");
@@ -2545,50 +2547,84 @@ function pushGameState(extra={}){
   });
 }
 function saveSession(){
-  if(window._cpuMode) return; // never save session for CPU games
-  if(!ROOM_CODE || MY_SEAT === null || !MY_NAME) return;
+  if(window._cpuMode){ console.log('[SESSION] saveSession skipped — CPU mode'); return; }
+  if(!ROOM_CODE || MY_SEAT === null || !MY_NAME){ console.warn('[SESSION] saveSession SKIPPED — missing: ROOM_CODE='+ROOM_CODE+' MY_SEAT='+MY_SEAT+' MY_NAME='+MY_NAME); return; }
   const data = {code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME};
-  try { localStorage.setItem('ludo_session', JSON.stringify(data)); console.log('[SESSION] Saved:', JSON.stringify(data)); } catch(e){ console.warn('[SESSION] Save failed:', e); }
+  try { localStorage.setItem('ludo_session', JSON.stringify(data)); console.log('%c[SESSION] SAVED','color:#00C853;font-weight:bold', data); } catch(e){ console.warn('[SESSION] Save failed:', e); }
 }
 function clearSession(){
-  try { localStorage.removeItem('ludo_session'); console.log('[SESSION] Cleared'); } catch(e){}
+  try {
+    const existing = localStorage.getItem('ludo_session');
+    console.log('%c[SESSION] CLEARED','color:#FF2D78;font-weight:bold', '| was:', existing, '| caller:', new Error().stack.split('\n').slice(1,4).join(' >> '));
+    localStorage.removeItem('ludo_session');
+  } catch(e){}
 }
 function loadSession(){
-  try { const s=localStorage.getItem('ludo_session'); const parsed = s?JSON.parse(s):null; console.log('[SESSION] Loaded:', parsed); return parsed; } catch(e){ return null; }
+  try { const s=localStorage.getItem('ludo_session'); const parsed = s?JSON.parse(s):null; console.log('[SESSION] loadSession →', parsed); return parsed; } catch(e){ return null; }
 }
 // checkRejoin: called whenever lobby becomes visible
 window.checkRejoin = function checkRejoin(){
   const s=loadSession();
   const card=document.getElementById('rejoin-card');
   const sub=document.getElementById('rejoin-sub');
-  console.log('[REJOIN] checkRejoin called — session:', s, '— card found:', !!card);
-  if(!card) return;
-  if(s){ card.style.display='flex'; if(sub) sub.textContent=`Room ${s.code} · as ${s.name}`; }
-  else { card.style.display='none'; }
+  console.log('%c[REJOIN] checkRejoin called','color:#00AEEF;font-weight:bold', '| session:', s, '| card found:', !!card, '| card display:', card?.style.display, '| lobby display:', document.getElementById('lobby')?.style.display);
+  if(!card){ console.warn('[REJOIN] card element NOT FOUND in DOM'); return; }
+  if(s){
+    card.style.display='flex';
+    if(sub) sub.textContent=`Room ${s.code} · as ${s.name}`;
+    console.log('%c[REJOIN] Card SHOWN','color:#00C853;font-weight:bold', '| Room:', s.code);
+  } else {
+    card.style.display='none';
+    console.log('[REJOIN] No session — card hidden');
+  }
 }
 window.tryRejoin = async function(){
+  console.log('%c[REJOIN] tryRejoin started','color:#00AEEF;font-weight:bold');
   const s=loadSession();
-  if(!s){ clearSession(); return; }
+  if(!s){ console.warn('[REJOIN] tryRejoin — no session, aborting'); clearSession(); return; }
+  console.log('[REJOIN] tryRejoin — session:', s);
   MY_NAME=s.name;
-  const rSnap = await db.ref(`rooms/${s.code}`).once('value').catch(()=>null);
-  if(!rSnap||!rSnap.exists()){ showToast('Room no longer exists'); clearSession(); document.getElementById('rejoin-card').style.display='none'; return; }
+  const rSnap = await db.ref(`rooms/${s.code}`).once('value').catch((e)=>{ console.error('[REJOIN] Firebase fetch failed:', e); return null; });
+  if(!rSnap||!rSnap.exists()){ console.warn('[REJOIN] Room does not exist:', s.code); showToast('Room no longer exists'); clearSession(); document.getElementById('rejoin-card').style.display='none'; return; }
   const rData=rSnap.val();
-  if(rData.status==='waiting'){ showToast('Game not started yet'); clearSession(); return; }
+  console.log('[REJOIN] Room data:', JSON.stringify({status:rData.status, numPlayers:rData.numPlayers, host:rData.host, abandonedAt:rData.abandonedAt}));
+  if(rData.status==='waiting'){
+    // Restore waiting room instead of clearing session
+    console.log('%c[REJOIN] status=waiting → restoring waiting room','color:#00C853;font-weight:bold');
+    MY_SEAT=s.seat; IS_HOST=(rData.host===s.seat);
+    NUM_PLAYERS=rData.numPlayers||4;
+    ROOM_CODE=s.code;
+    roomRef=db.ref(`rooms/${s.code}`);
+    gameRef=db.ref(`rooms/${s.code}/game`);
+    playersRef=db.ref(`rooms/${s.code}/players`);
+    _presenceRef=db.ref(`rooms/${s.code}/players/${s.seat}/online`);
+    await _presenceRef.set(true);
+    _presenceRef.onDisconnect().set(false);
+    document.getElementById('display-room-code').textContent = s.code;
+    document.getElementById('modal-waiting').classList.add('show');
+    listenRoom();
+    return;
+  }
   // Block rejoin into a finished game
   const gameSnap = await db.ref(`rooms/${s.code}/game/over`).once('value').catch(()=>null);
-  if(gameSnap && gameSnap.val()===true){ showToast('That game has already ended'); clearSession(); document.getElementById('rejoin-card').style.display='none'; return; }
+  const gameOver = gameSnap && gameSnap.val()===true;
+  console.log('[REJOIN] game/over =', gameOver);
+  if(gameOver){ showToast('That game has already ended'); clearSession(); document.getElementById('rejoin-card').style.display='none'; return; }
   // Block rejoin into an abandoned/expired room
   if(rData.abandonedAt){
     const elapsed = Date.now() - rData.abandonedAt;
+    console.log('[REJOIN] abandonedAt elapsed:', Math.round(elapsed/1000)+'s');
     if(elapsed >= 15*60*1000){ showToast('Room expired — everyone left'); clearSession(); document.getElementById('rejoin-card').style.display='none'; return; }
   }
   // Fallback: if no one wrote abandonedAt (all left simultaneously), check lastActiveAt
   if(!rData.abandonedAt && rData.lastActiveAt){
     const elapsed = Date.now() - rData.lastActiveAt;
+    console.log('[REJOIN] lastActiveAt elapsed:', Math.round(elapsed/1000)+'s');
     if(elapsed >= 15*60*1000){ showToast('Room expired — inactive for 15 min'); clearSession(); document.getElementById('rejoin-card').style.display='none'; return; }
   }
   const playerSnap=await db.ref(`rooms/${s.code}/players/${s.seat}`).once('value').catch(()=>null);
-  if(!playerSnap||!playerSnap.exists()){ showToast('Seat no longer available'); clearSession(); return; }
+  if(!playerSnap||!playerSnap.exists()){ console.warn('[REJOIN] Seat not found:', s.seat); showToast('Seat no longer available'); clearSession(); return; }
+  console.log('%c[REJOIN] All checks passed — rejoining!','color:#00C853;font-weight:bold');
   MY_SEAT=s.seat; IS_HOST=(rData.host===s.seat);
   NUM_PLAYERS=rData.numPlayers||4;
   ROOM_CODE=s.code;
@@ -2598,8 +2634,8 @@ window.tryRejoin = async function(){
   _presenceRef=db.ref(`rooms/${s.code}/players/${s.seat}/online`);
   await _presenceRef.set(true);
   _presenceRef.onDisconnect().set(false);
-  _gameStarted=true;   // must be set BEFORE listenRoom() so its Firebase
-  _gameStartLock=true; // callbacks never observe _gameStarted=false
+  _gameStarted=true;
+  _gameStartLock=true;
   closeModals();
   showToast('🔄 Rejoining...');
   listenRoom();
@@ -2688,10 +2724,9 @@ window.leaveToLobby = async function(){
     hsShowHomeScreen();
   } else {
     // Online mode: show lobby. Session preserved so user can rejoin.
-    // Do NOT clear session here — let the user choose to rejoin or not.
-    // Session is only cleared on explicit intentional leave (leaveRoom) or when room is gone.
-    checkRejoin();
+    console.log('%c[REJOIN] leaveToLobby online — session in localStorage:','color:#00AEEF;font-weight:bold', localStorage.getItem('ludo_session'));
     document.getElementById("lobby").style.display = "flex";
+    checkRejoin();
   }
   closeModals();
 };
@@ -6148,11 +6183,11 @@ bindBtn("btn-test-color-back", ()=>{
   document.getElementById("modal-test-players").classList.add("show");
 });
 bindBtn("btn-resume",       ()=>window.togglePause());
-bindBtn("btn-leave-pause",  ()=>{ clearSession(); window.leaveToLobby(); });
-bindBtn("btn-home-confirm-yes", ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); clearSession(); window.leaveToLobby(); });
+bindBtn("btn-leave-pause",  ()=>{ window.leaveToLobby(); });
+bindBtn("btn-home-confirm-yes", ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); window.leaveToLobby(); });
 bindBtn("btn-home-confirm-no",  ()=>{ document.getElementById("modal-home-confirm").classList.remove("show"); });
 bindBtn("btn-play-again",   ()=>_handlePlayAgainClick());
-bindBtn("btn-back-lobby",   ()=>{ document.getElementById("win").classList.remove("show"); clearSession(); window.leaveToLobby(); });
+bindBtn("btn-back-lobby",   ()=>{ document.getElementById("win").classList.remove("show"); window.leaveToLobby(); });
 bindBtn("chat-header", (e)=>{ if(e.target.closest('#chat-close')) return; window.toggleChat(); });
 (function(){
   const cc = document.getElementById("chat-close");
@@ -6530,7 +6565,7 @@ function hsGoOnline() {
     console.log('[AUTH] calling signInAnonymously...');
     window.auth.signInAnonymously().then(function(){ console.log('[AUTH] signInAnonymously resolved ✅'); }).catch(function(e){ console.warn('[AUTH] signInAnonymously failed:', e.code, e.message); });
     if (btn) btn.style.opacity = '';
-    hsHideHomeScreen(function() {
+    hsHideHomeScreen(async function() {
       const lobby = document.getElementById('lobby');
       if (lobby) lobby.style.display = 'flex';
       showGlobalBackBtn();
@@ -6538,7 +6573,45 @@ function hsGoOnline() {
       if (hostInput) hostInput.value = name;
       const joinInput = document.getElementById('join-name-input');
       if (joinInput) joinInput.value = name;
-      // Show rejoin card if session exists
+
+      // Session check — route based on room status
+      const s = loadSession();
+      if(s){
+        console.log('%c[REJOIN] hsGoOnline — session found, checking status...','color:#00AEEF;font-weight:bold', s);
+        try {
+          const rSnap = await db.ref(`rooms/${s.code}`).once('value').catch(()=>null);
+          if(rSnap && rSnap.exists()){
+            const rData = rSnap.val();
+            console.log('[REJOIN] room status:', rData.status);
+            if(rData.status === 'waiting'){
+              // Auto-restore waiting room — no card needed, go directly
+              console.log('%c[REJOIN] status=waiting → auto-restoring room','color:#00C853;font-weight:bold');
+              MY_NAME = s.name;
+              MY_SEAT = s.seat;
+              IS_HOST = (rData.host === s.seat);
+              NUM_PLAYERS = rData.numPlayers || 4;
+              ROOM_CODE = s.code;
+              roomRef = db.ref(`rooms/${s.code}`);
+              gameRef = db.ref(`rooms/${s.code}/game`);
+              playersRef = db.ref(`rooms/${s.code}/players`);
+              _presenceRef = db.ref(`rooms/${s.code}/players/${s.seat}/online`);
+              await _presenceRef.set(true);
+              _presenceRef.onDisconnect().set(false);
+              document.getElementById('display-room-code').textContent = s.code;
+              document.getElementById('modal-waiting').classList.add('show');
+              listenRoom();
+              return;
+            }
+          } else {
+            // Room gone — clear session, show normal lobby
+            console.log('[REJOIN] room gone — clearing session');
+            clearSession();
+          }
+        } catch(e){
+          console.warn('[REJOIN] status check failed:', e);
+        }
+      }
+      // Show rejoin card if session exists (for started games)
       checkRejoin();
     });
   }).catch(function() {
