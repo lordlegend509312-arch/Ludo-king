@@ -2566,7 +2566,6 @@ window.checkRejoin = function checkRejoin(){
   if(s){ card.style.display='flex'; if(sub) sub.textContent=`Room ${s.code} · as ${s.name}`; }
   else { card.style.display='none'; }
 }
-document.addEventListener('DOMContentLoaded', window.checkRejoin);
 window.tryRejoin = async function(){
   const s=loadSession();
   if(!s){ clearSession(); return; }
