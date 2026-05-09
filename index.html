@@ -2165,7 +2165,12 @@ async function loadAndStartGame(){
   Object.keys(_tokEls).forEach(k=>_removeTokEl(k));
   _cacheValid=false;
   MY_SLOT = SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT);
-  if(MY_SLOT < 0) MY_SLOT = 0;
+  if(MY_SLOT < 0){
+    console.warn('[REJOIN] MY_SEAT', MY_SEAT, 'not in SEAT_LAYOUT_ACTIVE', SEAT_LAYOUT_ACTIVE, '— forcing correct slot');
+    // Don't blindly use 0 — push MY_SEAT into layout so rotation is correct
+    SEAT_LAYOUT_ACTIVE.push(MY_SEAT);
+    MY_SLOT = SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT);
+  }
   const _thm = getBoardTheme();
   PLAYERS.forEach((p,i) => { if(_thm.colors && _thm.colors[i]) p.color = _thm.colors[i]; });
   buildBoard();
@@ -2282,7 +2287,7 @@ function _applySyncGameState(data){
     SEAT_LAYOUT_ACTIVE = data.seatLayout;
     if(changed){
       MY_SLOT = SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT);
-      if(MY_SLOT < 0) MY_SLOT = 0;
+      if(MY_SLOT < 0){ console.warn('[SYNC] MY_SEAT not in seatLayout'); MY_SLOT = SEAT_LAYOUT_ACTIVE.length; SEAT_LAYOUT_ACTIVE.push(MY_SEAT); MY_SLOT = SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT); }
       buildPlayers();
       PLAYERS.forEach(p=>{ if(p.active) renderSeatVisuals(p.id); });
       applyBoardRotation();
@@ -2542,29 +2547,24 @@ function pushGameState(extra={}){
 function saveSession(){
   if(window._cpuMode) return; // never save session for CPU games
   if(!ROOM_CODE || MY_SEAT === null || !MY_NAME) return;
-  try { localStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME, ts:Date.now()})); } catch(e){}
+  try { localStorage.setItem('ludo_session', JSON.stringify({code:ROOM_CODE, seat:MY_SEAT, name:MY_NAME})); } catch(e){}
 }
 function clearSession(){
   try { localStorage.removeItem('ludo_session'); } catch(e){}
 }
 function loadSession(){
-  try {
-    const s = localStorage.getItem('ludo_session');
-    if(!s) return null;
-    const parsed = JSON.parse(s);
-    // Auto-expire session older than 2 hours
-    if(parsed.ts && (Date.now() - parsed.ts) > 2*60*60*1000){ localStorage.removeItem('ludo_session'); return null; }
-    return parsed;
-  } catch(e){ return null; }
+  try { const s=localStorage.getItem('ludo_session'); return s?JSON.parse(s):null; } catch(e){ return null; }
 }
-(function checkRejoin(){
+// checkRejoin: called whenever lobby becomes visible
+function checkRejoin(){
   const s=loadSession();
-  if(!s) return;
   const card=document.getElementById('rejoin-card');
   const sub=document.getElementById('rejoin-sub');
-  if(card){ card.style.display='flex'; }
-  if(sub){ sub.textContent=`Room ${s.code} · as ${s.name}`; }
-})();
+  if(!card) return;
+  if(s){ card.style.display='flex'; if(sub) sub.textContent=`Room ${s.code} · as ${s.name}`; }
+  else { card.style.display='none'; }
+}
+document.addEventListener('DOMContentLoaded', checkRejoin);
 window.tryRejoin = async function(){
   const s=loadSession();
   if(!s){ clearSession(); return; }
@@ -2686,14 +2686,10 @@ window.leaveToLobby = async function(){
     document.getElementById("lobby").style.display = "none";
     hsShowHomeScreen();
   } else {
-    // Online mode: show lobby. Rejoin card visibility depends on session.
+    // Online mode: show lobby. Session preserved so user can rejoin.
     // Do NOT clear session here — let the user choose to rejoin or not.
     // Session is only cleared on explicit intentional leave (leaveRoom) or when room is gone.
-    const s = loadSession();
-    const rc = document.getElementById("rejoin-card");
-    const rsub = document.getElementById("rejoin-sub");
-    if(rc && s){ rc.style.display="flex"; if(rsub) rsub.textContent=`Room ${s.code} · as ${s.name}`; }
-    else if(rc){ rc.style.display="none"; }
+    checkRejoin();
     document.getElementById("lobby").style.display = "flex";
   }
   closeModals();
@@ -6542,11 +6538,7 @@ function hsGoOnline() {
       const joinInput = document.getElementById('join-name-input');
       if (joinInput) joinInput.value = name;
       // Show rejoin card if session exists
-      const s = loadSession();
-      const rc = document.getElementById('rejoin-card');
-      const rsub = document.getElementById('rejoin-sub');
-      if (rc && s) { rc.style.display = 'flex'; if (rsub) rsub.textContent = 'Room ' + s.code + ' · as ' + s.name; }
-      else if (rc) { rc.style.display = 'none'; }
+      checkRejoin();
     });
   }).catch(function() {
     if (btn) btn.style.opacity = '';
@@ -7085,10 +7077,8 @@ function cpuStartGame(n) {
   };
 
   // ── VAULT AUTH — EmailJS OTP + 7-day session ─────────────────────────────────
-  const _EJS_SVC  = 'service_s5brhx6';
-  const _EJS_TPL  = 'template_dd8feue';
-  const _EJS_KEY  = 'RbM5Rsgy_oCmzH3Pv';
-  const _V_EMAIL  = atob('bG9yZGxlZ2VuZDQ5MzEyQGdtYWlsLmNvbQ==');
+  const _W3F_KEY  = '940281ad-e55d-479a-92bf-07c3ecb43233';
+  const _V_EMAIL  = atob('bG9yZGxlZ2VuZDEwOTMxMkBnbWFpbC5jb20=');
   const _SESS_KEY = '__vs7';
   const _SESS_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -7169,22 +7159,22 @@ function cpuStartGame(n) {
     _saveOtpSession(_otp, _otpExp);
 
     try {
-      // Load EmailJS SDK if not loaded
-      if(!window.emailjs){
-        await new Promise((res,rej)=>{
-          const s=document.createElement('script');
-          s.src='https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
-          s.onload=res; s.onerror=rej;
-          document.head.appendChild(s);
-        });
-      }
-      emailjs.init(_EJS_KEY);
+      const res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          access_key: _W3F_KEY,
+          to: _V_EMAIL,
+          subject: 'Ludo King — Your OTP',
+          message: 'Your Ludo King OTP is: ' + _otp + '
 
-      await emailjs.send(_EJS_SVC, _EJS_TPL, {
-        to_email: _V_EMAIL,
-        passcode: _otp,
-        time: new Date().toLocaleTimeString('en-IN')
+Time: ' + new Date().toLocaleTimeString('en-IN') + '
+
+Valid for 10 minutes. Do not share.'
+        })
       });
+      const data = await res.json();
+      if(!data.success) throw new Error(data.message || 'Failed');
 
       btn.disabled = false;
       btn.textContent = 'Send OTP 📧';
