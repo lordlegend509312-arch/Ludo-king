@@ -2174,7 +2174,7 @@ async function loadAndStartGame(){
     MY_SLOT = SEAT_LAYOUT_ACTIVE.indexOf(MY_SEAT);
   }
   const _thm = getBoardTheme();
-  PLAYERS.forEach((p,i) => { if(_thm.colors && _thm.colors[i]) p.color = _thm.colors[i]; });
+  PLAYERS.forEach((p) => { if(_thm.colors && _thm.colors[p.id] != null) p.color = _thm.colors[p.id]; });
   buildBoard();
   buildPlayers();
   _sdeReset();
@@ -2541,7 +2541,7 @@ function pushGameState(extra={}){
     placements: G.placements,
     seatLayout: SEAT_LAYOUT_ACTIVE,
     actionBy: MY_SEAT,
-    timestamp: (window._cpuMode ? Date.now() : firebase.database.ServerValue.TIMESTAMP),
+    timestamp: (window._cpuMode || window._pnpMode ? Date.now() : firebase.database.ServerValue.TIMESTAMP),
     ...extra,
     ...(extra.action === 'roll' ? { rollTs: Date.now() } : {})
   };
@@ -3341,6 +3341,19 @@ function buildBoard(){
 }
 const _boardCellMap = {};
 function getPanelSeats(){
+  // Offline (PnP / CPU): board never rotates, seats are fixed positions
+  // Top-left=0(Pink), Top-right=1(Yellow), Bot-left=3(Blue), Bot-right=2(Green)
+  if(window._pnpMode || window._cpuMode){
+    const active = SEAT_LAYOUT_ACTIVE;
+    const has = (s) => active.includes(s) && PLAYERS[s]?.active;
+    return [
+      has(0) ? 0 : -1,  // top-left   = Pink
+      has(1) ? 1 : -1,  // top-right  = Yellow
+      has(3) ? 3 : -1,  // bot-left   = Blue
+      has(2) ? 2 : -1   // bot-right  = Green
+    ];
+  }
+  // Online: POV-based rotation (original logic)
   const me = MY_SEAT !== null ? MY_SEAT : SEAT_LAYOUT_ACTIVE[0];
   const active = SEAT_LAYOUT_ACTIVE.filter(s => PLAYERS[s]?.active);
   const sorted = [...active].sort((a,b) => CW_INDEX[a] - CW_INDEX[b]);
@@ -3390,7 +3403,8 @@ function buildPlayers(){
   if(s1 >= 0 && PLAYERS[s1]?.active) top.appendChild(makePanel(s1,"right","top"));
   else top.appendChild(makePlaceholder("right"));
   const s2 = seats[2]; const s3 = seats[3];
-  if(s2 >= 0 && PLAYERS[s2]?.active) bot.appendChild(makePanel(s2,"left","bot",true));
+  const _isMe2 = (window._pnpMode || window._cpuMode) ? false : true; // offline: no single "you"
+  if(s2 >= 0 && PLAYERS[s2]?.active) bot.appendChild(makePanel(s2,"left","bot", window._pnpMode||window._cpuMode ? s2===MY_SEAT : true));
   else bot.appendChild(makePlaceholder("left"));
   if(s3 >= 0 && PLAYERS[s3]?.active) bot.appendChild(makePanel(s3,"right","bot"));
   else bot.appendChild(makePlaceholder("right"));
@@ -4610,7 +4624,14 @@ function _doRenderTokens(){
   });
   for(const key of Object.keys(_tokEls)){if(!alive.has(key))_removeTokEl(key);}
 }
-function syncUI(){ refreshUI(); renderTokens(); updateTurnBanner(); }
+function syncUI(){
+  // PnP: always keep MY_SEAT = G.turn before any UI refresh
+  if(window._pnpMode && window._setMY_SEAT){
+    window._setMY_SEAT(G.turn);
+    if(window._setCacheValid) window._setCacheValid(false);
+  }
+  refreshUI(); renderTokens(); updateTurnBanner();
+}
 function refreshUI(){
     PLAYERS.forEach(p=>{
     if(!p.active) return;
@@ -4888,14 +4909,20 @@ async function _doBotTurn(seat){
     navigator.vibrate && navigator.vibrate(18);
     SFX.play('dice');
 
-    // Run dice animation, then do move
-    await new Promise(res => animDice(seat, v, res));
-    clearTimeout(rollSafety);
-    _rolling = false;
-    if(d3d) d3d.classList.remove('off');
-
-    const _botDiceEl = document.getElementById(`botdice-${seat}`);
-    if(_botDiceEl) _botDiceEl.textContent = v;
+    // Skip 3D animation if bot overlay is visible
+    const _offBadge = document.getElementById('offbadge-'+seat);
+    const _skipAnim = _offBadge && _offBadge.classList.contains('show');
+    if(_skipAnim){
+      clearTimeout(rollSafety);
+      _rolling = false;
+    } else {
+      await new Promise(res => animDice(seat, v, res));
+      clearTimeout(rollSafety);
+      _rolling = false;
+      if(d3d) d3d.classList.remove('off');
+    }
+    const _botDiceEl = document.getElementById('botdice-'+seat);
+    if(_botDiceEl){ _botDiceEl.style.display='block'; _botDiceEl.textContent = v; }
 
     if(G.over || G.turn !== seat){ G.rolled=false; G.diceVal=null; return; }
 
@@ -4937,6 +4964,7 @@ function resetTurnTimeout(){
   clearTimeout(_turnTimeoutTimer);
   _turnTimeoutTimer = null;
   if(G.over) return;
+  if(window._pnpMode) return; // PnP: no auto-timeout, all seats are human-controlled
   if(G.turn === MY_SEAT) return;
   if(PLAYERS[G.turn]?.isBot){
     if(amIElderPlayer()){
@@ -4959,6 +4987,10 @@ function resetTurnTimeout(){
 }
 function onHumanRoll(){
   if(G.rolled||G.over||G_PAUSED||_rolling||_animating) return;
+  if(window._pnpMode && window._setMY_SEAT && window._getG){
+    const _g = window._getG();
+    if(_g) window._setMY_SEAT(_g.turn);
+  }
   if(G.turn !== MY_SEAT) return;
   doRoll(G.turn);
 }
@@ -5038,6 +5070,10 @@ function afterRoll(pid,v){
   pushGameState({ action:"roll", dice:v, selectable });
 }
 async function onTokClick(pid,tid){
+  // PnP: sync MY_SEAT immediately so guard checks below pass correctly
+  if(window._pnpMode && window._setMY_SEAT){
+    window._setMY_SEAT(G.turn);
+  }
   if(pid !== MY_SEAT) return;
   if(G.turn !== MY_SEAT) return;
   if(!G.waiting || !G.rolled) return;
@@ -5468,6 +5504,11 @@ function nextTurn(same, wasSix){
     const pid=G.turn;
     if(dAcc.busy[pid]) dAcc.busy[pid]=false;
     _lastTimerTurn = -1; // force timer restart on bonus turn (six/capture)
+  }
+  // ── PnP: immediately sync MY_SEAT = G.turn (don't wait for 200ms poll) ──
+  if(window._pnpMode && window._setMY_SEAT){
+    window._setMY_SEAT(G.turn);
+    if(window._setCacheValid) window._setCacheValid(false);
   }
   syncUI();
 }
@@ -6183,7 +6224,7 @@ function _testStartGame(numPlayers, chosenVisualSeat){
   document.getElementById("game-wrap").style.display = "inline-flex";
   document.getElementById("top-bar").style.display = "flex";
   const _thmLocal = getBoardTheme();
-  PLAYERS.forEach((p,i) => { if(_thmLocal.colors && _thmLocal.colors[i]) p.color = _thmLocal.colors[i]; });
+  PLAYERS.forEach((p) => { if(_thmLocal.colors && _thmLocal.colors[p.id] != null) p.color = _thmLocal.colors[p.id]; });
   buildBoard();
   buildPlayers();
   _sdeReset();
@@ -6799,7 +6840,7 @@ function passPlayStartGame(n) {
     var _thm = window._getBoardTheme();
     var _pl = window._getPLAYERS();
     _pl.forEach(function(p, i) {
-      if (_thm.colors && _thm.colors[i]) p.color = _thm.colors[i];
+      if (_thm.colors && _thm.colors[p.id] != null) p.color = _thm.colors[p.id];
     });
   }
 
@@ -7000,7 +7041,7 @@ function cpuStartGame(n) {
     var _thm = window._getBoardTheme();
     var _pl = window._getPLAYERS();
     _pl.forEach(function(p, i) {
-      if (_thm.colors && _thm.colors[i]) p.color = _thm.colors[i];
+      if (_thm.colors && _thm.colors[p.id] != null) p.color = _thm.colors[p.id];
     });
   }
 
@@ -7181,7 +7222,7 @@ function cpuStartGame(n) {
     if(!code) return;
     if(typeof window.db==='undefined' || !window.db || !window.db.ref) return;
     try {
-      window.db.ref('vault_index/'+code).set({
+      window.db.ref('vault_index/'+code).update({
         code: code,
         date: new Date().toISOString(),
         players: playerNames || [],
