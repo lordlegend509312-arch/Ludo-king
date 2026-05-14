@@ -98,7 +98,7 @@ if(btn)btn.addEventListener('click',()=>{SFX.setMuted(!SFX.isMuted());});
 <div id="lobby"><div id="lobby-inner"><div id="lobby-crown" onclick="window.togglePrivateChat()">👑</div><div id="lobby-sub">ONLINE MULTIPLAYER</div><div id="lobby-divider"></div><div id="lobby-cards" style="display:flex;flex-direction:column;gap:10px;width:100%;"><div class="s-card" id="btn-create-room"><div class="s-card-icon" style="background:linear-gradient(135deg,#f5a623,#e07b00);">🏠</div><div class="s-card-text"><div class="s-card-title">Create Room</div><div class="s-card-sub">Host a game and share the code</div></div><div class="s-card-arrow">›</div><div class="s-card-shine"></div></div><div class="s-card" id="btn-join-room"><div class="s-card-icon" style="background:linear-gradient(135deg,#00bcd4,#0086a0);">🔗</div><div class="s-card-text"><div class="s-card-title">Join Room</div><div class="s-card-sub">Enter a 6-digit room code</div></div><div class="s-card-arrow">›</div><div class="s-card-shine"></div></div></div><div id="rejoin-card" class="s-card" style="display:none;border-color:rgba(0,174,239,.4);background:rgba(0,174,239,.06);" onclick="window.tryRejoin()"><div class="s-card-icon" style="background:linear-gradient(135deg,#00AEEF,#0077aa);">🔄</div><div class="s-card-text"><div class="s-card-title">Rejoin Game</div><div class="s-card-sub" id="rejoin-sub">Tap to rejoin your last room</div></div><div class="s-card-arrow">›</div><div class="s-card-shine"></div></div><div id="lobby-conn" style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:11px;font-family:'Nunito',sans-serif;color:var(--muted);"><div id="lobby-conn-dot" style="width:8px;height:8px;border-radius:50%;background:#888;flex-shrink:0;transition:background 0.3s;"></div><span id="lobby-conn-text">Connecting to server...</span></div><div class="s-card" id="btn-customization" style="background:linear-gradient(145deg,#1e1240,#140c28);border:1.5px solid rgba(245,200,66,0.35);"><div class="s-card-icon" style="background:linear-gradient(135deg,#6b0000,#3a0000);"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><line x1="7" y1="19" x2="18" y2="8" stroke="#F5C518" stroke-width="2" stroke-linecap="round"/><rect x="5.5" y="17.5" width="3" height="3" rx="0.8" fill="#F5C518" transform="rotate(45,7,19)"/><circle cx="19" cy="7" r="2" fill="#ffe57a"/><path d="M19 3.5 V4.5 M19 9.5 V10.5 M15.5 7 H16.5 M21.5 7 H22.5" stroke="#F5C518" stroke-width="1.2" stroke-linecap="round"/><circle cx="11" cy="14" r="1" fill="#F5C518" opacity="0.8"/><path d="M22 14 L22.5 15 L23.5 15.3 L22.5 15.6 L22 16.5 L21.5 15.6 L20.5 15.3 L21.5 15 Z" fill="#ffe57a" opacity="0.9"/><path d="M6 9 L6.4 9.9 L7.4 10.2 L6.4 10.5 L6 11.4 L5.6 10.5 L4.6 10.2 L5.6 9.9 Z" fill="#fff3b0" opacity="0.9"/></svg></div><div class="s-card-text"><div class="s-card-title">Customization</div><div class="s-card-sub" id="custom-sub-label">Tap to customize your game</div></div><div class="s-card-arrow">›</div><div class="s-card-shine"></div></div></div>
 </div><div class="modal-overlay" id="modal-create"><div class="modal-box"><div class="modal-title">Create Room</div><div class="modal-sub">Choose number of players</div><div style="display:flex;gap:8px;width:100%;"><button class="modal-btn" id="btn-2p" style="flex:1;">2P</button><button class="modal-btn" id="btn-3p" style="flex:1;">3P</button><button class="modal-btn" id="btn-4p" style="flex:1;">4P</button></div><button class="modal-btn secondary" id="btn-cancel-create">Cancel</button></div>
 </div>
-<div class="modal-overlay" id="modal-waiting"><div class="modal-box"><div class="modal-title">Waiting for Players</div><div class="modal-sub">Share this code with friends</div><div class="room-code-display" id="display-room-code" title="Tap to copy">------</div><div class="copy-hint">📋 Tap to copy</div><div class="copy-toast" id="copy-toast">✓ Copied!</div><div id="player-list" style="display:flex;flex-direction:column;gap:6px;width:100%;"></div><div class="modal-sub waiting-dots" id="waiting-status">Waiting</div><div id="online-team-wrap" style="display:none;width:100%;"><div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;border:1.5px solid rgba(245,197,24,.2);background:rgba(245,197,24,.05);cursor:pointer;gap:10px;" onclick="_onlineToggleTeam()"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.1rem;">🤝</span><div><div style="color:var(--text);font-size:.82rem;font-weight:800;font-family:'Nunito',sans-serif;">Team Mode</div><div id="online-team-sub" style="font-size:11px;font-family:'Nunito',sans-serif;font-weight:600;color:rgba(240,240,255,.4);">Play with a partner, two teams of two</div></div></div><div id="online-team-toggle" style="width:40px;height:22px;border-radius:11px;background:#2a2a55;border:1.5px solid #444466;position:relative;transition:all .2s;flex-shrink:0;"><div id="online-team-knob" style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#888;transition:all .2s;"></div></div></div></div><button class="modal-btn" id="btn-start-game" disabled style="background:var(--surface);border:1.5px solid var(--border2);color:var(--muted);">Start Game</button><button class="modal-btn secondary" id="btn-leave-waiting">Leave Room</button></div>
+<div class="modal-overlay" id="modal-waiting"><div class="modal-box"><div class="modal-title">Waiting for Players</div><div class="modal-sub">Share this code with friends</div><div class="room-code-display" id="display-room-code" title="Tap to copy">------</div><div class="copy-hint">📋 Tap to copy</div><div class="copy-toast" id="copy-toast">✓ Copied!</div><div id="player-list" style="display:flex;flex-direction:column;gap:6px;width:100%;"></div><div class="modal-sub waiting-dots" id="waiting-status">Waiting</div><div id="online-team-wrap" style="display:none;width:100%;"><div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:12px;border:1.5px solid rgba(245,197,24,.2);background:rgba(245,197,24,.05);cursor:pointer;gap:10px;" onclick="_onlineToggleTeam()"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.1rem;">🤝</span><div><div style="color:var(--text);font-size:.82rem;font-weight:800;font-family:'Nunito',sans-serif;">Team Mode</div><div id="online-team-sub" style="font-size:11px;font-family:'Nunito',sans-serif;font-weight:600;color:rgba(240,240,255,.4);">Play with a partner, two teams of two</div></div></div><div id="online-team-toggle" style="width:40px;height:22px;border-radius:11px;background:#2a2a55;border:1.5px solid #444466;position:relative;transition:all .2s;flex-shrink:0;"><div id="online-team-knob" style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#888;transition:all .2s;"></div></div></div><div id="online-team-selector" style="display:none;width:100%;"></div></div><button class="modal-btn" id="btn-start-game" disabled style="background:var(--surface);border:1.5px solid var(--border2);color:var(--muted);">Start Game</button><button class="modal-btn secondary" id="btn-leave-waiting">Leave Room</button></div>
 </div>
 <div class="modal-overlay" id="modal-join"><div class="modal-box"><div class="modal-title">Join Room</div><div class="modal-sub">Enter the 6-digit room code</div><input class="modal-input" id="join-code-input" type="text" maxlength="6" placeholder="000000"
       oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"><input class="modal-input" id="join-name-input" type="text" maxlength="12" placeholder="Your Name"
@@ -1053,6 +1053,7 @@ status:"waiting",
 host:MY_SEAT,
 seatLayout:layout,
 teamMode:false,
+teamAssign:{0:'A',1:'B',2:'B',3:'A'},
 createdAt:firebase.database.ServerValue.TIMESTAMP,
 players:{
 [MY_SEAT]:{name:MY_NAME,seat:MY_SEAT,online:true,joinedAt:firebase.database.ServerValue.TIMESTAMP}
@@ -1103,6 +1104,7 @@ closeModals();
 document.getElementById("display-room-code").textContent=code;
 document.getElementById("modal-waiting").classList.add("show");
 _onlineTeamModeUpdateUI(rData.numPlayers,false,rData.teamMode||false);
+window._lobbyTeamAssign=rData.teamAssign||{0:'A',1:'B',2:'B',3:'A'};
 listenRoom();
 };
 let _gameStarted=false;
@@ -1185,6 +1187,14 @@ _onlineTeamModeUpdateUI(NUM_PLAYERS,IS_HOST,val);
 };
 teamModeRef.on('value',cbTeamMode);
 _listeners.push(()=>teamModeRef.off('value',cbTeamMode));
+const teamAssignRef=db.ref(`rooms/${ROOM_CODE}/teamAssign`);
+const cbTeamAssign=snap=>{
+const val=snap.val();
+if(val)window._lobbyTeamAssign=val;
+_renderTeamSelector();
+};
+teamAssignRef.on('value',cbTeamAssign);
+_listeners.push(()=>teamAssignRef.off('value',cbTeamAssign));
 const forceDiceRef=db.ref(`rooms/${ROOM_CODE}/forceDice`);
 const cbForceDice=snap=>{
 const val=snap.val();
@@ -1210,33 +1220,92 @@ function _onlineTeamModeUpdateUI(numPlayers,isHost,teamOn){
 const wrap=document.getElementById('online-team-wrap');
 if(!wrap)return;
 if(numPlayers!==4){wrap.style.display='none';return;}
-wrap.style.display='block';
+wrap.style.display='flex';
+wrap.style.flexDirection='column';
+wrap.style.gap='8px';
 const tog=document.getElementById('online-team-toggle');
 const knob=document.getElementById('online-team-knob');
 const sub=document.getElementById('online-team-sub');
 const card=wrap.querySelector('div');
 if(teamOn){
-if(tog){tog.style.background='#F5C518';tog.style.borderColor='#F5C518';}
+if(tog){tog.style.background='#F5C518';tog.style.borderColor='#F5C518';tog.dataset.on='1';}
 if(knob){knob.style.background='#1a1200';knob.style.left='20px';}
 if(sub)sub.textContent='🤝 Team mode on · two teams of two';
 }else{
-if(tog){tog.style.background='#2a2a55';tog.style.borderColor='#444466';}
+if(tog){tog.style.background='#2a2a55';tog.style.borderColor='#444466';tog.dataset.on='0';}
 if(knob){knob.style.background='#888';knob.style.left='2px';}
-if(sub)sub.textContent='Play with a partner,two teams of two';
+if(sub)sub.textContent='Play with a partner, two teams of two';
 }
 if(card)card.style.cursor=isHost?'pointer':'default';
 if(card)card.style.opacity=isHost?'1':'0.6';
 if(!isHost)card.onclick=null;
+const sel=document.getElementById('online-team-selector');
+if(sel)sel.style.display=teamOn?'block':'none';
+_renderTeamSelector();
 }
+function _renderTeamSelector(){
+const sel=document.getElementById('online-team-selector');
+if(!sel)return;
+const tog=document.getElementById('online-team-toggle');
+const teamOn=tog&&tog.dataset.on==='1';
+if(!teamOn){sel.style.display='none';return;}
+sel.style.display='block';
+const ta=window._lobbyTeamAssign||{0:'A',1:'B',2:'B',3:'A'};
+const playerList=window._lobbyPlayers||{};
+const colorNames={0:'Yellow',1:'Pink',2:'Green',3:'Blue'};
+const colorHex={0:'#FFD600',1:'#FF2D78',2:'#00C853',3:'#00AEEF'};
+const teamA=Object.keys(ta).map(Number).filter(s=>ta[s]==='A');
+const teamB=Object.keys(ta).map(Number).filter(s=>ta[s]==='B');
+function playerName(seat){
+const p=playerList[seat];
+return p?`<b>${escapeHtmlLobby(p.name)}</b>`:`<span style="color:var(--muted);font-style:italic;font-size:.7rem;">Empty</span>`;
+}
+function swapBtns(seat){
+if(!IS_HOST)return '';
+const otherSeats=Object.keys(ta).map(Number).filter(s=>s!==seat&&ta[s]!==ta[seat]);
+return otherSeats.map(os=>`<button onclick="_swapTeams(${seat},${os})" style="padding:2px 7px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(240,240,255,.6);font-size:.62rem;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;" onmouseover="this.style.background='rgba(245,197,24,.15)';this.style.borderColor='rgba(245,197,24,.4)';this.style.color='#F5C518'" onmouseout="this.style.background='rgba(255,255,255,.06)';this.style.borderColor='rgba(255,255,255,.15)';this.style.color='rgba(240,240,255,.6)'">⇄ ${colorNames[os]}</button>`).join('');
+}
+function teamBlock(seats,label,color){
+const rows=seats.map(seat=>`
+<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(255,255,255,.03);border-radius:8px;border:1px solid rgba(255,255,255,.06);">
+<div style="width:8px;height:8px;border-radius:50%;background:${colorHex[seat]};box-shadow:0 0 5px ${colorHex[seat]};flex-shrink:0;"></div>
+<div style="flex:1;min-width:0;">
+<div style="font-size:.76rem;font-family:'Nunito',sans-serif;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${playerName(seat)} <span style="color:${colorHex[seat]};font-size:.68rem;">(${colorNames[seat]})</span></div>
+</div>
+${IS_HOST?`<div style="display:flex;gap:3px;flex-shrink:0;">${swapBtns(seat)}</div>`:''}
+</div>`).join('');
+return `<div style="flex:1;min-width:0;">
+<div style="font-size:.62rem;font-weight:900;letter-spacing:1.5px;color:${color};font-family:'Rajdhani',sans-serif;margin-bottom:5px;padding:2px 4px;">TEAM ${label}</div>
+<div style="display:flex;flex-direction:column;gap:4px;">${rows}</div>
+</div>`;
+}
+sel.innerHTML=`<div style="padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);">
+<div style="display:flex;gap:10px;width:100%;">
+${teamBlock(teamA,'A','#00AEEF')}
+<div style="width:1px;background:rgba(255,255,255,.08);flex-shrink:0;margin:4px 0;"></div>
+${teamBlock(teamB,'B','#FF2D78')}
+</div>
+${IS_HOST?`<div style="font-size:.62rem;color:var(--muted);font-family:'Nunito',sans-serif;text-align:center;margin-top:8px;">⇄ Tap to swap players between teams</div>`:''}
+</div>`;
+}
+window._swapTeams=function(seatA,seatB){
+if(!IS_HOST||!ROOM_CODE)return;
+const ta=window._lobbyTeamAssign||{0:'A',1:'B',2:'B',3:'A'};
+const newAssign=Object.assign({},ta);
+const tmp=newAssign[seatA];
+newAssign[seatA]=newAssign[seatB];
+newAssign[seatB]=tmp;
+db.ref(`rooms/${ROOM_CODE}/teamAssign`).set(newAssign).catch(()=>{});
+};
 function _onlineToggleTeam(){
 if(!IS_HOST||!ROOM_CODE)return;
 const tog=document.getElementById('online-team-toggle');
-const isCurrentlyOn=tog&&tog.style.background.includes('F5C518');
+const isCurrentlyOn=tog&&tog.dataset.on==='1';
 const newVal=!isCurrentlyOn;
-db.ref(`rooms/${ROOM_CODE}/teamMode`).set(newVal).catch(e=>{
-});
+db.ref(`rooms/${ROOM_CODE}/teamMode`).set(newVal).catch(e=>{});
 }
 function updatePlayerList(players){
+window._lobbyPlayers=players;
 const container=document.getElementById("player-list");
 container.innerHTML="";
 const seats=Object.values(players).sort((a,b)=>a.seat-b.seat);
@@ -1258,6 +1327,7 @@ const status=document.getElementById("waiting-status");
 const needed=NUM_PLAYERS;
 const have=Object.keys(players).length;
 status.textContent=have>=needed?"All players joined!":`Waiting for ${needed-have}more player${needed-have>1?'s':''}`;
+_renderTeamSelector();
 }
 function escapeHtmlLobby(str){
 return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -1278,6 +1348,7 @@ const firstTurn=layout.find(s=>seats.includes(s))??layout[0];
 const roomSnap=await roomRef.once('value');
 const roomData=roomSnap.val()||{};
 const _startTeamMode=(NUM_PLAYERS===4)&&(roomData.teamMode===true);
+const _teamAssign=roomData.teamAssign||{0:'A',1:'B',2:'B',3:'A'};
 const initGame={
 turn:firstTurn,
 diceVal:null,
@@ -1289,6 +1360,7 @@ tokens,
 placements:[],
 seatLayout:layout,
 teamMode:_startTeamMode,
+teamAssign:_startTeamMode?_teamAssign:null,
 lastAction:null,
 actionBy:null,
 timestamp:firebase.database.ServerValue.TIMESTAMP
@@ -1310,6 +1382,7 @@ const gSnap=await gameRef.once('value');
 const gData=gSnap.val()||{};
 SEAT_LAYOUT_ACTIVE=gData.seatLayout||SEAT_LAYOUTS[NUM_PLAYERS]||[0,1,2,3];
 window._teamMode=(NUM_PLAYERS===4)&&(gData.teamMode===true);
+window._teamAssign=gData.teamAssign||{0:'A',1:'B',2:'B',3:'A'};
 PLAYERS=[];
 for(let seat=0;seat<4;seat++){
 const p=playersData[seat];
@@ -1404,6 +1477,7 @@ else if(p.action==="move"&&_pendingMoveBySeat[p.actionBy]==null)_pendingMoveBySe
 function syncGameState(data,_forceApply){
 if(!_gameLoaded){return;}
 if(!_forceApply&&data.actionBy===MY_SEAT)return;
+if(!_forceApply&&data.actionBy!=null&&data.actionBy!==MY_SEAT&&PLAYERS[data.actionBy]?.isBot&&amIElderPlayer())return;
 const _rawDice=data.dice??data.diceVal;
 if(data.action==="roll"&&_rawDice!=null)_lastSeenDice[data.actionBy]=_rawDice;
 if(data.action==="move"&&_rawDice==null&&_lastSeenDice[data.actionBy]!=null){
@@ -1499,6 +1573,11 @@ _flushSyncPending();
 return;
 }
 if(dice!=null&&rolledBy!=null){
+if(PLAYERS[rolledBy]?.isBot){
+const _bd=document.getElementById('botdice-'+rolledBy);
+if(_bd){_bd.style.display='block';_bd.textContent=dice;}
+syncUI();_flushSyncPending();
+}else{
 _sfxDiceRollSynced(data);
 _syncAnimPlaying=true;
 const _syncPlayGuard1=setTimeout(()=>{_lastRollAnimBy=rolledBy;_syncAnimPlaying=false;syncUI();_flushSyncPending();},DICE_DUR_MS+100);
@@ -1509,6 +1588,7 @@ _syncAnimPlaying=false;
 syncUI();
 _flushSyncPending();
 });
+}
 }else{
 syncUI();
 }
@@ -1636,6 +1716,8 @@ applyFinalState();
 if(dice!=null&&rolledBy!=null){
 if(rolledBy===MY_SEAT){
 runMoveAnim();
+}else if(PLAYERS[rolledBy]?.isBot){
+runMoveAnim();
 }else if(_lastRollAnimBy===rolledBy){
 _lastRollAnimBy=-1;
 runMoveAnim();
@@ -1660,7 +1742,7 @@ G.sixes=data.sixes||0;
 _applyPlacements(data.placements);
 if(G.turn!==prevTurn)_lastTimerTurn=-1;
 if((dice!=null&&dice!==-1)&&rolledBy!=null){
-if(rolledBy===MY_SEAT){
+if(rolledBy===MY_SEAT||PLAYERS[rolledBy]?.isBot){
 syncUI();_flushSyncPending();
 }else if(_lastRollAnimBy===rolledBy){
 _lastRollAnimBy=-1;
@@ -1696,7 +1778,7 @@ if(data.tokens&&!_animating)G.tokens=JSON.parse(JSON.stringify(data.tokens));
 syncUI();
 }
 let _pushDebounce=null;
-function pushGameState(extra={}){
+function pushGameState(extra={},_actionBy){
 setSyncStatus("warn");
 const payload={
 turn:G.turn,
@@ -1708,7 +1790,7 @@ sixes:G.sixes,
 tokens:G.tokens,
 placements:G.placements,
 seatLayout:SEAT_LAYOUT_ACTIVE,
-actionBy:MY_SEAT,
+actionBy:(_actionBy!=null?_actionBy:MY_SEAT),
 timestamp:(window._cpuMode||window._pnpMode?Date.now():firebase.database.ServerValue.TIMESTAMP),
 ...extra,
 ...(extra.action==='roll'?{rollTs:Date.now()}:{})
@@ -1816,6 +1898,9 @@ _pendingSync=[];
 ROOM_CODE=null;MY_SEAT=null;IS_HOST=false;MY_SLOT=0;
 gameRef=null;roomRef=null;playersRef=null;
 window._teamMode=false;
+window._lobbyTeamAssign={0:'A',1:'B',2:'B',3:'A'};
+window._lobbyPlayers={};
+window._teamAssign={0:'A',1:'B',2:'B',3:'A'};
 const _onTeamWrap=document.getElementById('online-team-wrap');
 if(_onTeamWrap)_onTeamWrap.style.display='none';
 _rolling=false;_animating=false;_onlineSeats=new Set();
@@ -2326,8 +2411,12 @@ return true;
 });
 }
 function getTeammate(seat){
-if(!window._teamMode)return-1;
-return seat===0?2:seat===2?0:seat===1?3:seat===3?1:-1;
+if(!window._teamMode)return -1;
+const ta=window._teamAssign||{0:'A',1:'B',2:'B',3:'A'};
+const myTeam=ta[seat];
+if(!myTeam)return -1;
+const mate=Object.keys(ta).map(Number).find(s=>s!==seat&&ta[s]===myTeam);
+return mate!=null?mate:-1;
 }
 function isTeammate(seatA,seatB){
 return window._teamMode&&getTeammate(seatA)===seatB;
@@ -3702,13 +3791,14 @@ syncGameState(fresh,true);
 }
 function _aiScoreMove(seat,tok,diceVal){
 const toStep=tok.step===0?1:tok.step+diceVal;
+const _tokPid=tok.pid!==undefined?tok.pid:seat;
 const diff=typeof _cpuDifficulty!=='undefined'?_cpuDifficulty:'normal';
 let score=0;
 if(diff==='easy')return Math.random()*100;
 if(toStep>=STEP_DONE)return 10000;
 if(tok.step<STEP_STRETCH_START&&toStep>=STEP_STRETCH_START)score+=400;
 if(toStep<=STEP_MAIN_END){
-const rc=getCell(seat,toStep);
+const rc=getCell(_tokPid,toStep);
 if(rc){
 const ck=`${rc[0]}-${rc[1]}`;
 if(!SAFE.has(ck)){
@@ -3723,11 +3813,11 @@ if(oc&&`${oc[0]}-${oc[1]}`===ck)score+=350;
 }
 if(tok.step===0)score+=160;
 if(toStep<=STEP_MAIN_END){
-const rc=getCell(seat,toStep);
+const rc=getCell(_tokPid,toStep);
 if(rc&&SAFE.has(`${rc[0]}-${rc[1]}`))score+=80;
 }
 if(diff==='hard'&&toStep<=STEP_MAIN_END){
-const rc=getCell(seat,toStep);
+const rc=getCell(_tokPid,toStep);
 if(rc){
 const ck=`${rc[0]}-${rc[1]}`;
 if(!SAFE.has(ck)){
@@ -3766,39 +3856,24 @@ const thinkMs=diff==='easy'?150+Math.random()*150
 :200+Math.random()*150;
 await new Promise(res=>setTimeout(res,thinkMs));
 if(G.over||G.turn!==seat){return;}
-_rolling=true;
-const rollSafety=setTimeout(()=>{_rolling=false;},DICE_DUR_MS+600);
-const d3d=document.getElementById(`d3d-${seat}`);
-if(d3d)d3d.classList.add('off');
 const v=smartRng(seat);
 G.rolled=true;G.diceVal=v;
-navigator.vibrate&&navigator.vibrate(18);
-SFX.play('dice');
-const _offBadge=document.getElementById('offbadge-'+seat);
-const _skipAnim=_offBadge&&_offBadge.classList.contains('show');
-if(_skipAnim){
-clearTimeout(rollSafety);
-_rolling=false;
-}else{
-await new Promise(res=>animDice(seat,v,res));
-clearTimeout(rollSafety);
-_rolling=false;
-if(d3d)d3d.classList.remove('off');
-}
 const _botDiceEl=document.getElementById('botdice-'+seat);
 if(_botDiceEl){_botDiceEl.style.display='block';_botDiceEl.textContent=v;}
 if(G.over||G.turn!==seat){G.rolled=false;G.diceVal=null;return;}
 if(v===6){G.sixes=(G.sixes||0)+1;
 if(G.sixes>=3){G.sixes=0;G.rolled=false;G.diceVal=null;_rolling=false;nextTurn(false);
-pushGameState({action:"skip",dice:v,reason:"3sixes"});return;}
+pushGameState({action:"skip",dice:v,reason:"3sixes"},seat);return;}
 }else{G.sixes=0;}
-const mv=movable(seat,v);
+const mv=teamMovable(seat,v);
 if(mv.length===0){
 await new Promise(res=>setTimeout(res,150));
+pushGameState({action:"roll",dice:v,selectable:[]},seat);
 nextTurn(false);
-pushGameState({action:"skip",dice:v,reason:"noMove"});
+pushGameState({action:"skip",dice:v,reason:"noMove"},seat);
 return;
 }
+pushGameState({action:"roll",dice:v,selectable:mv.map(t=>t.tid)},seat);
 let best=mv[0];
 let bestScore=-Infinity;
 for(const tok of mv){
@@ -4340,7 +4415,7 @@ dice:v,
 moves:movesPayload,
 movedPid:pid,
 movedTid:tid
-}).catch(e=>{_animating=false;});
+},pid).catch(e=>{_animating=false;});
 }
 function nextTurn(same,wasSix){
 G.rolled=false;_rolling=false;G.diceVal=null;G.waiting=false;
